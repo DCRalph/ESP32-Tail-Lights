@@ -19,7 +19,7 @@ IndicatorEffect::IndicatorEffect(LEDManager *_ledManager, Side side, uint8_t pri
 
   // Default color is amber/yellow.
   baseR = 255;
-  baseG = 120;
+  baseG = 100;
   baseB = 0;
 }
 
