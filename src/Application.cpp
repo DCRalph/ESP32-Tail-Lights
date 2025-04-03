@@ -22,18 +22,36 @@ Application::Application()
 // Initialize input pointers.
 #ifdef ENABLE_HV_INPUTS
   accOn = &input1;
-  brake = &input2;
-  leftIndicator = &input3;
-  rightIndicator = &input4;
-  reverse = &input5;
+  leftIndicator = &input2;
+  rightIndicator = &input3;
+  externalControl = &input4;
+
+#ifdef HEAD_LIGHTS
+  highBeam = &input5;
+  lowBeam = &input6;
+#endif
+
+#ifdef TAIL_LIGHTS
+  brake = &input5;
+  reverse = &input6;
+#endif
 #endif
 
   // Set default states.
   accOnState = false;
-  brakeState = false;
   leftIndicatorState = false;
   rightIndicatorState = false;
+  externalControlState = false;
+
+#ifdef HEAD_LIGHTS
+  highBeamState = false;
+  lowBeamState = false;
+#endif
+
+#ifdef TAIL_LIGHTS
+  brakeState = false;
   reverseState = false;
+#endif
 
   lastAccOn = 0;
 }
@@ -44,10 +62,25 @@ Application::Application()
  */
 Application::~Application()
 {
+  leftIndicatorEffect = nullptr;
+  rightIndicatorEffect = nullptr;
+  rgbEffect = nullptr;
+  nightriderEffect = nullptr;
+  startupEffect = nullptr;
+
+#ifdef TAIL_LIGHTS
   delete brakeEffect;
+  delete reverseLightEffect;
+#endif
+
+#ifdef HEAD_LIGHTS
+  // delete highBeamEffect;
+  // delete lowBeamEffect;
+  delete headlightEffect;
+#endif
+
   delete leftIndicatorEffect;
   delete rightIndicatorEffect;
-  delete reverseLightEffect;
   delete rgbEffect;
   delete nightriderEffect;
   delete startupEffect;
@@ -56,6 +89,14 @@ Application::~Application()
   delete lockSequence;
   delete RGBFlickSequence;
   delete nightRiderFlickSequence;
+
+#ifdef TAIL_LIGHTS
+  delete brakeTapSequence3;
+#endif
+
+#ifdef HEAD_LIGHTS
+  // No headlight-specific sequences to delete yet
+#endif
 
   delete ledManager;
   ledManager = nullptr;
@@ -84,34 +125,59 @@ void Application::begin()
   ledManager->setDrawFunction(drawLEDs);
 
   // Set each effect's LED manager pointer.
-  brakeEffect = new BrakeLightEffect(ledManager, 8, false);
   leftIndicatorEffect = new IndicatorEffect(ledManager, IndicatorEffect::LEFT,
                                             10, true);
   rightIndicatorEffect = new IndicatorEffect(ledManager, IndicatorEffect::RIGHT,
                                              10, true);
-  reverseLightEffect = new ReverseLightEffect(ledManager, 6, false);
   rgbEffect = new RGBEffect(ledManager, 2, false);
   nightriderEffect = new NightRiderEffect(ledManager, 2, false);
   startupEffect = new StartupEffect(ledManager, 4, false);
+
+#ifdef HEAD_LIGHTS
+  // highBeamEffect = new HighBeamEffect(ledManager, 7, false);
+  // lowBeamEffect = new LowBeamEffect(ledManager, 5, false);
+  headlightEffect = new HeadlightEffect(ledManager, 7, false);
+#endif
+
+#ifdef TAIL_LIGHTS
+  brakeEffect = new BrakeLightEffect(ledManager, 8, false);
+  reverseLightEffect = new ReverseLightEffect(ledManager, 6, false);
+#endif
 
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
   rightIndicatorEffect->setOtherIndicator(leftIndicatorEffect);
 
   // Add effects to the LED manager.
-  ledManager->addEffect(brakeEffect);
   ledManager->addEffect(leftIndicatorEffect);
   ledManager->addEffect(rightIndicatorEffect);
-  ledManager->addEffect(reverseLightEffect);
   ledManager->addEffect(rgbEffect);
   ledManager->addEffect(nightriderEffect);
   ledManager->addEffect(startupEffect);
+
+#ifdef HEAD_LIGHTS
+  // ledManager->addEffect(highBeamEffect);
+  // ledManager->addEffect(lowBeamEffect);
+  ledManager->addEffect(headlightEffect);
+#endif
+
+#ifdef TAIL_LIGHTS
+  ledManager->addEffect(brakeEffect);
+  ledManager->addEffect(reverseLightEffect);
+#endif
 
   // Sequences
   unlockSequence = new BothIndicatorsSequence(1);
   lockSequence = new BothIndicatorsSequence(3);
   RGBFlickSequence = new IndicatorFlickSequence(IndicatorSide::LEFT_SIDE);
   nightRiderFlickSequence = new IndicatorFlickSequence(IndicatorSide::RIGHT_SIDE);
+
+#ifdef HEAD_LIGHTS
+  // No headlight-specific sequences yet
+#endif
+
+#ifdef TAIL_LIGHTS
   brakeTapSequence3 = new BrakeTapSequence(3);
+#endif
 
   unlockSequence->setActive(true);
 
@@ -151,6 +217,11 @@ void Application::begin()
                                          //
                                        });
 
+#ifdef HEAD_LIGHTS
+  // No headlight-specific sequences yet
+#endif
+
+#ifdef TAIL_LIGHTS
   brakeTapSequence3->setActive(true);
   brakeTapSequence3->setCallback([this]()
                                  {
@@ -161,14 +232,34 @@ void Application::begin()
                                    enableNormalMode();
                                    //
                                  });
+#endif
 
   wireless.addOnReceiveFor(0xe0, [&](fullPacket *fp) // ping cmd
                            {
                              lastRemotePing = millis();
 
                              data_packet pTX;
+                             memset(&pTX, 0, sizeof(pTX));
                              pTX.type = 0xe0;
-                             pTX.len = 8;
+                             pTX.len = 9;
+
+                             /*
+                              * 0: mode
+                              * 1: headlight/taillight mode
+                              * 2.0: left indicator
+                              * 3.0: right indicator
+                              * 4.0: startup
+                              * 5.0: rgb
+                              * 6.0: nightrider
+                              * 7.0: headlight / brake
+                              * 7.1: split
+                              * 7.2: red
+                              * 7.3: green
+                              * 7.4: blue
+                              * 8.0: brake
+                              * 8.1: reverse
+                              */
+
                              // sent current mode as uint8_t
                              //  pTX.data[0] = static_cast<uint8_t>(mode);
                              switch (mode)
@@ -189,14 +280,36 @@ void Application::begin()
                                break;
                              }
 
-                             // sent current effects as uint8_t
-                             pTX.data[1] = brakeEffect->isActive();
+#if defined(HEAD_LIGHTS)
+                             pTX.data[1] = 1;
+#elif defined(TAIL_LIGHTS)
+                             pTX.data[1] = 2;
+#else
+                             pTX.data[1] = 0;
+#endif
+
                              pTX.data[2] = leftIndicatorEffect->isActive();
                              pTX.data[3] = rightIndicatorEffect->isActive();
-                             pTX.data[4] = reverseLightEffect->isActive();
-                             pTX.data[5] = startupEffect->isActive();
-                             pTX.data[6] = rgbEffect->isActive();
-                             pTX.data[7] = nightriderEffect->isActive();
+                             pTX.data[4] = startupEffect->isActive();
+                             pTX.data[5] = rgbEffect->isActive();
+                             pTX.data[6] = nightriderEffect->isActive();
+#ifdef HEAD_LIGHTS
+                             //  pTX.data[7] = highBeamEffect->isActive();
+                             //  pTX.data[8] = lowBeamEffect->isActive();
+                             bool r, g, b;
+                             headlightEffect->getColor(r, g, b);
+                             pTX.data[7] = headlightEffect->isActive();
+                             pTX.data[7] |= headlightEffect->getSplit() << 1;
+                             pTX.data[7] |= r << 2;
+                             pTX.data[7] |= g << 3;
+                             pTX.data[7] |= b << 4;
+#endif
+
+#ifdef TAIL_LIGHTS
+                             pTX.data[7] = brakeEffect->isActive();
+                             pTX.data[8] = reverseLightEffect->isActive();
+                             pTX.data[8] |= brakeEffect->getIsReversing() << 1;
+#endif
 
                              wireless.send(&pTX, fp->mac);
                              //
@@ -228,6 +341,7 @@ void Application::begin()
                              }
 
                              data_packet pTX;
+                             memset(&pTX, 0, sizeof(pTX));
                              pTX.type = 0xe1;
                              pTX.len = 1;
                              // sent current mode as uint8_t
@@ -243,36 +357,74 @@ void Application::begin()
 
                              uint8_t *data = fp->p.data;
 
-                             for (int i = 0; i < 7; i++)
+                             for (int i = 0; i < 9; i++)
                              {
-                               bool firstBit = data[i] & 0x01;
-                               bool secondBit = data[i] & 0x02;
-                               bool thirdBit = data[i] & 0x04;
+                               bool firstBit = checkBit(data[i], 0);   // active state
+                               bool secondBit = checkBit(data[i], 1);  // optional state
+                               bool thirdBit = checkBit(data[i], 2);   // optional state
+                               bool fourthBit = checkBit(data[i], 3);  // optional state
+                               bool fifthBit = checkBit(data[i], 4);   // optional state
+                               bool sixthBit = checkBit(data[i], 5);   // optional state
+                               bool seventhBit = checkBit(data[i], 6); // optional state
+                               bool eighthBit = checkBit(data[i], 7);  // optional state
+
+                               /*
+                                * 0.0: left indicator
+                                * 1.0: right indicator
+                                * 2.0: startup
+                                * 3.0: rgb
+                                * 4.0: nightrider
+                                * 5.0: headlight / brake
+                                * 5.1: split
+                                * 5.2: red
+                                * 5.3: green
+                                * 5.4: blue
+                                * 6.0: brake
+                                * 6.1: reverse
+                                */
 
                                switch (i)
                                {
                                case 0:
+                                 leftIndicatorEffect->setActive(firstBit);
+                                 break;
+                               case 1:
+                                 rightIndicatorEffect->setActive(firstBit);
+                                 break;
+                               case 2:
+                                 startupEffect->setActive(firstBit);
+                                 break;
+                               case 3:
+                                 rgbEffect->setActive(firstBit);
+                                 break;
+                               case 4:
+                                 nightriderEffect->setActive(firstBit);
+                                 break;
+
+#ifdef HEAD_LIGHTS
+                                 //  case 5:
+                                 //    highBeamEffect->setActive(firstBit);
+                                 //    break;
+                                 //  case 6:
+                                 //    lowBeamEffect->setActive(firstBit);
+                                 //    break;
+                               case 5:
+                                 headlightEffect->setActive(firstBit);
+                                 headlightEffect->setSplit(secondBit);
+                                 headlightEffect->setColor(thirdBit, fourthBit, fifthBit);
+                                 break;
+
+#endif
+
+#ifdef TAIL_LIGHTS
+                               case 5:
                                  brakeEffect->setActive(firstBit);
                                  brakeEffect->setIsReversing(secondBit);
                                  break;
-                               case 1:
-                                 leftIndicatorEffect->setActive(firstBit);
-                                 break;
-                               case 2:
-                                 rightIndicatorEffect->setActive(firstBit);
-                                 break;
-                               case 3:
+                               case 6:
                                  reverseLightEffect->setActive(firstBit);
                                  break;
-                               case 4:
-                                 startupEffect->setActive(firstBit);
-                                 break;
-                               case 5:
-                                 rgbEffect->setActive(firstBit);
-                                 break;
-                               case 6:
-                                 nightriderEffect->setActive(firstBit);
-                                 break;
+#endif
 
                                default:
                                  break;
@@ -289,10 +441,19 @@ void Application::begin()
 }
 
 static float accVolt = 0;
-static float brakeVolt = 0;
 static float leftVolt = 0;
 static float rightVolt = 0;
+static float externaCtrllVolt = 0;
+
+#ifdef HEAD_LIGHTS
+static float highBeamVolt = 0;
+static float lowBeamVolt = 0;
+#endif
+
+#ifdef TAIL_LIGHTS
 static float reverseVolt = 0;
+static float brakeVolt = 0;
+#endif
 
 void Application::updateInputs()
 {
@@ -310,10 +471,6 @@ void Application::updateInputs()
             (((float)accOn->analogRead() / ADC_MAX *
               ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
              (1 - smoothFactor));
-  brakeVolt = (brakeVolt * smoothFactor) +
-              (((float)brake->analogRead() / ADC_MAX *
-                ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
-               (1 - smoothFactor));
   leftVolt = (leftVolt * smoothFactor) +
              (((float)leftIndicator->analogRead() / ADC_MAX *
                ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
@@ -322,25 +479,65 @@ void Application::updateInputs()
               (((float)rightIndicator->analogRead() / ADC_MAX *
                 ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
                (1 - smoothFactor));
+  externaCtrllVolt = (externaCtrllVolt * smoothFactor) +
+                     (((float)externalControl->analogRead() / ADC_MAX *
+                       ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
+                      (1 - smoothFactor));
+
+#ifdef HEAD_LIGHTS
+  highBeamVolt = (highBeamVolt * smoothFactor) +
+                 (((float)highBeam->analogRead() / ADC_MAX *
+                   ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
+                  (1 - smoothFactor));
+  lowBeamVolt = (lowBeamVolt * smoothFactor) +
+                (((float)lowBeam->analogRead() / ADC_MAX *
+                  ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
+                 (1 - smoothFactor));
+#endif
+
+#ifdef TAIL_LIGHTS
+  brakeVolt = (brakeVolt * smoothFactor) +
+              (((float)brake->analogRead() / ADC_MAX *
+                ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
+               (1 - smoothFactor));
   reverseVolt = (reverseVolt * smoothFactor) +
                 (((float)reverse->analogRead() / ADC_MAX *
                   ADC_REF_VOLTAGE * DIVIDER_FACTOR) *
                  (1 - smoothFactor));
+#endif
 
   // Determine digital state for each input.
   accOnState = accVolt > VOLTAGE_THRESHOLD;
-  brakeState = brakeVolt > VOLTAGE_THRESHOLD;
   leftIndicatorState = leftVolt > VOLTAGE_THRESHOLD;
   rightIndicatorState = rightVolt > VOLTAGE_THRESHOLD;
+  externalControlState = externaCtrllVolt > VOLTAGE_THRESHOLD;
+
+#ifdef HEAD_LIGHTS
+  highBeamState = highBeamVolt > VOLTAGE_THRESHOLD;
+  lowBeamState = lowBeamVolt > VOLTAGE_THRESHOLD;
+#endif
+
+#ifdef TAIL_LIGHTS
+  brakeState = brakeVolt > VOLTAGE_THRESHOLD;
   reverseState = reverseVolt > VOLTAGE_THRESHOLD;
+#endif
 
 #else
 
   accOnState = false;
-  brakeState = false;
   leftIndicatorState = false;
   rightIndicatorState = false;
+  externalControlState = false;
+
+#ifdef HEAD_LIGHTS
+  highBeamState = false;
+  lowBeamState = false;
+#endif
+
+#ifdef TAIL_LIGHTS
+  brakeState = false;
   reverseState = false;
+#endif
 #endif
 }
 
@@ -348,13 +545,10 @@ void Application::updateInputs()
  * update():
  * Main loop update.
  */
-void Application::update()
+void Application::loop()
 {
   // Update input states.
   updateInputs();
-
-  brakeTapSequence3->setInput(brakeState);
-  brakeTapSequence3->loop();
 
   if (lastRemotePing != 0 && millis() - lastRemotePing > 2000)
   {
@@ -363,15 +557,32 @@ void Application::update()
       lastRemotePing = 0;
       mode = ApplicationMode::NORMAL;
       // disable all effects
-      brakeEffect->setActive(false);
       leftIndicatorEffect->setActive(false);
       rightIndicatorEffect->setActive(false);
-      reverseLightEffect->setActive(false);
       rgbEffect->setActive(false);
       nightriderEffect->setActive(false);
       startupEffect->setActive(false);
+
+#ifdef HEAD_LIGHTS
+      // highBeamEffect->setActive(false);
+      // lowBeamEffect->setActive(false);
+      headlightEffect->setActive(false);
+      headlightEffect->setSplit(false);
+      headlightEffect->setColor(false, false, false);
+#endif
+
+#ifdef TAIL_LIGHTS
+      brakeEffect->setActive(false);
+      brakeEffect->setIsReversing(false);
+      reverseLightEffect->setActive(false);
+#endif
     }
   }
+
+#ifdef TAIL_LIGHTS
+  brakeTapSequence3->setInput(brakeState);
+  brakeTapSequence3->loop();
+#endif
 
   switch (mode)
   {
@@ -381,15 +592,7 @@ void Application::update()
 
   case ApplicationMode::TEST:
   {
-    // reverseLightEffect->setActive(true);
-    // brakeEffect->setIsReversing(true);
-
-    // brakeEffect->setActive(io0.read());
-    // leftIndicatorEffect->setActive(io0.read());
-    // rightIndicatorEffect->setActive(io0.read());
-    // reverseLightEffect->setActive(io0.read());
-    // rgbEffect->setActive(io0.read());
-    startupEffect->setActive(io0.read());
+    handleTestEffects();
   }
   break;
 
@@ -400,13 +603,25 @@ void Application::update()
   case ApplicationMode::OFF:
   {
     // turn off all effects
-    brakeEffect->setActive(false);
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
-    reverseLightEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
     startupEffect->setActive(false);
+
+#ifdef HEAD_LIGHTS
+    // highBeamEffect->setActive(false);
+    // lowBeamEffect->setActive(false);
+    headlightEffect->setActive(false);
+    headlightEffect->setSplit(false);
+    headlightEffect->setColor(false, false, false);
+#endif
+
+#ifdef TAIL_LIGHTS
+    brakeEffect->setActive(false);
+    brakeEffect->setIsReversing(false);
+    reverseLightEffect->setActive(false);
+#endif
   }
   break;
   }
@@ -464,13 +679,25 @@ void Application::handleNormalEffects()
     unlockSequence->setActive(true);
 
     // turn off all effects
-    brakeEffect->setActive(false);
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
-    reverseLightEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
     startupEffect->setActive(false);
+
+#ifdef HEAD_LIGHTS
+    // highBeamEffect->setActive(false);
+    // lowBeamEffect->setActive(false);
+    headlightEffect->setActive(false);
+    headlightEffect->setSplit(false);
+    headlightEffect->setColor(false, false, false);
+#endif
+
+#ifdef TAIL_LIGHTS
+    brakeEffect->setActive(false);
+    brakeEffect->setIsReversing(false);
+    reverseLightEffect->setActive(false);
+#endif
   }
 
   if (lastAccOnState != accOnState)
@@ -486,10 +713,22 @@ void Application::handleNormalEffects()
   if (!accOnState)
   {
     // Since ACC is off, disable the other effects.
-    brakeEffect->setActive(false);
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
+
+#ifdef HEAD_LIGHTS
+    // highBeamEffect->setActive(false);
+    // lowBeamEffect->setActive(false);
+    headlightEffect->setActive(false);
+    headlightEffect->setSplit(false);
+    headlightEffect->setColor(false, false, false);
+#endif
+
+#ifdef TAIL_LIGHTS
+    brakeEffect->setActive(false);
+    brakeEffect->setIsReversing(false);
     reverseLightEffect->setActive(false);
+#endif
   }
   else
   {
@@ -499,13 +738,39 @@ void Application::handleNormalEffects()
     startupEffect->setActive(false);
 
     // And process the other effects normally.
-    brakeEffect->setActive(brakeState);
-    brakeEffect->setIsReversing(reverseState || reverseLightEffect->isAnimating());
-
     leftIndicatorEffect->setActive(leftIndicatorState);
     rightIndicatorEffect->setActive(rightIndicatorState);
+
+#ifdef HEAD_LIGHTS
+    // highBeamEffect->setActive(highBeamState);
+    // lowBeamEffect->setActive(lowBeamState);
+    headlightEffect->setActive(highBeamState);
+#endif
+
+#ifdef TAIL_LIGHTS
+    brakeEffect->setActive(brakeState);
+    brakeEffect->setIsReversing(reverseState || reverseLightEffect->isAnimating());
     reverseLightEffect->setActive(reverseState);
+#endif
   }
+}
+
+void Application::handleTestEffects()
+{
+  // Test Mode - Add headlight testing
+
+  // highBeamEffect->setActive(io0.read());
+  // lowBeamEffect->setActive(io0.read());
+
+  // reverseLightEffect->setActive(true);
+  // brakeEffect->setIsReversing(true);
+
+  // brakeEffect->setActive(io0.read());
+  // leftIndicatorEffect->setActive(io0.read());
+  // rightIndicatorEffect->setActive(io0.read());
+  // reverseLightEffect->setActive(io0.read());
+  // rgbEffect->setActive(io0.read());
+  // startupEffect->setActive(io0.read());
 }
 
 void Application::handleRemoteEffects()

@@ -55,5 +55,5 @@ void loop()
   unsigned long currentTime = millis();
   wireless.loop();
 
-  app->update();
+  app->loop();
 }

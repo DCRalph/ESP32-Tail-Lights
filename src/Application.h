@@ -11,6 +11,11 @@
 #include "IO/LED/Effects/RGBEffect.h"
 #include "IO/LED/Effects/NightRiderEffect.h"
 #include "IO/LED/Effects/StartupEffect.h"
+#ifdef HEAD_LIGHTS
+#include "IO/LED/Effects/HighBeamEffect.h"
+#include "IO/LED/Effects/LowBeamEffect.h"
+#include "IO/LED/Effects/HeadlightEffect.h"
+#endif
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -39,8 +44,8 @@ public:
   // Call once to initialize the system.
   void begin();
 
-  // Main update function to be called from loop()
-  void update();
+  // Main loop function to be called from loop()
+  void loop();
 
   // Set testMode externally.
   void enableNormalMode();
@@ -57,45 +62,77 @@ private:
   // Input pointers.
 
 #ifdef ENABLE_HV_INPUTS
-  GpIO *accOn;          // 12v ACC
-  GpIO *brake;          // Brake
-  GpIO *leftIndicator;  // Left indicator
-  GpIO *rightIndicator; // Right indicator
-  GpIO *reverse;        // Reverse
+  GpIO *accOn;           // 12v ACC
+  GpIO *leftIndicator;   // Left indicator
+  GpIO *rightIndicator;  // Right indicator
+  GpIO *externalControl; // button to do things
+
+#ifdef HEAD_LIGHTS
+  GpIO *highBeam; // High beam
+  GpIO *lowBeam;  // Low beam
+#endif
+
+#ifdef TAIL_LIGHTS
+  GpIO *brake;   // Brake
+  GpIO *reverse; // Reverse
+#endif
+
 #endif
 
   bool accOnState;
   bool lastAccOnState;
-  bool brakeState;
   bool leftIndicatorState;
   bool rightIndicatorState;
+  bool externalControlState;
+
+#ifdef HEAD_LIGHTS
+  bool highBeamState;
+  bool lowBeamState;
+#endif
+
+#ifdef TAIL_LIGHTS
+  bool brakeState;
   bool reverseState;
+#endif
 
   void updateInputs();
 
   uint64_t lastAccOn;
 
   // Effect instances.
-  BrakeLightEffect *brakeEffect;
   IndicatorEffect *leftIndicatorEffect;
   IndicatorEffect *rightIndicatorEffect;
-  ReverseLightEffect *reverseLightEffect;
   RGBEffect *rgbEffect;
   NightRiderEffect *nightriderEffect;
   StartupEffect *startupEffect;
+
+#ifdef HEAD_LIGHTS
+  // HighBeamEffect *highBeamEffect;
+  // LowBeamEffect *lowBeamEffect;
+  HeadlightEffect *headlightEffect;
+#endif
+
+#ifdef TAIL_LIGHTS
+  BrakeLightEffect *brakeEffect;
+  ReverseLightEffect *reverseLightEffect;
+#endif
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;
   BothIndicatorsSequence *lockSequence;
   IndicatorFlickSequence *RGBFlickSequence;
   IndicatorFlickSequence *nightRiderFlickSequence;
+
+#ifdef TAIL_LIGHTS
   BrakeTapSequence *brakeTapSequence3;
+#endif
 
   // Application Mode
   ApplicationMode mode;
 
   // Internal method to handle effect selection based on inputs.
   void handleNormalEffects();
+  void handleTestEffects();
   void handleRemoteEffects();
 
   uint64_t lastRemotePing;

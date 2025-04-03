@@ -63,6 +63,11 @@ void BrakeLightEffect::setIsReversing(bool reversing)
   isReversing = reversing;
 }
 
+bool BrakeLightEffect::getIsReversing() const
+{
+  return isReversing;
+}
+
 void BrakeLightEffect::update()
 {
   unsigned long currentTime = millis();

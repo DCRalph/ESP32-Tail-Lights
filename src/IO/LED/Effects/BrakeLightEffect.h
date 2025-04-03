@@ -16,6 +16,7 @@ public:
   void setActive(bool active);
   bool isActive() const;
   void setIsReversing(bool reversing);
+  bool getIsReversing() const;
 
 private:
   unsigned long lastUpdate;

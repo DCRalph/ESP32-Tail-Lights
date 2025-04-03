@@ -63,7 +63,7 @@ void RGBEffect::update()
   hueCenter = fmod(hueCenter, 360.0f);
   hueEdge = fmod(hueEdge, 360.0f);
 
-  // // log the hue values to the serial monitor.
+  // log the hue values to the serial monitor.
   // Serial.print("Hue Center: ");
   // Serial.print(hueCenter);
   // Serial.print(" Hue Edge: ");
