@@ -8,9 +8,9 @@ static inline float easeIn(float t)
   return t * t;
 }
 
-HighBeamEffect::HighBeamEffect(LEDManager *_ledManager, uint8_t priority,
+HighBeamEffect::HighBeamEffect(uint8_t priority,
                                bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+    : LEDEffect(priority, transparent),
       lastUpdate(0),
       beamActive(false),
       intensity(0.0f),
@@ -42,7 +42,7 @@ bool HighBeamEffect::isActive() const
   return beamActive;
 }
 
-void HighBeamEffect::update()
+void HighBeamEffect::update(LEDManager *ledManager)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -77,7 +77,7 @@ void HighBeamEffect::update()
   }
 }
 
-void HighBeamEffect::render(std::vector<Color> &buffer)
+void HighBeamEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
   if (!beamActive && intensity <= 0.0f)
   {

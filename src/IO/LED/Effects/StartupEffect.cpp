@@ -3,8 +3,8 @@
 #include <cmath>
 #include <Arduino.h> // For millis()
 
-StartupEffect::StartupEffect(LEDManager *ledManager, uint8_t priority, bool transparent)
-    : LEDEffect(ledManager, priority, transparent),
+StartupEffect::StartupEffect(uint8_t priority, bool transparent)
+    : LEDEffect(priority, transparent),
       active(false),
       phase(0),
       phase_start(0),
@@ -15,13 +15,12 @@ StartupEffect::StartupEffect(LEDManager *ledManager, uint8_t priority, bool tran
       T2_delay(0.3f),
       T3(0.6f),
       dash_length(15),
-      edge_stop(15)
+      edge_stop(15),
+      outward_progress(0.0f),
+      inward_progress(0.0f),
+      fill_progress(0.0f),
+      split_progress(0.0f)
 {
-    center = ledManager->getNumLEDs() / 2.0f;
-    left_dash_pos = center;
-    right_dash_pos = center;
-    fill_progress = 0.0f;
-    split_progress = 0.0f;
 }
 
 void StartupEffect::setActive(bool a)
@@ -33,10 +32,10 @@ void StartupEffect::setActive(bool a)
     if (active)
     {
         phase = 0;
-        phase_start = millis(); // Record the starting time (ms)]
+        phase_start = millis(); // Record the starting time (ms)
 
-        left_dash_pos = center;
-        right_dash_pos = center;
+        outward_progress = 0.0f;
+        inward_progress = 0.0f;
         fill_progress = 0.0f;
         split_progress = 0.0f;
     }
@@ -52,7 +51,7 @@ bool StartupEffect::isActive()
     return active;
 }
 
-void StartupEffect::update()
+void StartupEffect::update(LEDManager *ledManager)
 {
     if (!active)
         return;
@@ -74,11 +73,11 @@ void StartupEffect::update()
     else if (phase == 1)
     {
         // Phase 1: Dash outward phase (1a)
-        float progress = std::min(elapsed / T1a, 1.0f);
-        float ease = 3 * progress * progress - 2 * progress * progress * progress; // ease in-out function
-        left_dash_pos = center - (ease * center);
-        right_dash_pos = center + (ease * center);
-        if (progress >= 1.0f)
+        outward_progress = std::min(elapsed / T1a, 1.0f);
+        // Apply ease in-out function
+        outward_progress = 3 * outward_progress * outward_progress - 2 * outward_progress * outward_progress * outward_progress;
+
+        if (outward_progress >= 1.0f)
         {
             phase = 2;
             phase_start = now;
@@ -87,11 +86,11 @@ void StartupEffect::update()
     else if (phase == 2)
     {
         // Phase 2: Bounce inward phase (dashes return to center).
-        float progress = std::min(elapsed / T1b, 1.0f);
-        float ease = 3 * progress * progress - 2 * progress * progress * progress;
-        left_dash_pos = center - ((1 - ease) * center);
-        right_dash_pos = center + ((1 - ease) * center);
-        if (progress >= 1.0f || (left_dash_pos >= center - dash_length && right_dash_pos <= center + dash_length))
+        inward_progress = std::min(elapsed / T1b, 1.0f);
+        // Apply ease in-out function
+        inward_progress = 3 * inward_progress * inward_progress - 2 * inward_progress * inward_progress * inward_progress;
+
+        if (inward_progress >= 1.0f)
         {
             phase = 3;
             phase_start = now;
@@ -100,10 +99,9 @@ void StartupEffect::update()
     else if (phase == 3)
     {
         // Phase 3: Fill sweep - from center outward fill red gradually.
-        float progress = std::min(elapsed / T2, 1.0f);
-        fill_progress = progress;
+        fill_progress = std::min(elapsed / T2, 1.0f);
 
-        if (progress >= 1.0f)
+        if (fill_progress >= 1.0f)
         {
             phase = 4;
             phase_start = now;
@@ -121,9 +119,8 @@ void StartupEffect::update()
     else if (phase == 5)
     {
         // Phase 5: Split & fade – red retracts from center; final fade state at 100%.
-        float progress = std::min(elapsed / T3, 1.0f);
-        split_progress = progress;
-        if (progress >= 1.0f)
+        split_progress = std::min(elapsed / T3, 1.0f);
+        if (split_progress >= 1.0f)
         {
             phase = 6; // Final steady state.
             phase_start = now;
@@ -135,22 +132,29 @@ void StartupEffect::update()
     }
 }
 
-void StartupEffect::render(std::vector<Color> &buffer)
+void StartupEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
     if (!active)
         return;
 
-    uint16_t num = ledManager->getNumLEDs();
+    uint16_t numLEDs = ledManager->getNumLEDs();
+    float center = numLEDs / 2.0f;
+
     // Phase 0: Red dot at center.
     if (phase == 0)
     {
         int idx = (int)round(center);
-        if (idx >= 0 && idx < num)
+        if (idx >= 0 && idx < numLEDs)
             buffer[idx] = Color(255, 0, 0);
     }
     // Phases 1 & 2: Render two dashes (each is a block of dash_length LEDs).
     else if (phase == 1 || phase == 2)
     {
+        float progress = (phase == 1) ? outward_progress : (1.0f - inward_progress);
+
+        float left_dash_pos = center - (progress * center);
+        float right_dash_pos = center + (progress * center);
+
         int left_start = (int)round(left_dash_pos);
         int right_start = (int)round(right_dash_pos);
 
@@ -164,9 +168,9 @@ void StartupEffect::render(std::vector<Color> &buffer)
             if (left_size < 2)
                 left_size = 2;
         }
-        if (right_start + dash_length > num)
+        if (right_start + dash_length > numLEDs)
         {
-            right_size -= (right_start + dash_length) - num;
+            right_size -= (right_start + dash_length) - numLEDs;
             if (right_size < 2)
                 right_size = 2;
         }
@@ -187,10 +191,15 @@ void StartupEffect::render(std::vector<Color> &buffer)
         // apply ease in out curve to p
         p = 3 * p * p - 2 * p * p * p;
 
-        // map p from [0, 1] to [(dash_length / ledManager->getNumLEDs()), 1]
-        p = (1 - ((float)dash_length / ledManager->getNumLEDs())) * p + ((float)dash_length / ledManager->getNumLEDs());
+        // new_dash_length is the length of the dash in the fill sweep.
+        // it starts at 0 and grows to dash_length as p goes from 0 to 0.2 
+        // then it stays at dash_length as p goes from 0.2 to 0.8
+        float new_dash_length = (p <= 0.2f) ? (p * 5.0f * dash_length) : dash_length;
 
-        for (int i = 0; i < num; i++)
+        // map p from [0, 1] to [(dash_length / numLEDs), 1]
+        p = (1 - ((float)new_dash_length / numLEDs)) * p + ((float)new_dash_length / numLEDs);
+
+        for (int i = 0; i < numLEDs; i++)
         {
             if (i <= center)
             {
@@ -199,7 +208,7 @@ void StartupEffect::render(std::vector<Color> &buffer)
             }
             else
             {
-                if ((i - center) <= p * (num - 1 - center))
+                if ((i - center) <= p * (numLEDs - 1 - center))
                     buffer[i] = Color(255, 0, 0);
             }
         }
@@ -207,7 +216,7 @@ void StartupEffect::render(std::vector<Color> &buffer)
     // Phase 4: Entire strip is full red.
     else if (phase == 4)
     {
-        for (int i = 0; i < num; i++)
+        for (int i = 0; i < numLEDs; i++)
         {
             buffer[i] = Color(255, 0, 0);
         }
@@ -219,8 +228,8 @@ void StartupEffect::render(std::vector<Color> &buffer)
         // Apply an ease-in-out curve for a smoother transition.
         p = 3 * p * p - 2 * p * p * p;
         float left_cutoff = center - p * (center - edge_stop);
-        float right_cutoff = center + p * ((num - edge_stop) - center);
-        for (int i = 0; i < num; i++)
+        float right_cutoff = center + p * ((numLEDs - edge_stop) - center);
+        for (int i = 0; i < numLEDs; i++)
         {
             if (i < left_cutoff || i >= right_cutoff)
                 buffer[i] = Color(255, 0, 0);

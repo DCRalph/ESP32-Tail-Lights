@@ -1,4 +1,3 @@
-
 #include "BrakeLightEffect.h"
 #include <cmath>
 
@@ -10,9 +9,8 @@ static inline float easeInQuadratic(float t)
   return t * t;
 }
 
-BrakeLightEffect::BrakeLightEffect(LEDManager *_ledManager, uint8_t priority,
-                                   bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+BrakeLightEffect::BrakeLightEffect(uint8_t priority, bool transparent)
+    : LEDEffect(priority, transparent),
       lastUpdate(0),
       brakeActive(false),
       // When active, fadeProgress is 1. When brakes are released it counts down.
@@ -68,7 +66,7 @@ bool BrakeLightEffect::getIsReversing() const
   return isReversing;
 }
 
-void BrakeLightEffect::update()
+void BrakeLightEffect::update(LEDManager *ledManager)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -98,7 +96,7 @@ void BrakeLightEffect::update()
   }
 }
 
-void BrakeLightEffect::render(std::vector<Color> &buffer)
+void BrakeLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
 
   if (isReversing)

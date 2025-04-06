@@ -9,8 +9,8 @@ static float easeInOut(float t)
   return 0.5f * (1.0f - cosf(t * PI));
 }
 
-ReverseLightEffect::ReverseLightEffect(LEDManager *_ledManager, uint8_t priority, bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+ReverseLightEffect::ReverseLightEffect(uint8_t priority, bool transparent)
+    : LEDEffect(priority, transparent),
       active(false),
       animationSpeed(1.0f), // default 2 seconds for a full animation cycle
       startTime(0)
@@ -46,7 +46,7 @@ bool ReverseLightEffect::isAnimating() const
   return active || progress > 0.0f;
 }
 
-void ReverseLightEffect::update()
+void ReverseLightEffect::update(LEDManager *ledManager)
 {
   // Get the current time in milliseconds.
   unsigned long currentTime = millis();
@@ -79,7 +79,7 @@ void ReverseLightEffect::update()
   }
 }
 
-void ReverseLightEffect::render(std::vector<Color> &buffer)
+void ReverseLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
   // If not active and progress is 0, do not modify the buffer.
   if (!active && progress <= 0.0f)

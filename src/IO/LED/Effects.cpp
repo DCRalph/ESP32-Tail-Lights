@@ -4,8 +4,8 @@
 //
 // LEDEffect Base Class Implementation
 //
-LEDEffect::LEDEffect(LEDManager *_ledManager, uint8_t priority, bool transparent)
-    : ledManager(_ledManager), priority(priority), transparent(transparent) {}
+LEDEffect::LEDEffect(uint8_t priority, bool transparent)
+    : priority(priority), transparent(transparent) {}
 
 LEDEffect::~LEDEffect() {}
 

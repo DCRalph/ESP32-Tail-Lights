@@ -1,8 +1,8 @@
 #include "RGBEffect.h"
 #include <cmath>
 
-RGBEffect::RGBEffect(LEDManager *_ledManager, uint8_t priority, bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+RGBEffect::RGBEffect(uint8_t priority, bool transparent)
+    : LEDEffect(priority, transparent),
       active(false),
       baseHueCenter(1.0f), // Default center hue is red.
       baseHueEdge(270.0f), // Default edge hue is violet.
@@ -29,7 +29,7 @@ bool RGBEffect::isActive() const
   return active;
 }
 
-void RGBEffect::update()
+void RGBEffect::update(LEDManager *ledManager)
 {
   // Return if the effect is not active.
   if (!active)
@@ -71,7 +71,7 @@ void RGBEffect::update()
   // Serial.print(" Hue Offset: ");
   // Serial.println(hueOffset);
 }
-void RGBEffect::render(std::vector<Color> &buffer)
+void RGBEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
   if (!active)
     return;

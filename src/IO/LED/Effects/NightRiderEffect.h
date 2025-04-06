@@ -9,11 +9,10 @@ public:
   // Constructs the Night Rider effect.
   // speed: movement in LED positions per second.
   // tailLength: tail length in LED units (should be > 0).
-  NightRiderEffect(LEDManager *_ledManager, uint8_t priority = 0,
-                   bool transparent = false);
+  NightRiderEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update() override;
-  virtual void render(std::vector<Color> &buffer) override;
+  virtual void update(LEDManager *ledManager) override;
+  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
 
   // Activate or disable the effect.
   void setActive(bool active);

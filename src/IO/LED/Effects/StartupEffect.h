@@ -10,10 +10,10 @@ public:
   // Constructs the StartupEffect.
   // ledManager: pointer to the LEDManager.
   // priority, transparent: passed on to the base class.
-  StartupEffect(LEDManager *ledManager, uint8_t priority = 0, bool transparent = false);
+  StartupEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update() override;
-  virtual void render(std::vector<Color> &buffer) override;
+  virtual void update(LEDManager *ledManager) override;
+  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
   void setActive(bool active);
   bool isActive();
 
@@ -35,11 +35,9 @@ private:
   uint16_t dash_length; // number of LEDs in each dash
   uint16_t edge_stop;   // final red region size at each strip end
 
-  float center;      // center of the LED strip (as a float)
-
-  // Internal state variables
-  float left_dash_pos;  // current left dash position (float index)
-  float right_dash_pos; // current right dash position (float index)
-  float fill_progress;  // progress for sweep fill (0 to 1)
-  float split_progress; // progress for split & fade (0 to 1)
+  // Progress tracking variables
+  float outward_progress; // Progress for outward movement (0 to 1)
+  float inward_progress;  // Progress for inward movement (0 to 1)
+  float fill_progress;    // Progress for sweep fill (0 to 1)
+  float split_progress;   // Progress for split & fade (0 to 1)
 };

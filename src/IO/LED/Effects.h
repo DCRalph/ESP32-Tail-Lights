@@ -12,14 +12,14 @@ class LEDEffect
 {
 public:
   // Each effect has a priority and may be "transparent" so that lower layers show
-  LEDEffect(LEDManager *_ledManager, uint8_t priority = 0, bool transparent = false);
+  LEDEffect(uint8_t priority = 0, bool transparent = false);
   virtual ~LEDEffect();
 
   // Called each update to change animation state.
-  virtual void update() = 0;
+  virtual void update(LEDManager *ledManager) = 0;
 
   // Called to render the effect into the provided LED buffer.
-  virtual void render(std::vector<Color> &buffer) = 0;
+  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) = 0;
 
   uint8_t getPriority() const;
   bool isTransparent() const;
@@ -27,7 +27,6 @@ public:
   void setTransparent(bool transparent);
 
 protected:
-  LEDManager *ledManager;
   uint8_t priority;
   bool transparent;
 };

@@ -140,7 +140,7 @@ void LEDManager::updateEffects()
   for (auto effect : effects)
   {
     // Update the effect.
-    effect->update();
+    effect->update(this);
 
 #ifdef USE_2_BUFFERS
     // Clear temporary buffer to black before rendering this effect.
@@ -153,7 +153,7 @@ void LEDManager::updateEffects()
     effect->render(tempBuffer);
 #else
     // Render the current effect directly into ledBuffer.
-    effect->render(ledBuffer);
+    effect->render(this, ledBuffer);
 #endif
 
 #ifdef USE_2_BUFFERS
@@ -234,8 +234,9 @@ uint64_t LEDManager::getLastFrameTime() const
   return lastUpdateDuration + lastDrawDuration;
 }
 
-void LEDManager::disableALlEffects(){
+void LEDManager::disableALlEffects()
+{
   // for(auto e : effects){
-    
+  //   e->setActive(false);
   // }
 }

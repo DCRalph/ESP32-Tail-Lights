@@ -74,8 +74,6 @@ Application::~Application()
 #endif
 
 #ifdef HEAD_LIGHTS
-  // delete highBeamEffect;
-  // delete lowBeamEffect;
   delete headlightEffect;
 #endif
 
@@ -125,23 +123,21 @@ void Application::begin()
   ledManager->setDrawFunction(drawLEDs);
 
   // Set each effect's LED manager pointer.
-  leftIndicatorEffect = new IndicatorEffect(ledManager, IndicatorEffect::LEFT,
+  leftIndicatorEffect = new IndicatorEffect(IndicatorEffect::LEFT,
                                             10, true);
-  rightIndicatorEffect = new IndicatorEffect(ledManager, IndicatorEffect::RIGHT,
+  rightIndicatorEffect = new IndicatorEffect(IndicatorEffect::RIGHT,
                                              10, true);
-  rgbEffect = new RGBEffect(ledManager, 2, false);
-  nightriderEffect = new NightRiderEffect(ledManager, 2, false);
-  startupEffect = new StartupEffect(ledManager, 4, false);
+  rgbEffect = new RGBEffect(2, false);
+  nightriderEffect = new NightRiderEffect(2, false);
+  startupEffect = new StartupEffect(4, false);
 
 #ifdef HEAD_LIGHTS
-  // highBeamEffect = new HighBeamEffect(ledManager, 7, false);
-  // lowBeamEffect = new LowBeamEffect(ledManager, 5, false);
-  headlightEffect = new HeadlightEffect(ledManager, 7, false);
+  headlightEffect = new HeadlightEffect(7, false);
 #endif
 
 #ifdef TAIL_LIGHTS
-  brakeEffect = new BrakeLightEffect(ledManager, 8, false);
-  reverseLightEffect = new ReverseLightEffect(ledManager, 6, false);
+  brakeEffect = new BrakeLightEffect(8, false);
+  reverseLightEffect = new ReverseLightEffect(6, false);
 #endif
 
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
@@ -155,8 +151,6 @@ void Application::begin()
   ledManager->addEffect(startupEffect);
 
 #ifdef HEAD_LIGHTS
-  // ledManager->addEffect(highBeamEffect);
-  // ledManager->addEffect(lowBeamEffect);
   ledManager->addEffect(headlightEffect);
 #endif
 
@@ -294,8 +288,6 @@ void Application::begin()
                              pTX.data[5] = rgbEffect->isActive();
                              pTX.data[6] = nightriderEffect->isActive();
 #ifdef HEAD_LIGHTS
-                             //  pTX.data[7] = highBeamEffect->isActive();
-                             //  pTX.data[8] = lowBeamEffect->isActive();
                              bool r, g, b;
                              headlightEffect->getColor(r, g, b);
                              pTX.data[7] = headlightEffect->isActive();
@@ -402,12 +394,6 @@ void Application::begin()
                                  break;
 
 #ifdef HEAD_LIGHTS
-                                 //  case 5:
-                                 //    highBeamEffect->setActive(firstBit);
-                                 //    break;
-                                 //  case 6:
-                                 //    lowBeamEffect->setActive(firstBit);
-                                 //    break;
                                case 5:
                                  headlightEffect->setActive(firstBit);
                                  headlightEffect->setSplit(secondBit);
@@ -564,8 +550,6 @@ void Application::loop()
       startupEffect->setActive(false);
 
 #ifdef HEAD_LIGHTS
-      // highBeamEffect->setActive(false);
-      // lowBeamEffect->setActive(false);
       headlightEffect->setActive(false);
       headlightEffect->setSplit(false);
       headlightEffect->setColor(false, false, false);
@@ -610,8 +594,6 @@ void Application::loop()
     startupEffect->setActive(false);
 
 #ifdef HEAD_LIGHTS
-    // highBeamEffect->setActive(false);
-    // lowBeamEffect->setActive(false);
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
@@ -686,8 +668,6 @@ void Application::handleNormalEffects()
     startupEffect->setActive(false);
 
 #ifdef HEAD_LIGHTS
-    // highBeamEffect->setActive(false);
-    // lowBeamEffect->setActive(false);
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
@@ -717,8 +697,6 @@ void Application::handleNormalEffects()
     rightIndicatorEffect->setActive(false);
 
 #ifdef HEAD_LIGHTS
-    // highBeamEffect->setActive(false);
-    // lowBeamEffect->setActive(false);
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
@@ -742,8 +720,6 @@ void Application::handleNormalEffects()
     rightIndicatorEffect->setActive(rightIndicatorState);
 
 #ifdef HEAD_LIGHTS
-    // highBeamEffect->setActive(highBeamState);
-    // lowBeamEffect->setActive(lowBeamState);
     headlightEffect->setActive(highBeamState);
 #endif
 
@@ -758,9 +734,6 @@ void Application::handleNormalEffects()
 void Application::handleTestEffects()
 {
   // Test Mode - Add headlight testing
-
-  // highBeamEffect->setActive(io0.read());
-  // lowBeamEffect->setActive(io0.read());
 
   // reverseLightEffect->setActive(true);
   // brakeEffect->setIsReversing(true);

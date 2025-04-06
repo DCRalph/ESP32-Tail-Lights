@@ -5,7 +5,7 @@
 
 // Fancy, blink-based indicator effect that fades in from the center edge.
 // The indicator region is defined as a quarter of the LED strip.
-// The left indicator’s inner edge is at index (regionLength-1) and the right indicator’s
+// The left indicator's inner edge is at index (regionLength-1) and the right indicator's
 // inner edge is at index (numLEDs - regionLength).
 class IndicatorEffect : public LEDEffect
 {
@@ -18,11 +18,10 @@ public:
 
   // Constructs an indicator effect for a given LED strip.
   // All timing and color parameters are customizable.
-  IndicatorEffect(LEDManager *_ledManager, Side side, uint8_t priority = 1,
-                  bool transparent = false);
+  IndicatorEffect(Side side, uint8_t priority = 1, bool transparent = false);
 
-  virtual void update() override;
-  virtual void render(std::vector<Color> &buffer) override;
+  virtual void update(LEDManager *ledManager) override;
+  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
 
   void setOtherIndicator(IndicatorEffect *otherIndicator);
   IndicatorEffect *getOtherIndicator() const;

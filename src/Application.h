@@ -12,8 +12,6 @@
 #include "IO/LED/Effects/NightRiderEffect.h"
 #include "IO/LED/Effects/StartupEffect.h"
 #ifdef HEAD_LIGHTS
-#include "IO/LED/Effects/HighBeamEffect.h"
-#include "IO/LED/Effects/LowBeamEffect.h"
 #include "IO/LED/Effects/HeadlightEffect.h"
 #endif
 
@@ -107,8 +105,6 @@ private:
   StartupEffect *startupEffect;
 
 #ifdef HEAD_LIGHTS
-  // HighBeamEffect *highBeamEffect;
-  // LowBeamEffect *lowBeamEffect;
   HeadlightEffect *headlightEffect;
 #endif
 

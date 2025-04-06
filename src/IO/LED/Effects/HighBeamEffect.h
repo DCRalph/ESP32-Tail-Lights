@@ -7,10 +7,10 @@ class HighBeamEffect : public LEDEffect
 {
 public:
   // Constructs a high beam light effect
-  HighBeamEffect(LEDManager *_ledManager, uint8_t priority = 0,
+  HighBeamEffect(uint8_t priority = 0,
                  bool transparent = false);
-  virtual void update() override;
-  virtual void render(std::vector<Color> &buffer) override;
+  virtual void update(LEDManager *ledManager) override;
+  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
 
   // Set whether the high beam is active
   void setActive(bool active);

@@ -2,9 +2,8 @@
 #include <Arduino.h>
 #include <math.h>
 
-IndicatorEffect::IndicatorEffect(LEDManager *_ledManager, Side side, uint8_t priority,
-                                 bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+IndicatorEffect::IndicatorEffect(Side side, uint8_t priority, bool transparent)
+    : LEDEffect(priority, transparent),
       side(side),
       indicatorActive(false),
       fadeFactor(0.0f),
@@ -89,7 +88,7 @@ void IndicatorEffect::syncWithOtherIndicator()
   otherIndicator->synced = true;
 }
 
-void IndicatorEffect::update()
+void IndicatorEffect::update(LEDManager *ledManager)
 {
   if (!indicatorActive)
   {
@@ -129,7 +128,7 @@ void IndicatorEffect::update()
   }
 }
 
-void IndicatorEffect::render(std::vector<Color> &buffer)
+void IndicatorEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
   // Do nothing if the indicator is inactive or the fade factor is 0.
   if (!indicatorActive)
@@ -199,14 +198,13 @@ void IndicatorEffect::render(std::vector<Color> &buffer)
     }
     else
     {
-      uint32_t center = ledManager->getNumLEDs() / 2;
       if (side == LEFT)
       {
-        buffer[center - regionLength + i] = Color(r, g, b);
+        buffer[ledManager->getNumLEDs() / 2 - i - 1] = Color(r, g, b);
       }
       else
       {
-        buffer[center + regionLength - i - 1] = Color(r, g, b);
+        buffer[ledManager->getNumLEDs() / 2 + i] = Color(r, g, b);
       }
     }
   }

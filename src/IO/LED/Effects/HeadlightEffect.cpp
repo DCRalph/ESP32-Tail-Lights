@@ -14,9 +14,9 @@ static inline float easeInOut(float t)
   return 0.5f * (1.0f - cosf(t * PI));
 }
 
-HeadlightEffect::HeadlightEffect(LEDManager *_ledManager, uint8_t priority,
+HeadlightEffect::HeadlightEffect(uint8_t priority,
                                  bool transparent)
-    : LEDEffect(_ledManager, priority, transparent),
+    : LEDEffect(priority, transparent),
       lastUpdate(0),
       headlightActive(false),
       split(false),
@@ -84,7 +84,7 @@ void HeadlightEffect::getColor(bool &r, bool &g, bool &b) const
   b = blue;
 }
 
-void HeadlightEffect::update()
+void HeadlightEffect::update(LEDManager *ledManager)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -159,7 +159,7 @@ void HeadlightEffect::update()
   }
 }
 
-void HeadlightEffect::render(std::vector<Color> &buffer)
+void HeadlightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
 {
   if (!headlightActive && intensity <= 0.0f)
   {
