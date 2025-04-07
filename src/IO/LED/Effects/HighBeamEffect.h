@@ -9,8 +9,8 @@ public:
   // Constructs a high beam light effect
   HighBeamEffect(uint8_t priority = 0,
                  bool transparent = false);
-  virtual void update(LEDManager *ledManager) override;
-  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
+  virtual void update(LEDStrip *strip) override;
+  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
 
   // Set whether the high beam is active
   void setActive(bool active);

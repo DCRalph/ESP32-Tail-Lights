@@ -10,8 +10,8 @@ public:
   // Constructs the RGB (rainbow) effect. The effect will map the hue from the center to the edges.
   RGBEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update(LEDManager *ledManager) override;
-  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
+  virtual void update(LEDStrip *strip) override;
+  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
 
   // Activate or disable the effect.
   void setActive(bool active);

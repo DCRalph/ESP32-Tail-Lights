@@ -8,8 +8,8 @@ class BrakeLightEffect : public LEDEffect
 public:
   // Constructs a brake light effect for a given number of LEDs.
   BrakeLightEffect(uint8_t priority = 0, bool transparent = false);
-  virtual void update(LEDManager *ledManager) override;
-  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) override;
+  virtual void update(LEDStrip *strip) override;
+  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
 
   // Set whether the brakes are active.
   void setActive(bool active);

@@ -1,5 +1,4 @@
 #include "StartupEffect.h"
-#include "../LEDManager.h"
 #include <cmath>
 #include <Arduino.h> // For millis()
 
@@ -51,7 +50,7 @@ bool StartupEffect::isActive()
     return active;
 }
 
-void StartupEffect::update(LEDManager *ledManager)
+void StartupEffect::update(LEDStrip *strip)
 {
     if (!active)
         return;
@@ -132,12 +131,12 @@ void StartupEffect::update(LEDManager *ledManager)
     }
 }
 
-void StartupEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void StartupEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
     if (!active)
         return;
 
-    uint16_t numLEDs = ledManager->getNumLEDs();
+    uint16_t numLEDs = strip->getNumLEDs();
     float center = numLEDs / 2.0f;
 
     // Phase 0: Red dot at center.
@@ -192,7 +191,7 @@ void StartupEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
         p = 3 * p * p - 2 * p * p * p;
 
         // new_dash_length is the length of the dash in the fill sweep.
-        // it starts at 0 and grows to dash_length as p goes from 0 to 0.2 
+        // it starts at 0 and grows to dash_length as p goes from 0 to 0.2
         // then it stays at dash_length as p goes from 0.2 to 0.8
         float new_dash_length = (p <= 0.2f) ? (p * 5.0f * dash_length) : dash_length;
 

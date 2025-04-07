@@ -54,7 +54,7 @@ public:
   // Global pointer to the custom LED manager.
   CRGB leds[NUM_LEDS];
 
-  LEDManager *ledManager;
+  LEDStrip *ledManager;
 
 private:
   // Input pointers.

@@ -29,7 +29,7 @@ bool RGBEffect::isActive() const
   return active;
 }
 
-void RGBEffect::update(LEDManager *ledManager)
+void RGBEffect::update(LEDStrip *strip)
 {
   // Return if the effect is not active.
   if (!active)
@@ -71,12 +71,12 @@ void RGBEffect::update(LEDManager *ledManager)
   // Serial.print(" Hue Offset: ");
   // Serial.println(hueOffset);
 }
-void RGBEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void RGBEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
   if (!active)
     return;
 
-  uint16_t num = ledManager->getNumLEDs();
+  uint16_t num = strip->getNumLEDs();
   uint16_t mid = num / 2;
 
   // For every LED, compute the normalized distance from the center.

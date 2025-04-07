@@ -66,7 +66,7 @@ bool BrakeLightEffect::getIsReversing() const
   return isReversing;
 }
 
-void BrakeLightEffect::update(LEDManager *ledManager)
+void BrakeLightEffect::update(LEDStrip *strip)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -96,14 +96,14 @@ void BrakeLightEffect::update(LEDManager *ledManager)
   }
 }
 
-void BrakeLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void BrakeLightEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
 
   if (isReversing)
   {
     if (brakeActive)
     {
-      int numLeds = ledManager->getNumLEDs() / 5;
+      int numLeds = strip->getNumLEDs() / 5;
 
       for (uint16_t i = 0; i < numLeds; i++)
       {
@@ -111,9 +111,9 @@ void BrakeLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer
         buffer[i].g = 0;
         buffer[i].b = 0;
 
-        buffer[ledManager->getNumLEDs() - i - 1].r = 255;
-        buffer[ledManager->getNumLEDs() - i - 1].g = 0;
-        buffer[ledManager->getNumLEDs() - i - 1].b = 0;
+        buffer[strip->getNumLEDs() - i - 1].r = 255;
+        buffer[strip->getNumLEDs() - i - 1].g = 0;
+        buffer[strip->getNumLEDs() - i - 1].b = 0;
       }
     }
 
@@ -122,7 +122,7 @@ void BrakeLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer
 
   if (brakeActive)
   {
-    for (uint16_t i = 0; i < ledManager->getNumLEDs(); i++)
+    for (uint16_t i = 0; i < strip->getNumLEDs(); i++)
     {
       buffer[i].r = 255;
       buffer[i].g = 0;
@@ -139,7 +139,7 @@ void BrakeLightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer
 
   // if reversing only light up the edges
 
-  uint16_t numLEDs = ledManager->getNumLEDs();
+  uint16_t numLEDs = strip->getNumLEDs();
   uint16_t mid = numLEDs / 2;
 
   // Compute the fade factor using the ease‑in quadratic curve.

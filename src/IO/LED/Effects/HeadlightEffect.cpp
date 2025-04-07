@@ -84,7 +84,7 @@ void HeadlightEffect::getColor(bool &r, bool &g, bool &b) const
   b = blue;
 }
 
-void HeadlightEffect::update(LEDManager *ledManager)
+void HeadlightEffect::update(LEDStrip *strip)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -159,14 +159,14 @@ void HeadlightEffect::update(LEDManager *ledManager)
   }
 }
 
-void HeadlightEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void HeadlightEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
   if (!headlightActive && intensity <= 0.0f)
   {
     return;
   }
 
-  uint16_t numLEDs = ledManager->getNumLEDs();
+  uint16_t numLEDs = strip->getNumLEDs();
 
   // Apply easing for smoother transition
   float smoothIntensity = easeIn(intensity);

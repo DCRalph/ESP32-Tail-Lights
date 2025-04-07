@@ -50,12 +50,12 @@ struct Color
 
 class LEDEffect; // Forward declaration of effect class
 
-class LEDManager
+class LEDStrip
 {
 public:
   // Constructor that allocates an LED buffer based on the number of LEDs.
-  LEDManager(uint16_t numLEDs);
-  virtual ~LEDManager();
+  LEDStrip(uint16_t numLEDs);
+  virtual ~LEDStrip();
 
   // Add an effect to the manager.
   // Effects with higher priority override lower-priority ones.

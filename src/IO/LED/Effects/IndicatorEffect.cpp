@@ -88,7 +88,7 @@ void IndicatorEffect::syncWithOtherIndicator()
   otherIndicator->synced = true;
 }
 
-void IndicatorEffect::update(LEDManager *ledManager)
+void IndicatorEffect::update(LEDStrip *strip)
 {
   if (!indicatorActive)
   {
@@ -128,17 +128,17 @@ void IndicatorEffect::update(LEDManager *ledManager)
   }
 }
 
-void IndicatorEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void IndicatorEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
   // Do nothing if the indicator is inactive or the fade factor is 0.
   if (!indicatorActive)
     return;
 
-  uint16_t regionLength = ledManager->getNumLEDs() / 5;
+  uint16_t regionLength = strip->getNumLEDs() / 5;
 
   if (bigIndicator)
   {
-    regionLength = (ledManager->getNumLEDs() / 2) - regionLength;
+    regionLength = (strip->getNumLEDs() / 2) - regionLength;
   }
 
   if (regionLength <= 1)
@@ -193,18 +193,18 @@ void IndicatorEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
       }
       else
       {
-        buffer[ledManager->getNumLEDs() - i - 1] = Color(r, g, b);
+        buffer[strip->getNumLEDs() - i - 1] = Color(r, g, b);
       }
     }
     else
     {
       if (side == LEFT)
       {
-        buffer[ledManager->getNumLEDs() / 2 - i - 1] = Color(r, g, b);
+        buffer[strip->getNumLEDs() / 2 - i - 1] = Color(r, g, b);
       }
       else
       {
-        buffer[ledManager->getNumLEDs() / 2 + i] = Color(r, g, b);
+        buffer[strip->getNumLEDs() / 2 + i] = Color(r, g, b);
       }
     }
   }

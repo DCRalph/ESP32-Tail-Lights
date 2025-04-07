@@ -118,7 +118,7 @@ void Application::begin()
   mode = static_cast<ApplicationMode>(preferences.getUInt("mode", 0));
 
   // Create and assign the custom LED manager.
-  ledManager = new LEDManager(NUM_LEDS);
+  ledManager = new LEDStrip(NUM_LEDS);
   ledManager->setFPS(100);
   ledManager->setDrawFunction(drawLEDs);
 

@@ -36,7 +36,7 @@ bool NightRiderEffect::isActive() const
   return active;
 }
 
-void NightRiderEffect::update(LEDManager *ledManager)
+void NightRiderEffect::update(LEDStrip *strip)
 {
   if (!active)
     return;
@@ -53,7 +53,7 @@ void NightRiderEffect::update(LEDManager *ledManager)
   float dtSeconds = dtMillis / 1000.0f;
   lastUpdateTime = currentTime;
 
-  uint16_t numLEDs = ledManager->getNumLEDs();
+  uint16_t numLEDs = strip->getNumLEDs();
   if (numLEDs < 2 || cycleTime <= 0.0f)
     return;
 
@@ -88,12 +88,12 @@ void NightRiderEffect::update(LEDManager *ledManager)
   }
 }
 
-void NightRiderEffect::render(LEDManager *ledManager, std::vector<Color> &buffer)
+void NightRiderEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = ledManager->getNumLEDs();
+  uint16_t numLEDs = strip->getNumLEDs();
   // Clear the buffer (turn off all LEDs).
   for (uint16_t i = 0; i < numLEDs; i++)
   {

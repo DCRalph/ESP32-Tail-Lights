@@ -1,11 +1,11 @@
 #pragma once
 
-#include "LEDManager.h"
+#include "LEDStrip.h"
 #include <vector>
 #include <stdint.h>
 
 struct Color;
-class LEDManager;
+class LEDStrip;
 
 // Base class for LED effects.
 class LEDEffect
@@ -16,10 +16,10 @@ public:
   virtual ~LEDEffect();
 
   // Called each update to change animation state.
-  virtual void update(LEDManager *ledManager) = 0;
+  virtual void update(LEDStrip *strip) = 0;
 
   // Called to render the effect into the provided LED buffer.
-  virtual void render(LEDManager *ledManager, std::vector<Color> &buffer) = 0;
+  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) = 0;
 
   uint8_t getPriority() const;
   bool isTransparent() const;

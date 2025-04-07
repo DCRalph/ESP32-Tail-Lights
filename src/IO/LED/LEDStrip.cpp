@@ -1,4 +1,4 @@
-#include "LEDManager.h"
+#include "LEDStrip.h"
 #include <algorithm>
 
 // Implementation of the Color structure.
@@ -69,7 +69,7 @@ const Color Color::YELLOW = Color(255, 255, 0);
 const Color Color::CYAN = Color(0, 255, 255);
 const Color Color::MAGENTA = Color(255, 0, 255);
 
-LEDManager::LEDManager(uint16_t numLEDs)
+LEDStrip::LEDStrip(uint16_t numLEDs)
     : numLEDs(numLEDs),
       ledBuffer(numLEDs),
       fps(100),
@@ -78,7 +78,7 @@ LEDManager::LEDManager(uint16_t numLEDs)
       lastUpdateDuration(0),
       lastDrawDuration(0) {}
 
-LEDManager::~LEDManager()
+LEDStrip::~LEDStrip()
 {
   for (auto effect : effects)
   {
@@ -87,7 +87,7 @@ LEDManager::~LEDManager()
   effects.clear();
 }
 
-void LEDManager::addEffect(LEDEffect *effect)
+void LEDStrip::addEffect(LEDEffect *effect)
 {
   effects.push_back(effect);
   // Sort effects by priority so that lower priority effects are rendered first.
@@ -98,13 +98,13 @@ void LEDManager::addEffect(LEDEffect *effect)
             });
 }
 
-void LEDManager::removeEffect(LEDEffect *effect)
+void LEDStrip::removeEffect(LEDEffect *effect)
 {
   effects.erase(std::remove(effects.begin(), effects.end(), effect),
                 effects.end());
 }
 
-void LEDManager::updateEffects()
+void LEDStrip::updateEffects()
 {
   // Record the total frame start time.
   uint64_t frameStart = micros();
@@ -190,7 +190,7 @@ void LEDManager::updateEffects()
   // Serial.println(" us");
 }
 
-void LEDManager::draw()
+void LEDStrip::draw()
 {
   uint64_t drawStart = micros();
 
@@ -202,9 +202,9 @@ void LEDManager::draw()
   lastDrawDuration = micros() - drawStart;
 }
 
-std::vector<Color> &LEDManager::getBuffer() { return ledBuffer; }
+std::vector<Color> &LEDStrip::getBuffer() { return ledBuffer; }
 
-void LEDManager::clearBuffer()
+void LEDStrip::clearBuffer()
 {
   for (auto &led : ledBuffer)
   {
@@ -214,27 +214,27 @@ void LEDManager::clearBuffer()
   }
 }
 
-uint16_t LEDManager::getNumLEDs() const { return numLEDs; }
+uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
 
-void LEDManager::setFPS(uint16_t fps) { this->fps = fps; }
+void LEDStrip::setFPS(uint16_t fps) { this->fps = fps; }
 
-uint16_t LEDManager::getFPS() const { return fps; }
+uint16_t LEDStrip::getFPS() const { return fps; }
 
-void LEDManager::setDrawFunction(void (*drawFunction)())
+void LEDStrip::setDrawFunction(void (*drawFunction)())
 {
   drawCallback = drawFunction;
 }
 
-uint64_t LEDManager::getLastUpdateDuration() const { return lastUpdateDuration; }
+uint64_t LEDStrip::getLastUpdateDuration() const { return lastUpdateDuration; }
 
-uint64_t LEDManager::getLastDrawDuration() const { return lastDrawDuration; }
+uint64_t LEDStrip::getLastDrawDuration() const { return lastDrawDuration; }
 
-uint64_t LEDManager::getLastFrameTime() const
+uint64_t LEDStrip::getLastFrameTime() const
 {
   return lastUpdateDuration + lastDrawDuration;
 }
 
-void LEDManager::disableALlEffects()
+void LEDStrip::disableALlEffects()
 {
   // for(auto e : effects){
   //   e->setActive(false);
