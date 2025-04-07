@@ -4,7 +4,7 @@
 #include <vector>
 #include "Effects.h"
 #include <Arduino.h>
-
+#include "FastLED.h"
 // ####################################
 //  Uncomment this line to use double buffering for more complex transparent effects.
 //  #define USE_2_BUFFERS
@@ -67,12 +67,8 @@ public:
   // Update all effects (call update() and then render() for each effect)
   void updateEffects();
 
-  // Output the current LED buffer to the physical LED strip.
-  // This function calls a user-specified callback if one has been set.
-  virtual void draw();
-
-  // Define the callback for drawing.
-  void setDrawFunction(void (*drawFunction)());
+  // Access the internal FastLED buffer.
+  CRGB *getFastLEDBuffer();
 
   // Access the internal LED buffer.
   std::vector<Color> &getBuffer();
@@ -101,11 +97,9 @@ protected:
   uint16_t numLEDs;
   uint16_t fps;
   uint64_t lastUpdateTime;
+  CRGB *leds; // fastled buffer
   std::vector<Color> ledBuffer;
   std::vector<LEDEffect *> effects;
-
-  // Callback function pointer, set by the user.
-  void (*drawCallback)();
 
   // Time (in microseconds) it took for the last update and draw calls.
   uint64_t lastUpdateDuration;

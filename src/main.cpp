@@ -12,6 +12,7 @@ Application *app;
 void setup()
 {
   Serial.begin(115200);
+  delay(1000);
 
   WiFi.mode(WIFI_AP_STA);
 
@@ -50,10 +51,18 @@ void setup()
       "startup_blink", 10000, NULL, 1, NULL, 1);
 }
 
+// unsigned long lastSerialPrintTime = 0;
+
 void loop()
 {
   unsigned long currentTime = millis();
   wireless.loop();
 
   app->loop();
+
+  // if (currentTime - lastSerialPrintTime >= 1000)
+  // {
+  //   lastSerialPrintTime = currentTime;
+  //   Serial.println("Loop time: " + String(currentTime - lastSerialPrintTime));
+  // }
 }

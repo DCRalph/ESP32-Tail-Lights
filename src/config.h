@@ -22,9 +22,6 @@ extern Preferences preferences;
 
 #define ENABLE_HV_INPUTS
 
-#define HEAD_LIGHTS
-// #define TAIL_LIGHTS
-
 // WiFi
 
 #define ESP_NOW_CHANNEL 1
@@ -50,4 +47,29 @@ extern Preferences preferences;
 #define INPUT_4_PIN 4
 #define INPUT_5_PIN 5
 #define INPUT_6_PIN 6
+#endif
+
+#define ENABLE_HEADLIGHTS
+#define ENABLE_TAILLIGHTS
+// #define ENABLE_UNDERGLOW
+// #define ENABLE_INTERIOR
+
+#ifdef ENABLE_HEADLIGHTS
+#define HEADLIGHT_LED_COUNT 120
+#define HEADLIGHT_LED_PIN 17
+#endif
+
+#ifdef ENABLE_TAILLIGHTS
+#define TAILLIGHT_LED_COUNT 99
+#define TAILLIGHT_LED_PIN 16
+#endif
+
+#ifdef ENABLE_UNDERGLOW
+#define UNDERGLOW_LED_COUNT 120
+#define UNDERGLOW_LED_PIN 18
+#endif
+
+#ifdef ENABLE_INTERIOR
+#define INTERIOR_LED_COUNT 60
+#define INTERIOR_LED_PIN 19
 #endif

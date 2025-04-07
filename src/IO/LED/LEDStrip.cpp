@@ -74,9 +74,11 @@ LEDStrip::LEDStrip(uint16_t numLEDs)
       ledBuffer(numLEDs),
       fps(100),
       lastUpdateTime(0),
-      drawCallback(nullptr),
       lastUpdateDuration(0),
-      lastDrawDuration(0) {}
+      lastDrawDuration(0)
+{
+  leds = new CRGB[numLEDs];
+}
 
 LEDStrip::~LEDStrip()
 {
@@ -190,17 +192,7 @@ void LEDStrip::updateEffects()
   // Serial.println(" us");
 }
 
-void LEDStrip::draw()
-{
-  uint64_t drawStart = micros();
-
-  if (drawCallback != nullptr)
-  {
-    drawCallback();
-  }
-
-  lastDrawDuration = micros() - drawStart;
-}
+CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
 
 std::vector<Color> &LEDStrip::getBuffer() { return ledBuffer; }
 
@@ -219,11 +211,6 @@ uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
 void LEDStrip::setFPS(uint16_t fps) { this->fps = fps; }
 
 uint16_t LEDStrip::getFPS() const { return fps; }
-
-void LEDStrip::setDrawFunction(void (*drawFunction)())
-{
-  drawCallback = drawFunction;
-}
 
 uint64_t LEDStrip::getLastUpdateDuration() const { return lastUpdateDuration; }
 

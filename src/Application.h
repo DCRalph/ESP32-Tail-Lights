@@ -4,16 +4,14 @@
 
 #include "config.h"
 #include "FastLED.h"
-#include "IO/LED/LEDManager.h"
+#include "IO/LED/LEDStrip.h"
 #include "IO/LED/Effects/BrakeLightEffect.h"
 #include "IO/LED/Effects/IndicatorEffect.h"
 #include "IO/LED/Effects/ReverseLightEffect.h"
 #include "IO/LED/Effects/RGBEffect.h"
 #include "IO/LED/Effects/NightRiderEffect.h"
 #include "IO/LED/Effects/StartupEffect.h"
-#ifdef HEAD_LIGHTS
 #include "IO/LED/Effects/HeadlightEffect.h"
-#endif
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -52,9 +50,6 @@ public:
   void enableOffMode();
 
   // Global pointer to the custom LED manager.
-  CRGB leds[NUM_LEDS];
-
-  LEDStrip *ledManager;
 
 private:
   // Input pointers.
@@ -65,12 +60,12 @@ private:
   GpIO *rightIndicator;  // Right indicator
   GpIO *externalControl; // button to do things
 
-#ifdef HEAD_LIGHTS
+#ifdef ENABLE_HEADLIGHTS
   GpIO *highBeam; // High beam
   GpIO *lowBeam;  // Low beam
 #endif
 
-#ifdef TAIL_LIGHTS
+#ifdef ENABLE_TAILLIGHTS
   GpIO *brake;   // Brake
   GpIO *reverse; // Reverse
 #endif
@@ -83,17 +78,18 @@ private:
   bool rightIndicatorState;
   bool externalControlState;
 
-#ifdef HEAD_LIGHTS
+#ifdef ENABLE_HEADLIGHTS
   bool highBeamState;
   bool lowBeamState;
 #endif
 
-#ifdef TAIL_LIGHTS
+#ifdef ENABLE_TAILLIGHTS
   bool brakeState;
   bool reverseState;
 #endif
 
   void updateInputs();
+  void setupWireless();
 
   uint64_t lastAccOn;
 
@@ -104,14 +100,10 @@ private:
   NightRiderEffect *nightriderEffect;
   StartupEffect *startupEffect;
 
-#ifdef HEAD_LIGHTS
   HeadlightEffect *headlightEffect;
-#endif
 
-#ifdef TAIL_LIGHTS
   BrakeLightEffect *brakeEffect;
   ReverseLightEffect *reverseLightEffect;
-#endif
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;
@@ -119,7 +111,7 @@ private:
   IndicatorFlickSequence *RGBFlickSequence;
   IndicatorFlickSequence *nightRiderFlickSequence;
 
-#ifdef TAIL_LIGHTS
+#ifdef ENABLE_TAILLIGHTS
   BrakeTapSequence *brakeTapSequence3;
 #endif
 
@@ -132,6 +124,4 @@ private:
   void handleRemoteEffects();
 
   uint64_t lastRemotePing;
-
-  static void drawLEDs();
 };
