@@ -131,7 +131,7 @@ void StartupEffect::update(LEDStrip *strip)
     }
 }
 
-void StartupEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void StartupEffect::render(LEDStrip *strip, Color *buffer)
 {
     if (!active)
         return;
@@ -174,7 +174,7 @@ void StartupEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
                 right_size = 2;
         }
 
-        for (size_t i = 0; i < buffer.size(); i++)
+        for (uint16_t i = 0; i < numLEDs; i++)
         {
             if (i >= left_start && i < left_start + left_size)
                 buffer[i] = Color(255, 0, 0);

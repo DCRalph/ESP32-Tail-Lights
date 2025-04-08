@@ -128,7 +128,7 @@ void IndicatorEffect::update(LEDStrip *strip)
   }
 }
 
-void IndicatorEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
 {
   // Do nothing if the indicator is inactive or the fade factor is 0.
   if (!indicatorActive)

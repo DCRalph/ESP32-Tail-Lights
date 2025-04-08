@@ -79,7 +79,7 @@ void ReverseLightEffect::update(LEDStrip *strip)
   }
 }
 
-void ReverseLightEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void ReverseLightEffect::render(LEDStrip *strip, Color *buffer)
 {
   // If not active and progress is 0, do not modify the buffer.
   if (!active && progress <= 0.0f)

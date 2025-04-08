@@ -29,8 +29,6 @@ extern Preferences preferences;
 // #define DEBUG_ESP_NOW
 // #define ESPNOW_NO_DISABLE_WIFI
 
-// PINS
-#define NUM_LEDS 99 // Example LED strip length
 
 #ifdef S3_DEV
 #define LED_PIN 21
@@ -60,7 +58,7 @@ extern Preferences preferences;
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
-#define TAILLIGHT_LED_COUNT 99
+#define TAILLIGHT_LED_COUNT 120
 #define TAILLIGHT_LED_PIN 16
 #endif
 

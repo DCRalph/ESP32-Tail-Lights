@@ -96,7 +96,7 @@ void BrakeLightEffect::update(LEDStrip *strip)
   }
 }
 
-void BrakeLightEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
 {
 
   if (isReversing)

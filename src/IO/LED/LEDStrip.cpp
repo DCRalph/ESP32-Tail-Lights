@@ -71,13 +71,15 @@ const Color Color::MAGENTA = Color(255, 0, 255);
 
 LEDStrip::LEDStrip(uint16_t numLEDs)
     : numLEDs(numLEDs),
-      ledBuffer(numLEDs),
       fps(100),
       lastUpdateTime(0),
       lastUpdateDuration(0),
       lastDrawDuration(0)
 {
   leds = new CRGB[numLEDs];
+  ledBuffer = new Color[numLEDs];
+  memset(leds, 0, numLEDs * sizeof(CRGB));
+  memset(ledBuffer, 0, numLEDs * sizeof(Color));
 }
 
 LEDStrip::~LEDStrip()
@@ -135,7 +137,7 @@ void LEDStrip::updateEffects()
 #ifdef USE_2_BUFFERS
   // Create a temporary buffer with the same size as the main LED buffer.
   // Using the default constructor for Color will initialize all pixels to black.
-  std::vector<Color> tempBuffer(ledBuffer.size());
+  Color *tempBuffer = new Color[numLEDs];
 #endif
 
   // --- Update and render each effect ---
@@ -194,15 +196,15 @@ void LEDStrip::updateEffects()
 
 CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
 
-std::vector<Color> &LEDStrip::getBuffer() { return ledBuffer; }
+Color *LEDStrip::getBuffer() { return ledBuffer; }
 
 void LEDStrip::clearBuffer()
 {
-  for (auto &led : ledBuffer)
+  for (uint16_t i = 0; i < numLEDs; i++)
   {
-    led.r = 0;
-    led.g = 0;
-    led.b = 0;
+    ledBuffer[i].r = 0;
+    ledBuffer[i].g = 0;
+    ledBuffer[i].b = 0;
   }
 }
 

@@ -2,7 +2,6 @@
 
 #include "LEDStrip.h"
 #include "FastLED.h"
-#include <vector>
 #include <map>
 #include <string>
 

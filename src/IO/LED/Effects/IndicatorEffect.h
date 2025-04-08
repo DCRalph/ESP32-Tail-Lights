@@ -21,7 +21,7 @@ public:
   IndicatorEffect(Side side, uint8_t priority = 1, bool transparent = false);
 
   virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
+  virtual void render(LEDStrip *strip, Color *buffer) override;
 
   void setOtherIndicator(IndicatorEffect *otherIndicator);
   IndicatorEffect *getOtherIndicator() const;

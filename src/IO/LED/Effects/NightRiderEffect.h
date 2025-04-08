@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Effects.h"
-#include <vector>
 
 class NightRiderEffect : public LEDEffect
 {
@@ -12,7 +11,7 @@ public:
   NightRiderEffect(uint8_t priority = 0, bool transparent = false);
 
   virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
+  virtual void render(LEDStrip *strip, Color *buffer) override;
 
   // Activate or disable the effect.
   void setActive(bool active);

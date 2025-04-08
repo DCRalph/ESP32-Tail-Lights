@@ -1,7 +1,7 @@
 // application.cpp
 
 #include "Application.h"
-#include "config.h"      // Contains NUM_LEDS, LEDS_PIN, etc.
+#include "config.h" 
 #include "IO/Wireless.h" // Your wireless library
 #include "FastLED.h"
 #include "IO/LED/LEDStripManager.h"
@@ -583,7 +583,11 @@ void Application::handleTestEffects()
 {
   // Test Mode - Add headlight testing
 
-  // reverseLightEffect->setActive(true);
+  reverseLightEffect->setActive(true);
+  headlightEffect->setActive(true);
+  headlightEffect->setSplit(false);
+
+
   // brakeEffect->setIsReversing(true);
 
   // brakeEffect->setActive(io0.read());

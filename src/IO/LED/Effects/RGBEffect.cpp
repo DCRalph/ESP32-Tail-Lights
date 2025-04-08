@@ -71,7 +71,7 @@ void RGBEffect::update(LEDStrip *strip)
   // Serial.print(" Hue Offset: ");
   // Serial.println(hueOffset);
 }
-void RGBEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void RGBEffect::render(LEDStrip *strip, Color *buffer)
 {
   if (!active)
     return;

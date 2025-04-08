@@ -1,7 +1,6 @@
 #pragma once
 
 #include "LEDStrip.h"
-#include <vector>
 #include <stdint.h>
 
 struct Color;
@@ -19,7 +18,7 @@ public:
   virtual void update(LEDStrip *strip) = 0;
 
   // Called to render the effect into the provided LED buffer.
-  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) = 0;
+  virtual void render(LEDStrip *strip, Color *buffer) = 0;
 
   uint8_t getPriority() const;
   bool isTransparent() const;

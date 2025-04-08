@@ -71,7 +71,7 @@ public:
   CRGB *getFastLEDBuffer();
 
   // Access the internal LED buffer.
-  std::vector<Color> &getBuffer();
+  Color *getBuffer();
 
   // Clear the LED buffer (set all LEDs to black/off)
   void clearBuffer();
@@ -98,7 +98,7 @@ protected:
   uint16_t fps;
   uint64_t lastUpdateTime;
   CRGB *leds; // fastled buffer
-  std::vector<Color> ledBuffer;
+  Color *ledBuffer;
   std::vector<LEDEffect *> effects;
 
   // Time (in microseconds) it took for the last update and draw calls.

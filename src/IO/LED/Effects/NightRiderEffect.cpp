@@ -88,7 +88,7 @@ void NightRiderEffect::update(LEDStrip *strip)
   }
 }
 
-void NightRiderEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void NightRiderEffect::render(LEDStrip *strip, Color *buffer)
 {
   if (!active)
     return;

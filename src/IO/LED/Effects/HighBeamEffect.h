@@ -10,7 +10,7 @@ public:
   HighBeamEffect(uint8_t priority = 0,
                  bool transparent = false);
   virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, std::vector<Color> &buffer) override;
+  virtual void render(LEDStrip *strip, Color *buffer) override;
 
   // Set whether the high beam is active
   void setActive(bool active);

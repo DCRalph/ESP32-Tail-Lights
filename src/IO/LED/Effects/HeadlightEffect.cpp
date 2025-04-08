@@ -159,7 +159,7 @@ void HeadlightEffect::update(LEDStrip *strip)
   }
 }
 
-void HeadlightEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
 {
   if (!headlightActive && intensity <= 0.0f)
   {

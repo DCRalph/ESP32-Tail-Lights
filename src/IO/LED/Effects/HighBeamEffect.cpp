@@ -77,7 +77,7 @@ void HighBeamEffect::update(LEDStrip *strip)
   }
 }
 
-void HighBeamEffect::render(LEDStrip *strip, std::vector<Color> &buffer)
+void HighBeamEffect::render(LEDStrip *strip, Color *buffer)
 {
   if (!beamActive && intensity <= 0.0f)
   {
