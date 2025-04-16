@@ -5,16 +5,7 @@
 #include <map>
 #include <string>
 
-// Enum to identify different LED strip types
-enum class LEDStripType
-{
-  NONE,
-  HEADLIGHT,
-  TAILLIGHT,
-  UNDERGLOW,
-  INTERIOR,
-  // Add more types as needed
-};
+
 
 // Structure to store LED strip configuration
 struct LEDStripConfig
@@ -30,6 +21,7 @@ struct LEDStripConfig
                                                                                    strip(_strip),
                                                                                    name(_name)
   {
+    _strip->type = type;
   }
 };
 
@@ -47,7 +39,6 @@ public:
 
   // Initialize the LED strip manager with the different strip configurations
   void begin();
-
 
   // Get a LEDManager instance by strip type
   LEDStrip *getStrip(LEDStripType type);

@@ -12,7 +12,7 @@ Application *app;
 void setup()
 {
   Serial.begin(115200);
-  delay(1000);
+  // delay(1000);
 
   WiFi.mode(WIFI_AP_STA);
 
@@ -37,7 +37,7 @@ void setup()
   }
 
   app->begin();
-  app->enableTestMode();
+  // app->enableTestMode();
 
   xTaskCreatePinnedToCore(
       [](void *pvParameters)

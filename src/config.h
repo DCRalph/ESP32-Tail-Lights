@@ -17,10 +17,10 @@
 
 extern Preferences preferences;
 
-// #define S3_DEV
-#define S2_CAR
+#define S3_DEV
+// #define S2_CAR
 
-#define ENABLE_HV_INPUTS
+// #define ENABLE_HV_INPUTS
 
 // WiFi
 
@@ -32,12 +32,10 @@ extern Preferences preferences;
 
 #ifdef S3_DEV
 #define LED_PIN 21
-#define LEDS_PIN 5
 #endif
 
 #ifdef S2_CAR
 #define LED_PIN 15
-#define LEDS_PIN 16
 
 #define INPUT_1_PIN 1
 #define INPUT_2_PIN 2
@@ -54,20 +52,20 @@ extern Preferences preferences;
 
 #ifdef ENABLE_HEADLIGHTS
 #define HEADLIGHT_LED_COUNT 120
-#define HEADLIGHT_LED_PIN 17
+#define HEADLIGHT_LED_PIN 5
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
 #define TAILLIGHT_LED_COUNT 120
-#define TAILLIGHT_LED_PIN 16
+#define TAILLIGHT_LED_PIN 6
 #endif
 
 #ifdef ENABLE_UNDERGLOW
 #define UNDERGLOW_LED_COUNT 120
-#define UNDERGLOW_LED_PIN 18
+// #define UNDERGLOW_LED_PIN 
 #endif
 
 #ifdef ENABLE_INTERIOR
 #define INTERIOR_LED_COUNT 60
-#define INTERIOR_LED_PIN 19
+// #define INTERIOR_LED_PIN 
 #endif

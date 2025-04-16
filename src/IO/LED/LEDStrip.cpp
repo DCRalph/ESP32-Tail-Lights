@@ -208,6 +208,8 @@ void LEDStrip::clearBuffer()
   }
 }
 
+LEDStripType LEDStrip::getType() const { return type; }
+
 uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
 
 void LEDStrip::setFPS(uint16_t fps) { this->fps = fps; }

@@ -5,12 +5,24 @@
 #include "Effects.h"
 #include <Arduino.h>
 #include "FastLED.h"
+// #include "LEDStripManager.h"
 // ####################################
 //  Uncomment this line to use double buffering for more complex transparent effects.
 //  #define USE_2_BUFFERS
 // ####################################
 
 // A simple structure representing an RGB color.
+
+// Enum to identify different LED strip types
+enum class LEDStripType
+{
+  NONE,
+  HEADLIGHT,
+  TAILLIGHT,
+  UNDERGLOW,
+  INTERIOR,
+  // Add more types as needed
+};
 struct Color
 {
   uint8_t r;
@@ -42,6 +54,11 @@ struct Color
     return !(*this == other);
   }
 
+  /**
+   * @brief Multiplies the color by a scalar value
+   * @param scalar A floating-point value between 0 and 1
+   * @return A new Color object with RGB components scaled by the scalar value
+   */
   Color operator*(float scalar) const
   {
     return Color(r * scalar, g * scalar, b * scalar);
@@ -52,6 +69,7 @@ class LEDEffect; // Forward declaration of effect class
 
 class LEDStrip
 {
+
 public:
   // Constructor that allocates an LED buffer based on the number of LEDs.
   LEDStrip(uint16_t numLEDs);
@@ -76,6 +94,9 @@ public:
   // Clear the LED buffer (set all LEDs to black/off)
   void clearBuffer();
 
+  // Get the type of the LED strip.
+  LEDStripType getType() const;
+
   // Get the total number of LEDs.
   uint16_t getNumLEDs() const;
 
@@ -93,7 +114,9 @@ public:
 
   void disableALlEffects();
 
-protected:
+private:
+  friend class LEDStripConfig;
+  LEDStripType type;
   uint16_t numLEDs;
   uint16_t fps;
   uint64_t lastUpdateTime;

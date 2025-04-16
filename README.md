@@ -83,7 +83,6 @@ This project implements custom LED tail lights for a car using an ESP32 and a WS
 - **LICENSE**  
   The license file that describes the open source terms of this project.
 
-  
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.

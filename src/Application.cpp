@@ -1,7 +1,7 @@
 // application.cpp
 
 #include "Application.h"
-#include "config.h" 
+#include "config.h"
 #include "IO/Wireless.h" // Your wireless library
 #include "FastLED.h"
 #include "IO/LED/LEDStripManager.h"
@@ -67,20 +67,22 @@ Application::~Application()
   rightIndicatorEffect = nullptr;
   rgbEffect = nullptr;
   nightriderEffect = nullptr;
-  startupEffect = nullptr;
-
+  taillightStartupEffect = nullptr;
+  headlightStartupEffect = nullptr;
+  policeEffect = nullptr;
 
   delete brakeEffect;
   delete reverseLightEffect;
+  delete policeEffect;
 
   delete headlightEffect;
-
 
   delete leftIndicatorEffect;
   delete rightIndicatorEffect;
   delete rgbEffect;
   delete nightriderEffect;
-  delete startupEffect;
+  delete taillightStartupEffect;
+  delete headlightStartupEffect;
 
   delete unlockSequence;
   delete lockSequence;
@@ -163,14 +165,15 @@ void Application::begin()
   rightIndicatorEffect = new IndicatorEffect(IndicatorEffect::RIGHT,
                                              10, true);
   rgbEffect = new RGBEffect(2, false);
+  policeEffect = new PoliceEffect(2, false);
   nightriderEffect = new NightRiderEffect(2, false);
-  startupEffect = new StartupEffect(4, false);
+  taillightStartupEffect = new TaillightStartupEffect(4, false);
+  headlightStartupEffect = new HeadlightStartupEffect(4, false);
 
   headlightEffect = new HeadlightEffect(7, false);
 
   brakeEffect = new BrakeLightEffect(8, false);
   reverseLightEffect = new ReverseLightEffect(6, false);
-
 
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
   rightIndicatorEffect->setOtherIndicator(leftIndicatorEffect);
@@ -184,12 +187,13 @@ void Application::begin()
   {
     headlightStrip->addEffect(rgbEffect);
     headlightStrip->addEffect(nightriderEffect);
-    headlightStrip->addEffect(startupEffect);
+    headlightStrip->addEffect(headlightStartupEffect);
 
     headlightStrip->addEffect(leftIndicatorEffect);
     headlightStrip->addEffect(rightIndicatorEffect);
 
     headlightStrip->addEffect(headlightEffect);
+    headlightStrip->addEffect(policeEffect);
   }
 
   if (taillightStrip)
@@ -197,7 +201,8 @@ void Application::begin()
     taillightStrip->addEffect(leftIndicatorEffect);
     taillightStrip->addEffect(rightIndicatorEffect);
     taillightStrip->addEffect(rgbEffect);
-    taillightStrip->addEffect(startupEffect);
+    taillightStrip->addEffect(taillightStartupEffect);
+    taillightStrip->addEffect(policeEffect);
 
 #ifdef ENABLE_TAILLIGHTS
     taillightStrip->addEffect(brakeEffect);
@@ -219,7 +224,8 @@ void Application::begin()
 
   unlockSequence->setCallback([this]()
                               {
-                                startupEffect->setActive(true);
+                                taillightStartupEffect->setActive(true);
+                                headlightStartupEffect->setActive(true);
                                 unlockSequence->setActive(false);
                                 //
                               });
@@ -228,7 +234,8 @@ void Application::begin()
 
   lockSequence->setCallback([this]()
                             {
-                              startupEffect->setActive(false);
+                              taillightStartupEffect->setActive(false);
+                              headlightStartupEffect->setActive(false);
                               unlockSequence->setActive(true);
                               //
                             });
@@ -271,11 +278,12 @@ void Application::begin()
 
 #ifndef ENABLE_HV_INPUTS
   enableTestMode();
-  rgbEffect->setActive(true);
+  // rgbEffect->setActive(true);
+  headlightStartupEffect->setActive(true);
 #endif
 
   // set brightness to 100
-  ledManager->setBrightness(100);
+  ledManager->setBrightness(255);
 
   // clear all buffers and fastled.show
   FastLED.clear();
@@ -403,7 +411,8 @@ void Application::loop()
       rightIndicatorEffect->setActive(false);
       rgbEffect->setActive(false);
       nightriderEffect->setActive(false);
-      startupEffect->setActive(false);
+      taillightStartupEffect->setActive(false);
+      headlightStartupEffect->setActive(false);
 
       headlightEffect->setActive(false);
       headlightEffect->setSplit(false);
@@ -412,7 +421,6 @@ void Application::loop()
       brakeEffect->setActive(false);
       brakeEffect->setIsReversing(false);
       reverseLightEffect->setActive(false);
-
     }
   }
 
@@ -444,7 +452,8 @@ void Application::loop()
     rightIndicatorEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
-    startupEffect->setActive(false);
+    taillightStartupEffect->setActive(false);
+    headlightStartupEffect->setActive(false);
 
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
@@ -453,7 +462,6 @@ void Application::loop()
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
     reverseLightEffect->setActive(false);
-
   }
   break;
   }
@@ -515,13 +523,12 @@ void Application::handleNormalEffects()
     rightIndicatorEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
-    startupEffect->setActive(false);
-
+    taillightStartupEffect->setActive(false);
+    headlightStartupEffect->setActive(false);
 
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
-
 
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
@@ -534,7 +541,8 @@ void Application::handleNormalEffects()
 
     if (accOnState == false)
     {
-      startupEffect->setActive(true);
+      taillightStartupEffect->setActive(true);
+      headlightStartupEffect->setActive(true);
     }
   }
 
@@ -544,24 +552,21 @@ void Application::handleNormalEffects()
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
 
-
     headlightEffect->setActive(false);
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
 
-
-
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
     reverseLightEffect->setActive(false);
-
   }
   else
   {
     lastAccOn = currentTime;
 
     // When ACC is on, ensure the startup effect is turned off and reset flash tracking.
-    startupEffect->setActive(false);
+    taillightStartupEffect->setActive(false);
+    headlightStartupEffect->setActive(false);
 
     // And process the other effects normally.
     leftIndicatorEffect->setActive(leftIndicatorState);
@@ -583,13 +588,11 @@ void Application::handleTestEffects()
 {
   // Test Mode - Add headlight testing
 
-  reverseLightEffect->setActive(true);
-  headlightEffect->setActive(true);
-  headlightEffect->setSplit(false);
-
-
+  // Regular test mode controls (commented out)
+  // reverseLightEffect->setActive(true);
+  // headlightEffect->setActive(true);
+  // headlightEffect->setSplit(false);
   // brakeEffect->setIsReversing(true);
-
   // brakeEffect->setActive(io0.read());
   // leftIndicatorEffect->setActive(io0.read());
   // rightIndicatorEffect->setActive(io0.read());

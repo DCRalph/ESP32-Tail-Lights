@@ -3,13 +3,13 @@
 #include "../Effects.h"
 #include <stdint.h>
 
-class StartupEffect : public LEDEffect
+class TaillightStartupEffect : public LEDEffect
 {
 public:
-  // Constructs the StartupEffect.
+  // Constructs the TaillightStartupEffect.
   // strip: pointer to the strip.
   // priority, transparent: passed on to the base class.
-  StartupEffect(uint8_t priority = 0, bool transparent = false);
+  TaillightStartupEffect(uint8_t priority = 0, bool transparent = false);
 
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;

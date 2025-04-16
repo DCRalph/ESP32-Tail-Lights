@@ -10,8 +10,10 @@
 #include "IO/LED/Effects/ReverseLightEffect.h"
 #include "IO/LED/Effects/RGBEffect.h"
 #include "IO/LED/Effects/NightRiderEffect.h"
-#include "IO/LED/Effects/StartupEffect.h"
+#include "IO/LED/Effects/TaillightStartupEffect.h"
 #include "IO/LED/Effects/HeadlightEffect.h"
+#include "IO/LED/Effects/HeadlightStartupEffect.h"
+#include "IO/LED/Effects/PoliceEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -98,12 +100,14 @@ private:
   IndicatorEffect *rightIndicatorEffect;
   RGBEffect *rgbEffect;
   NightRiderEffect *nightriderEffect;
-  StartupEffect *startupEffect;
+  TaillightStartupEffect *taillightStartupEffect;
+  HeadlightStartupEffect *headlightStartupEffect;
 
   HeadlightEffect *headlightEffect;
 
   BrakeLightEffect *brakeEffect;
   ReverseLightEffect *reverseLightEffect;
+  PoliceEffect *policeEffect;
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;
