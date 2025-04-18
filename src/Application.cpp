@@ -5,6 +5,7 @@
 #include "IO/Wireless.h" // Your wireless library
 #include "FastLED.h"
 #include "IO/LED/LEDStripManager.h"
+#include "Sync/SyncManager.h"
 
 //----------------------------------------------------------------------------
 
@@ -313,11 +314,31 @@ void Application::begin()
   // Setup wireless communication handlers
   setupWireless();
 
-// #ifndef ENABLE_HV_INPUTS
-//   enableTestMode();
-//   // rgbEffect->setActive(true);
-//   headlightStartupEffect->setActive(true);
-// #endif
+  // Initialize SyncManager
+  SyncManager *syncMgr = SyncManager::getInstance();
+  syncMgr->begin();
+
+  // Set the callback for effect state changes from sync
+  syncMgr->setEffectChangeCallback([this](const EffectSyncState &state)
+                                   {
+    // Only apply sync changes if in NORMAL mode and ACC is on
+    if (mode == ApplicationMode::NORMAL) {
+      leftIndicatorEffect->setActive(state.leftIndicator);
+      rightIndicatorEffect->setActive(state.rightIndicator);
+      rgbEffect->setActive(state.rgb);
+      nightriderEffect->setActive(state.nightrider);
+      taillightStartupEffect->setActive(state.startup);
+      headlightStartupEffect->setActive(state.startup);
+      policeEffect->setActive(state.police);
+      pulseWaveEffect->setActive(state.pulseWave);
+      auroraEffect->setActive(state.aurora);
+    } });
+
+  // #ifndef ENABLE_HV_INPUTS
+  //   enableTestMode();
+  //   // rgbEffect->setActive(true);
+  //   headlightStartupEffect->setActive(true);
+  // #endif
 
   // set brightness to 100
   ledManager->setBrightness(255);
@@ -503,6 +524,26 @@ void Application::loop()
   break;
   }
 
+  // Update SyncManager
+  SyncManager *syncMgr = SyncManager::getInstance();
+  syncMgr->loop();
+
+  // If in normal mode and we have ACC on, sync our effect states
+  if (mode == ApplicationMode::NORMAL)
+  {
+    EffectSyncState state;
+    state.leftIndicator = leftIndicatorEffect->isActive();
+    state.rightIndicator = rightIndicatorEffect->isActive();
+    state.rgb = rgbEffect->isActive();
+    state.nightrider = nightriderEffect->isActive();
+    state.startup = taillightStartupEffect->isActive() || headlightStartupEffect->isActive();
+    state.police = policeEffect->isActive();
+    state.pulseWave = pulseWaveEffect->isActive();
+    state.aurora = auroraEffect->isActive();
+
+    syncMgr->updateEffectStates(state);
+  }
+
   // Update and draw LED effects.
   LEDStripManager::getInstance()->updateEffects();
   LEDStripManager::getInstance()->draw();
@@ -558,6 +599,9 @@ void Application::enableOffMode()
 void Application::handleNormalEffects()
 {
   unsigned long currentTime = millis();
+  SyncManager *syncMgr = SyncManager::getInstance();
+  bool isSyncing = syncMgr->isSyncing();
+  bool isMaster = syncMgr->isMaster();
 
   unlockSequence->setInputs(accOnState, leftIndicatorState, rightIndicatorState);
   lockSequence->setInputs(accOnState, leftIndicatorState, rightIndicatorState);
@@ -627,19 +671,26 @@ void Application::handleNormalEffects()
     taillightStartupEffect->setActive(false);
     headlightStartupEffect->setActive(false);
 
-    // And process the other effects normally.
-    leftIndicatorEffect->setActive(leftIndicatorState);
-    rightIndicatorEffect->setActive(rightIndicatorState);
+    // Only apply physical input controls if we're the master
+    // or we're not syncing with other devices
+    if (!isSyncing || isMaster)
+    {
+      // And process the other effects normally.
+      leftIndicatorEffect->setActive(leftIndicatorState);
+      rightIndicatorEffect->setActive(rightIndicatorState);
 
 #ifdef ENABLE_HEADLIGHTS
-    headlightEffect->setActive(highBeamState);
+      headlightEffect->setActive(highBeamState);
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
-    brakeEffect->setActive(brakeState);
-    brakeEffect->setIsReversing(reverseState || reverseLightEffect->isAnimating());
-    reverseLightEffect->setActive(reverseState);
+      brakeEffect->setActive(brakeState);
+      brakeEffect->setIsReversing(reverseState || reverseLightEffect->isAnimating());
+      reverseLightEffect->setActive(reverseState);
 #endif
+    }
+    // If we're syncing but not the master, effect states will be controlled
+    // by the SyncManager through its callback
   }
 }
 

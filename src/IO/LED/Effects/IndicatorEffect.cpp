@@ -200,11 +200,11 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
     {
       if (side == LEFT)
       {
-        buffer[strip->getNumLEDs() / 2 - i - 1] = Color(r, g, b);
+        buffer[strip->getNumLEDs() / 2 - regionLength + i] = Color(r, g, b);
       }
       else
       {
-        buffer[strip->getNumLEDs() / 2 + i] = Color(r, g, b);
+        buffer[strip->getNumLEDs() / 2 + regionLength - i - 1] = Color(r, g, b);
       }
     }
   }

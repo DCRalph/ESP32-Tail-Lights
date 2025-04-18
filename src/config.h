@@ -29,6 +29,7 @@ extern Preferences preferences;
 // #define DEBUG_ESP_NOW
 // #define ESPNOW_NO_DISABLE_WIFI
 
+#define DEBUG_SYNC
 
 #ifdef S3_DEV
 #define LED_PIN 21
@@ -52,7 +53,7 @@ extern Preferences preferences;
 
 #ifdef ENABLE_HEADLIGHTS
 #define HEADLIGHT_LED_COUNT 120
-#define HEADLIGHT_LED_PIN 5
+#define HEADLIGHT_LED_PIN 8
 // #define HEADLIGHT_FLIPED
 #endif
 
@@ -63,10 +64,10 @@ extern Preferences preferences;
 
 #ifdef ENABLE_UNDERGLOW
 #define UNDERGLOW_LED_COUNT 120
-// #define UNDERGLOW_LED_PIN 
+// #define UNDERGLOW_LED_PIN
 #endif
 
 #ifdef ENABLE_INTERIOR
 #define INTERIOR_LED_COUNT 60
-// #define INTERIOR_LED_PIN 
+// #define INTERIOR_LED_PIN
 #endif
