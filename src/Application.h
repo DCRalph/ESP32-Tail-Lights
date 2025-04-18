@@ -14,6 +14,8 @@
 #include "IO/LED/Effects/HeadlightEffect.h"
 #include "IO/LED/Effects/HeadlightStartupEffect.h"
 #include "IO/LED/Effects/PoliceEffect.h"
+#include "IO/LED/Effects/PulseWaveEffect.h"
+#include "IO/LED/Effects/AuroraEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -108,6 +110,10 @@ private:
   BrakeLightEffect *brakeEffect;
   ReverseLightEffect *reverseLightEffect;
   PoliceEffect *policeEffect;
+
+  // New effects
+  PulseWaveEffect *pulseWaveEffect;
+  AuroraEffect *auroraEffect;
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;

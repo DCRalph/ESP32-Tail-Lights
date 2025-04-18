@@ -26,6 +26,9 @@ struct SetModeCmd
 
 struct EffectsCmd
 {
+  bool testEffect1;
+  bool testEffect2;
+
   bool leftIndicator;
   bool rightIndicator;
 
@@ -140,6 +143,9 @@ void Application::setupWireless()
 
                              EffectsCmd eCmd = {0};
 
+                             eCmd.testEffect1 = pulseWaveEffect->isActive();
+                             eCmd.testEffect2 = auroraEffect->isActive();
+
                              eCmd.leftIndicator = leftIndicatorEffect->isActive();
                              eCmd.rightIndicator = rightIndicatorEffect->isActive();
                              eCmd.rgb = rgbEffect->isActive();
@@ -171,6 +177,9 @@ void Application::setupWireless()
 
                              EffectsCmd eCmd = {0};
                              memcpy(&eCmd, fp->p.data, sizeof(eCmd));
+
+                             pulseWaveEffect->setActive(eCmd.testEffect1);
+                             auroraEffect->setActive(eCmd.testEffect2);
 
                              leftIndicatorEffect->setActive(eCmd.leftIndicator);
                              rightIndicatorEffect->setActive(eCmd.rightIndicator);

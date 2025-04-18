@@ -71,6 +71,7 @@ const Color Color::MAGENTA = Color(255, 0, 255);
 
 LEDStrip::LEDStrip(uint16_t numLEDs)
     : numLEDs(numLEDs),
+      fliped(false),
       fps(100),
       lastUpdateTime(0),
       lastUpdateDuration(0),
@@ -215,6 +216,13 @@ uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
 void LEDStrip::setFPS(uint16_t fps) { this->fps = fps; }
 
 uint16_t LEDStrip::getFPS() const { return fps; }
+
+void LEDStrip::setFliped(bool _fliped)
+{
+  fliped = _fliped;
+}
+
+bool LEDStrip::getFliped() { return fliped; };
 
 uint64_t LEDStrip::getLastUpdateDuration() const { return lastUpdateDuration; }
 

@@ -103,6 +103,9 @@ public:
   void setFPS(uint16_t fps);
   uint16_t getFPS() const;
 
+  void setFliped(bool _fliped);
+  bool getFliped();
+
   // Return the last frame's update duration (in microseconds).
   uint64_t getLastUpdateDuration() const;
 
@@ -118,6 +121,7 @@ private:
   friend class LEDStripConfig;
   LEDStripType type;
   uint16_t numLEDs;
+  bool fliped;
   uint16_t fps;
   uint64_t lastUpdateTime;
   CRGB *leds; // fastled buffer

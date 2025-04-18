@@ -53,6 +53,7 @@ extern Preferences preferences;
 #ifdef ENABLE_HEADLIGHTS
 #define HEADLIGHT_LED_COUNT 120
 #define HEADLIGHT_LED_PIN 5
+// #define HEADLIGHT_FLIPED
 #endif
 
 #ifdef ENABLE_TAILLIGHTS

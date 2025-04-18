@@ -128,14 +128,14 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
   // For each phase, calculate which LEDs should be lit and at what brightness
   if (phase == 0) // Phase 0: Filling from outside at half brightness
   {
-    int leds = round(phase_0_progress * effective_size);
+    int leds = floor(phase_0_progress * effective_size);
 
     int single_led_to_light = static_cast<float>(effective_size) * phase_0_single_led_progress;
 
     // Fill left side from the edge inward
     if (phase_0_single_led_index > 1)
     {
-      for (int i = 0; i <= phase_0_single_led_index; i++)
+      for (int i = 0; i < phase_0_single_led_index; i++)
       {
         buffer[effective_size - i - 1] = halfBrightness;
         buffer[numLEDs - 1 - (effective_size - i - 1)] = halfBrightness;
@@ -172,8 +172,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     }
 
     // Then, set LEDs that should be at full brightness based on progress
-    int leftLeds = round(phase_2_progress * effective_size);
-    int rightLeds = round(phase_2_progress * effective_size);
+    int leftLeds = floor(phase_2_progress * effective_size);
+    int rightLeds = floor(phase_2_progress * effective_size);
 
     // Fill left side from the edge inward with full brightness
     for (int i = 0; i < leftLeds; i++)

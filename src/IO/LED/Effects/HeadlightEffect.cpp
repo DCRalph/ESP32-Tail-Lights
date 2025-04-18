@@ -8,6 +8,12 @@ static inline float easeIn(float t)
   return t * t;
 }
 
+// ease out function for smooth lighting transitions
+static inline float easeOut(float t)
+{
+  return 1.0f - (1.0f - t) * (1.0f - t);
+}
+
 // Ease in/out function using a cosine interpolation for smoother transitions
 static inline float easeInOut(float t)
 {
@@ -20,7 +26,7 @@ HeadlightEffect::HeadlightEffect(uint8_t priority,
       lastUpdate(0),
       headlightActive(false),
       split(false),
-      ledPerSide(15),
+      ledPerSide(20),
       red(false),
       blue(false),
       green(false),
@@ -182,9 +188,11 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     // Split mode - only light up the first and last sections
     for (uint16_t i = 0; i < ledPerSide; i++)
     {
+      float pEaseOut = easeOut(p);
+
       // Calculate animation factor based on position (fading from edges)
       float normDist = (float)i / ledPerSide; // 0 at edge, 1 at center
-      float animationFactor = (normDist <= p) ? 1.0f : 0.0f;
+      float animationFactor = (normDist <= pEaseOut) ? 1.0f : 0.0f;
 
       Color c;
 

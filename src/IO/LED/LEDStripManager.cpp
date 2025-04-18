@@ -142,7 +142,10 @@ void LEDStripManager::draw()
 
       for (int i = 0; i < strip->getNumLEDs(); i++)
       {
-        strip->getFastLEDBuffer()[i] = CRGB(buf[i].r, buf[i].g, buf[i].b);
+        if (strip->getFliped())
+          strip->getFastLEDBuffer()[strip->getNumLEDs() - 1 - i] = CRGB(buf[i].r, buf[i].g, buf[i].b);
+        else
+          strip->getFastLEDBuffer()[i] = CRGB(buf[i].r, buf[i].g, buf[i].b);
       }
     }
   }

@@ -55,6 +55,27 @@ Application::Application()
 #endif
 
   lastAccOn = 0;
+
+  // Initialize effect pointers to nullptr
+  leftIndicatorEffect = nullptr;
+  rightIndicatorEffect = nullptr;
+  rgbEffect = nullptr;
+  nightriderEffect = nullptr;
+  taillightStartupEffect = nullptr;
+  headlightStartupEffect = nullptr;
+  policeEffect = nullptr;
+  pulseWaveEffect = nullptr;
+  auroraEffect = nullptr;
+
+  // Initialize sequence pointers to nullptr
+  unlockSequence = nullptr;
+  lockSequence = nullptr;
+  RGBFlickSequence = nullptr;
+  nightRiderFlickSequence = nullptr;
+
+#ifdef ENABLE_TAILLIGHTS
+  brakeTapSequence3 = nullptr;
+#endif
 }
 
 /*
@@ -70,19 +91,21 @@ Application::~Application()
   taillightStartupEffect = nullptr;
   headlightStartupEffect = nullptr;
   policeEffect = nullptr;
+  pulseWaveEffect = nullptr;
+  auroraEffect = nullptr;
 
   delete brakeEffect;
   delete reverseLightEffect;
   delete policeEffect;
-
   delete headlightEffect;
-
   delete leftIndicatorEffect;
   delete rightIndicatorEffect;
   delete rgbEffect;
   delete nightriderEffect;
   delete taillightStartupEffect;
   delete headlightStartupEffect;
+  delete pulseWaveEffect;
+  delete auroraEffect;
 
   delete unlockSequence;
   delete lockSequence;
@@ -115,6 +138,9 @@ void Application::begin()
       new LEDStrip(HEADLIGHT_LED_COUNT),
       "Headlights");
   FastLED.addLeds<WS2812, HEADLIGHT_LED_PIN, GRB>(headlights.strip->getFastLEDBuffer(), HEADLIGHT_LED_COUNT);
+#ifdef HEADLIGHT_FLIPED
+  headlights.strip->setFliped(true);
+#endif
   ledManager->addLEDStrip(headlights);
 
   // Flash a test LED to indicate startup.
@@ -175,6 +201,10 @@ void Application::begin()
   brakeEffect = new BrakeLightEffect(8, false);
   reverseLightEffect = new ReverseLightEffect(6, false);
 
+  // Initialize our new effects
+  pulseWaveEffect = new PulseWaveEffect(2, false);
+  auroraEffect = new AuroraEffect(2, false);
+
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
   rightIndicatorEffect->setOtherIndicator(leftIndicatorEffect);
 
@@ -194,6 +224,10 @@ void Application::begin()
 
     headlightStrip->addEffect(headlightEffect);
     headlightStrip->addEffect(policeEffect);
+
+    // Add our new effects to the headlights
+    // headlightStrip->addEffect(pulseWaveEffect);
+    headlightStrip->addEffect(auroraEffect);
   }
 
   if (taillightStrip)
@@ -208,6 +242,9 @@ void Application::begin()
     taillightStrip->addEffect(brakeEffect);
     taillightStrip->addEffect(reverseLightEffect);
 #endif
+
+    taillightStrip->addEffect(pulseWaveEffect);
+    taillightStrip->addEffect(auroraEffect);
   }
 
   // Sequences
@@ -276,11 +313,11 @@ void Application::begin()
   // Setup wireless communication handlers
   setupWireless();
 
-#ifndef ENABLE_HV_INPUTS
-  enableTestMode();
-  // rgbEffect->setActive(true);
-  headlightStartupEffect->setActive(true);
-#endif
+// #ifndef ENABLE_HV_INPUTS
+//   enableTestMode();
+//   // rgbEffect->setActive(true);
+//   headlightStartupEffect->setActive(true);
+// #endif
 
   // set brightness to 100
   ledManager->setBrightness(255);
@@ -497,6 +534,25 @@ void Application::enableOffMode()
 {
   mode = ApplicationMode::OFF;
   preferences.putUInt("mode", static_cast<uint8_t>(mode));
+
+  // turn off all effects
+  leftIndicatorEffect->setActive(false);
+  rightIndicatorEffect->setActive(false);
+  rgbEffect->setActive(false);
+  nightriderEffect->setActive(false);
+  taillightStartupEffect->setActive(false);
+  headlightStartupEffect->setActive(false);
+
+  headlightEffect->setActive(false);
+  headlightEffect->setSplit(false);
+  headlightEffect->setColor(false, false, false);
+
+  brakeEffect->setActive(false);
+  brakeEffect->setIsReversing(false);
+  reverseLightEffect->setActive(false);
+
+  pulseWaveEffect->setActive(false);
+  auroraEffect->setActive(false);
 }
 
 void Application::handleNormalEffects()
@@ -559,6 +615,9 @@ void Application::handleNormalEffects()
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
     reverseLightEffect->setActive(false);
+
+    pulseWaveEffect->setActive(false);
+    auroraEffect->setActive(false);
   }
   else
   {
@@ -586,7 +645,6 @@ void Application::handleNormalEffects()
 
 void Application::handleTestEffects()
 {
-  // Test Mode - Add headlight testing
 
   // Regular test mode controls (commented out)
   // reverseLightEffect->setActive(true);
