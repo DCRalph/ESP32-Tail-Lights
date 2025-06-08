@@ -12,6 +12,8 @@ extern GpIO input3;
 extern GpIO input4;
 extern GpIO input5;
 extern GpIO input6;
+extern GpIO input7;
+extern GpIO input8;
 
 enum PinMode
 {

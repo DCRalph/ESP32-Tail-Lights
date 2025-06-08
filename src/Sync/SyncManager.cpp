@@ -2,6 +2,9 @@
 #include <WiFi.h>
 #include <algorithm>
 #include <sstream>
+#include <iomanip> // For std::setw
+
+#ifdef ENABLE_SYNC
 
 // Static instance
 SyncManager *SyncManager::getInstance()
@@ -76,8 +79,8 @@ void SyncManager::loop()
 
       // print some debug info if debug is enabled
 #ifdef DEBUG_SYNC
-      Serial.println("SyncManager: Broadcasted effect state");
-      Serial.println("SyncManager: Number of devices: " + String(knownDevices.size()));
+      // Serial.println("SyncManager: Broadcasted effect state");
+      // Serial.println("SyncManager: Number of devices: " + String(knownDevices.size()));
 #endif
     }
 
@@ -92,6 +95,12 @@ void SyncManager::loop()
   {
     syncActive = false;
   }
+
+  if (currentTime - lastPrintTime >= 2000)
+  {
+    lastPrintTime = currentTime;
+    printDeviceInfo();
+  }
 }
 
 void SyncManager::setEffectChangeCallback(std::function<void(const EffectSyncState &)> callback)
@@ -101,12 +110,9 @@ void SyncManager::setEffectChangeCallback(std::function<void(const EffectSyncSta
 
 void SyncManager::updateEffectStates(const EffectSyncState &newState)
 {
-  // Update our local state
-  currentEffects = newState;
-
-  // If we're the master, send the update to all other devices
   if (isMasterDevice)
   {
+    currentEffects = newState;
     broadcastEffectState();
   }
 }
@@ -143,7 +149,7 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   }
 
 #ifdef DEBUG_SYNC
-  Serial.println("SyncManager: Received packet type " + String(subtype) + " from " + String(macStr.c_str()));
+  // Serial.println("SyncManager: Received packet type " + String(subtype) + " from " + String(macStr.c_str()));
 #endif
 
   // Update last seen timestamp for this device
@@ -168,47 +174,81 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   {
   case SYNC_HEARTBEAT:
   {
-    if (fp->p.len >= 5)
-    { // Ensure packet has priority data
-      // Extract priority
-      uint32_t devicePriority = 0;
-      memcpy(&devicePriority, &fp->p.data[1], 4);
-      knownDevices[macStr].priority = devicePriority;
+    // Extract priority
+    uint32_t peerPriority = 0;
+    if (fp->p.len >= 1 + sizeof(peerPriority))
+    {
+      memcpy(&peerPriority, &fp->p.data[1], sizeof(peerPriority));
+      knownDevices[macStr].priority = peerPriority;
     }
+
+#ifdef DEBUG_SYNC
+    // Serial.println("SyncManager: Received heartbeat with priority " + String(peerPriority));
+#endif
     break;
   }
 
   case SYNC_MASTER_ANNOUNCE:
   {
-    // Someone is announcing they're the master
-    knownDevices[macStr].isMaster = true;
-
-    // If we also think we're master, but they have higher priority, yield
-    if (isMasterDevice && knownDevices[macStr].priority > ourPriority)
+    // Someone is claiming to be master
+    uint32_t masterPriority = 0;
+    if (fp->p.len >= 1 + sizeof(masterPriority))
     {
-      isMasterDevice = false;
+      memcpy(&masterPriority, &fp->p.data[1], sizeof(masterPriority));
+    }
+
+    // If they have higher priority than us, accept them as master
+    if (masterPriority > ourPriority)
+    {
+      // Mark all other devices as non-master first
+      for (auto &device : knownDevices)
+      {
+        device.second.isMaster = false;
+      }
+
+      // Then set this device as master
+      knownDevices[macStr].isMaster = true;
+      isMasterDevice = false; // We are no longer master
+
+#ifdef DEBUG_SYNC
+      Serial.println("SyncManager: Accepted new master with priority " + String(masterPriority));
+#endif
+    }
+    else if (masterPriority < ourPriority && isMasterDevice)
+    {
+      // We have higher priority, reaffirm our mastery
+      becomeMaster();
     }
     break;
   }
 
   case SYNC_EFFECT_STATE:
   {
-    // Master is sending effect state
-    if (fp->p.len >= sizeof(EffectSyncState) + 1)
-    { // +1 for subtype
-      EffectSyncState receivedState;
-      memcpy(&receivedState, &fp->p.data[1], sizeof(EffectSyncState));
+    // Only process if it's from the master device
+    if (!knownDevices[macStr].isMaster)
+      break;
 
-      // Only update our state if we're not the master
-      if (!isMasterDevice)
+    // Extract effect state
+    EffectSyncState recvState;
+    if (fp->p.len >= 1 + sizeof(EffectSyncState))
+    {
+      memcpy(&recvState, &fp->p.data[1], sizeof(EffectSyncState));
+
+      // Only update state if there's a difference
+      if (memcmp(&recvState, &currentEffects, sizeof(EffectSyncState)) != 0)
       {
-        currentEffects = receivedState;
+        // Update our local state
+        currentEffects = recvState;
 
-        // Notify about state change
+        // Call callback if registered
         if (effectChangeCallback)
         {
           effectChangeCallback(currentEffects);
         }
+
+#ifdef DEBUG_SYNC
+        Serial.println("SyncManager: Updated effect state from master");
+#endif
       }
     }
     break;
@@ -216,28 +256,15 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
 
   case SYNC_MASTER_REQUEST:
   {
-    // Someone is asking who's master
+    // If we're master, respond
     if (isMasterDevice)
     {
-      // Send master announcement
       data_packet pkt;
       pkt.type = SYNC_MSG_TYPE;
       pkt.data[0] = SYNC_MASTER_ANNOUNCE;
       memcpy(&pkt.data[1], &ourPriority, sizeof(ourPriority));
       pkt.len = 1 + sizeof(ourPriority);
-      wireless.send(&pkt, fp->mac);
-    }
-    break;
-  }
-
-  case SYNC_MASTER_RESIGN:
-  {
-    // Current master is resigning
-    if (knownDevices[macStr].isMaster)
-    {
-      knownDevices[macStr].isMaster = false;
-      // Trigger a new master election
-      electMaster();
+      wireless.send(&pkt, (uint8_t *)BROADCAST_MAC);
     }
     break;
   }
@@ -389,3 +416,93 @@ const uint8_t *SyncManager::getOurMac()
 
   return ourMac;
 }
+
+// this should print a nice looking table of the our state and the state of all known devices
+// it should do this in one print call to ensure info prints as one block of text
+void SyncManager::printDeviceInfo()
+{
+  std::stringstream ss;
+  ss << "\n=== Sync Network Status ===\n";
+
+  // Our device info
+  ss << "This Device: ";
+  const String mac = WiFi.macAddress();
+  ss << mac;
+  // for (int i = 0; i < 6; i++)
+  // {
+  //   ss << String(ourMac[i], HEX);
+  //   if (i < 5)
+  //     ss << ":";
+  // }
+  ss << "\n";
+  ss << "Priority: " << ourPriority << "\n";
+  ss << "Role: " << (isMasterDevice ? "MASTER" : "SLAVE") << "\n";
+  ss << "Sync Active: " << (syncActive ? "YES" : "NO") << "\n";
+  ss << "\n";
+
+  // Current effect state
+  ss << "Current Effects:\n";
+  ss << "  Left Indicator: " << (currentEffects.leftIndicator ? "ON" : "OFF") << "\n";
+  ss << "  Right Indicator: " << (currentEffects.rightIndicator ? "ON" : "OFF") << "\n";
+  ss << "  RGB: " << (currentEffects.rgb ? "ON" : "OFF") << "\n";
+  ss << "  Nightrider: " << (currentEffects.nightrider ? "ON" : "OFF") << "\n";
+  ss << "  Startup: " << (currentEffects.startup ? "ON" : "OFF") << "\n";
+  ss << "  Police: " << (currentEffects.police ? "ON" : "OFF") << "\n";
+  ss << "  Pulse Wave: " << (currentEffects.pulseWave ? "ON" : "OFF") << "\n";
+  ss << "  Aurora: " << (currentEffects.aurora ? "ON" : "OFF") << "\n";
+  ss << "\n";
+
+  // Known devices table
+  ss << "Known Devices (" << knownDevices.size() << "):\n";
+  if (knownDevices.size() > 0)
+  {
+    ss << "+-------------------+----------+--------+------------------+\n";
+    ss << "| MAC Address       | Priority | Master | Last Seen (ms)   |\n";
+    ss << "+-------------------+----------+--------+------------------+\n";
+
+    uint32_t currentTime = millis();
+    for (const auto &device : knownDevices)
+    {
+      // MAC address
+      ss << "| ";
+      for (int i = 0; i < 6; i++)
+      {
+        char buf[3];
+        sprintf(buf, "%02X", device.second.mac[i]);
+        ss << buf;
+        if (i < 5)
+          ss << ":";
+      }
+
+      // Other device info
+      ss << " | " << std::setw(8) << device.second.priority;
+      ss << " | " << std::setw(6) << (device.second.isMaster ? "YES" : "NO");
+      ss << " | " << std::setw(16) << (currentTime - device.second.lastSeen) << " |\n";
+    }
+    ss << "+-------------------+----------+--------+------------------+\n";
+  }
+
+  Serial.println(ss.str().c_str());
+}
+
+#else
+
+// Stub implementation when ENABLE_SYNC is not defined
+SyncManager *SyncManager::getInstance()
+{
+  static SyncManager instance;
+  return &instance;
+}
+
+SyncManager::SyncManager() {}
+SyncManager::~SyncManager() {}
+void SyncManager::begin() {}
+void SyncManager::loop() {}
+void SyncManager::setEffectChangeCallback(std::function<void(const EffectSyncState &)> callback) {}
+void SyncManager::updateEffectStates(const EffectSyncState &newState) {}
+bool SyncManager::isSyncing() const { return false; }
+bool SyncManager::isMaster() const { return false; }
+size_t SyncManager::getDeviceCount() const { return 0; }
+void SyncManager::printDeviceInfo() {}
+
+#endif // ENABLE_SYNC

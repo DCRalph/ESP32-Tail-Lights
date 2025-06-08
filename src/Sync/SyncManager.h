@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include "IO/Wireless.h"
+#include "config.h"
 
 // Constants for sync packets
 constexpr uint8_t SYNC_MSG_TYPE = 0xA0;
@@ -60,10 +61,14 @@ public:
   // Get known devices count
   size_t getDeviceCount() const;
 
+  // Print device info to serial
+  void printDeviceInfo();
+
 private:
   SyncManager();
   ~SyncManager();
 
+#ifdef ENABLE_SYNC
   // Handles incoming sync packets
   void handleSyncPacket(fullPacket *fp);
 
@@ -87,6 +92,7 @@ private:
 
   // Map of known devices by MAC address
   std::map<std::string, DeviceInfo> knownDevices;
+  uint64_t lastPrintTime;
 
   // Current effect state
   EffectSyncState currentEffects;
@@ -109,4 +115,5 @@ private:
 
   // Callback for effect state changes
   std::function<void(const EffectSyncState &)> effectChangeCallback;
+#endif // ENABLE_SYNC
 };

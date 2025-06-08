@@ -3,6 +3,14 @@
 #include "../Effects.h"
 #include <stdint.h>
 
+enum class HeadlightStartupEffectMode
+{
+  Off,
+  TurningOff,
+  Startup,
+  CarOn,
+};
+
 class HeadlightStartupEffect : public LEDEffect
 {
 public:
@@ -13,11 +21,19 @@ public:
 
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;
-  void setActive(bool active);
+  // void setActive(bool active);
   bool isActive();
 
+  void setOff();
+  void setStartup();
+  void setCarOn();
+  void setMode(HeadlightStartupEffectMode mode);
+  void setMode(int mode);
+  HeadlightStartupEffectMode getMode();
+
 private:
-  bool active;               // Is the effect active?
+  // bool active;               // Is the effect active?
+  HeadlightStartupEffectMode mode;
   int phase;                 // Phase 0: filling from outside at half brightness
                              // Phase 1: filling from outside at full brightness
                              // Phase 2: final steady state (all LEDs at full brightness)
@@ -27,6 +43,10 @@ private:
   float T0; // half brightness fill duration
   float T1; // delay duration
   float T2; // full brightness fill duration
+
+  float T10; // filling entire strip to full brightness duration
+
+  float T20; // fade full white strip to off by starting from the edges and moving inward duration
 
   // Effect parameters
   uint16_t headlight_size; // number of LEDs in the headlight section from edge
@@ -45,4 +65,10 @@ private:
 
   // Phase 2 (full brightness fill)
   float phase_2_progress; // Progress for full brightness fill (0 to 1)
+
+  // Phase 10 (filling entire strip to full brightness)
+  float phase_10_progress;
+
+  // Phase 20 (fade full white strip to off by starting from the edges and moving inward)
+  float phase_20_progress;
 };

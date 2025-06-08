@@ -23,7 +23,28 @@
 #include "Sequences/BrakeTapSequence.h"
 
 #include "IO/GPIO.h"
+#include "IO/Inputs.h"
 #include "IO/Wireless.h"
+
+static void updateInput(HVInput *input)
+{
+  if (input)
+    input->update();
+}
+
+static bool getInput(HVInput *input)
+{
+  if (input)
+    return input->get();
+  return false;
+}
+
+static bool isEnabled(HVInput *input)
+{
+  if (input)
+    return input->isEnabled();
+  return false;
+}
 
 enum class ApplicationMode
 {
@@ -44,6 +65,9 @@ public:
   // Call once to initialize the system.
   void begin();
 
+  void setupEffects();
+  void setupSequences();
+
   // Main loop function to be called from loop()
   void loop();
 
@@ -56,46 +80,20 @@ public:
   // Global pointer to the custom LED manager.
 
 private:
-  // Input pointers.
+  // HVInput instances
+  HVInput *accOnInput;           // 12v ACC
+  HVInput *leftIndicatorInput;   // Left indicator
+  HVInput *rightIndicatorInput;  // Right indicator
+  HVInput *externalControlInput; // button to do things
 
-#ifdef ENABLE_HV_INPUTS
-  GpIO *accOn;           // 12v ACC
-  GpIO *leftIndicator;   // Left indicator
-  GpIO *rightIndicator;  // Right indicator
-  GpIO *externalControl; // button to do things
+  // HVInput *highBeamInput; // High beam
+  // HVInput *lowBeamInput;  // Low beam
 
-#ifdef ENABLE_HEADLIGHTS
-  GpIO *highBeam; // High beam
-  GpIO *lowBeam;  // Low beam
-#endif
-
-#ifdef ENABLE_TAILLIGHTS
-  GpIO *brake;   // Brake
-  GpIO *reverse; // Reverse
-#endif
-
-#endif
-
-  bool accOnState;
-  bool lastAccOnState;
-  bool leftIndicatorState;
-  bool rightIndicatorState;
-  bool externalControlState;
-
-#ifdef ENABLE_HEADLIGHTS
-  bool highBeamState;
-  bool lowBeamState;
-#endif
-
-#ifdef ENABLE_TAILLIGHTS
-  bool brakeState;
-  bool reverseState;
-#endif
+  HVInput *brakeInput;   // Brake
+  HVInput *reverseInput; // Reverse
 
   void updateInputs();
   void setupWireless();
-
-  uint64_t lastAccOn;
 
   // Effect instances.
   IndicatorEffect *leftIndicatorEffect;

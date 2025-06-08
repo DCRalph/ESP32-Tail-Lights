@@ -4,12 +4,15 @@
 
 HeadlightStartupEffect::HeadlightStartupEffect(uint8_t priority, bool transparent)
     : LEDEffect(priority, transparent),
-      active(false),
+      // active(false),
+      mode(HeadlightStartupEffectMode::Off),
       phase(0),
       phase_start(0),
-      T0(10.0f),          // 2 seconds for half brightness fill
-      T1(0.2f),           // 1 second delay
-      T2(1.0f),           // 2 seconds for full brightness fill
+      T0(10.0f),          // 10 seconds for half brightness fill
+      T1(0.2f),           // 0.2 seconds delay
+      T2(1.0f),           // 1 second for full brightness fill
+      T10(1.0f),          // 1 second for full brightness fill
+      T20(1.0f),          // 1 second for full brightness fill
       headlight_size(20), // 10 LEDs from each edge by default
       ledsStepSize(2),    // Default to 1 LED at a time
       phase_0_progress(0.0f),
@@ -20,38 +23,114 @@ HeadlightStartupEffect::HeadlightStartupEffect(uint8_t priority, bool transparen
 {
 }
 
-void HeadlightStartupEffect::setActive(bool a)
+// void HeadlightStartupEffect::setActive(bool a)
+// {
+//   if (active == a)
+//     return;
+
+//   active = a;
+//   if (active)
+//   {
+//     phase = 0;
+//     phase_start = millis(); // Record the starting time (ms)
+//     phase_0_progress = 0.0f;
+//     phase_0_single_led_index = 0;
+//     phase_0_single_led_progress = 0.0f;
+//     phase_0_start_single_led = 0;
+//     phase_1_progress = 0.0f;
+//     phase_2_progress = 0.0f;
+//   }
+//   else
+//   {
+//     phase = 0;
+//     phase_start = 0;
+//   }
+// }
+
+bool HeadlightStartupEffect::isActive()
 {
-  if (active == a)
+  // return active;
+  return mode != HeadlightStartupEffectMode::Off;
+}
+
+void HeadlightStartupEffect::setOff()
+{
+  if (mode == HeadlightStartupEffectMode::Off || mode == HeadlightStartupEffectMode::TurningOff)
     return;
 
-  active = a;
-  if (active)
+  if (mode == HeadlightStartupEffectMode::CarOn)
   {
-    phase = 0;
+    mode = HeadlightStartupEffectMode::TurningOff;
+    phase = 20;
     phase_start = millis(); // Record the starting time (ms)
-    phase_0_progress = 0.0f;
-    phase_0_single_led_index = 0;
-    phase_0_single_led_progress = 0.0f;
-    phase_0_start_single_led = 0;
-    phase_1_progress = 0.0f;
-    phase_2_progress = 0.0f;
+    phase_20_progress = 0.0f;
   }
   else
   {
+    mode = HeadlightStartupEffectMode::Off;
     phase = 0;
     phase_start = 0;
   }
 }
 
-bool HeadlightStartupEffect::isActive()
+void HeadlightStartupEffect::setStartup()
 {
-  return active;
+  if (mode == HeadlightStartupEffectMode::Startup)
+    return;
+
+  mode = HeadlightStartupEffectMode::Startup;
+  phase = 0;
+  phase_start = millis(); // Record the starting time (ms)
+  phase_0_progress = 0.0f;
+  phase_0_single_led_index = 0;
+  phase_0_single_led_progress = 0.0f;
+  phase_0_start_single_led = 0;
+  phase_1_progress = 0.0f;
+  phase_2_progress = 0.0f;
+}
+
+void HeadlightStartupEffect::setCarOn()
+{
+  if (mode == HeadlightStartupEffectMode::CarOn)
+    return;
+
+  mode = HeadlightStartupEffectMode::CarOn;
+  phase = 10;
+  phase_start = millis(); // Record the starting time (ms)
+  phase_10_progress = 0.0f;
+}
+
+void HeadlightStartupEffect::setMode(HeadlightStartupEffectMode mode)
+{
+  if (this->mode == mode)
+    return;
+
+  this->mode = mode;
+}
+
+void HeadlightStartupEffect::setMode(int mode)
+{
+  if (mode == 0)
+    setOff();
+  else if (mode == 1)
+    setOff();
+  else if (mode == 2)
+    setStartup();
+  else if (mode == 3)
+    setCarOn();
+  else
+    setOff();
+}
+
+HeadlightStartupEffectMode HeadlightStartupEffect::getMode()
+{
+  return mode;
 }
 
 void HeadlightStartupEffect::update(LEDStrip *strip)
 {
-  if (!active)
+  // if (!active)
+  if (mode == HeadlightStartupEffectMode::Off)
     return;
 
   unsigned long now = millis();
@@ -63,6 +142,10 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
 
   // Convert elapsed time from milliseconds to seconds.
   float elapsed = (now - phase_start) / 1000.0f;
+
+  // #########################################################
+  // mode == HeadlightStartupEffectMode::Startup
+  // #########################################################
 
   if (phase == 0) // Phase 0: Filling from outside at half brightness
   {
@@ -91,7 +174,7 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
       phase_start = now;
     }
   }
-  else if (phase == 1) // Phase 1: Filling from outside at full brightness
+  else if (phase == 1) // Phase 1: Delay
   {
     phase_1_progress = std::min(elapsed / T1, 1.0f);
 
@@ -101,20 +184,55 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
       phase_start = now;
     }
   }
-  else if (phase == 2) // Phase 1: Filling from outside at full brightness
+  else if (phase == 2) // Phase 2: Filling from outside at full brightness
   {
     phase_2_progress = std::min(elapsed / T2, 1.0f);
 
-    if (elapsed > T1)
+    if (elapsed > T2)
     {
-      phase = 2;
+      phase = 3;
+      phase_start = now;
+    }
+  }
+  else if (phase == 3) // Phase 3: Final phase - all LEDs at full brightness
+  {
+    // do nothing
+  }
+
+  // #########################################################
+  // mode == HeadlightStartupEffectMode::CarOn
+  // #########################################################
+  else if (phase == 10) // Phase 10: filling entire strip to full brightness
+  {
+    phase_10_progress = std::min(elapsed / T10, 1.0f);
+
+    if (elapsed > T10)
+    {
+      phase = 11;
+      phase_start = now;
+    }
+  }
+
+  // #########################################################
+  // mode == HeadlightStartupEffectMode::TurningOff
+  // #########################################################
+  else if (phase == 20) // Phase 20: fade full white strip to off by starting from the edges and moving inward
+  {
+    phase_20_progress = std::min(elapsed / T20, 1.0f);
+
+    if (elapsed > T20)
+    {
+      phase = 21;
+      phase_start = now;
+      mode = HeadlightStartupEffectMode::Off;
     }
   }
 }
 
 void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
 {
-  if (!active)
+  // if (!active)
+  if (mode == HeadlightStartupEffectMode::Off)
     return;
 
   // Define colors
@@ -194,6 +312,71 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     {
       buffer[i] = color;               // Left side
       buffer[numLEDs - 1 - i] = color; // Right side
+    }
+  }
+
+  // #########################################################
+  // mode == HeadlightStartupEffectMode::CarOn
+  // #########################################################
+  else if (phase == 10) // Phase 10: filling entire strip to full brightness
+  {
+    int ledsToAnimate = numLEDs - effective_size * 2;
+    int ledsToAnimateSide = ledsToAnimate / 2;
+
+    for (int i = 0; i < numLEDs; i++)
+    {
+      if (i < effective_size)
+        buffer[i] = color; // Left side
+
+      if (i >= numLEDs - effective_size)
+        buffer[i] = color; // Right side
+
+      if (i > effective_size && i < effective_size + (ledsToAnimateSide * phase_10_progress))
+      {
+        buffer[i] = color;
+      }
+
+      if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * phase_10_progress))
+      {
+        buffer[i] = color;
+      }
+    }
+  }
+  else if (phase == 11) // full strip full brightness
+  {
+    for (int i = 0; i < numLEDs; i++)
+    {
+      buffer[i] = color;
+    }
+  }
+
+  // #########################################################
+  // mode == HeadlightStartupEffectMode::TurningOff
+  // #########################################################
+  else if (phase == 20)
+  { // Phase 20: fade full white strip to off by starting
+
+    int ledsPerSide = numLEDs / 2;
+    int ledsOffPerSide = ledsPerSide * phase_20_progress;
+
+    for (int i = 0; i < numLEDs; i++)
+    {
+      // If the LED is within the off-section on either side, turn it off.
+      if (i < ledsOffPerSide || i >= numLEDs - ledsOffPerSide)
+      {
+        buffer[i] = Color(0, 0, 0);
+      }
+      else
+      {
+        buffer[i] = color;
+      }
+    }
+  }
+  else if (phase == 21) // full strip off
+  {
+    for (int i = 0; i < numLEDs; i++)
+    {
+      buffer[i] = Color(0, 0, 0);
     }
   }
 }

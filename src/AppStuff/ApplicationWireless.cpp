@@ -43,7 +43,8 @@ struct EffectsCmd
 
   bool rgb;
   bool nightrider;
-  bool startup;
+  int startup;
+  int headlightStartup;
   bool police;
   PoliceMode policeMode;
 };
@@ -150,7 +151,8 @@ void Application::setupWireless()
                              eCmd.rightIndicator = rightIndicatorEffect->isActive();
                              eCmd.rgb = rgbEffect->isActive();
                              eCmd.nightrider = nightriderEffect->isActive();
-                             eCmd.startup = taillightStartupEffect->isActive() || headlightStartupEffect->isActive();
+                             eCmd.startup = taillightStartupEffect->isActive();
+                             eCmd.headlightStartup = static_cast<int>(headlightStartupEffect->getMode());
                              eCmd.police = policeEffect->isActive();
                              eCmd.policeMode = policeEffect->getMode();
 
@@ -187,7 +189,7 @@ void Application::setupWireless()
                              rgbEffect->setActive(eCmd.rgb);
                              nightriderEffect->setActive(eCmd.nightrider);
                              taillightStartupEffect->setActive(eCmd.startup);
-                             headlightStartupEffect->setActive(eCmd.startup);
+                             headlightStartupEffect->setMode(eCmd.headlightStartup);
 
                              policeEffect->setActive(eCmd.police);
                              policeEffect->setMode(eCmd.policeMode);

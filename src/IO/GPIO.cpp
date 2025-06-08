@@ -10,6 +10,8 @@ GpIO input3(INPUT_3_PIN, Input);
 GpIO input4(INPUT_4_PIN, Input);
 GpIO input5(INPUT_5_PIN, Input);
 GpIO input6(INPUT_6_PIN, Input);
+GpIO input7(0, Input);
+GpIO input8(0, Input);
 #endif
 
 String GpIO::PinModeString(PinMode mode)
@@ -183,6 +185,8 @@ void GpIO::initIO()
   input4.init();
   input5.init();
   input6.init();
+  input7.init();
+  input8.init();
 #endif
 
   Serial.println("\t[INFO] [IO] Pins configured.");
