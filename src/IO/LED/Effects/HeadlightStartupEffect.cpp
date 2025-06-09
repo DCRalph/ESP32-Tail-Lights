@@ -323,6 +323,9 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     int ledsToAnimate = numLEDs - effective_size * 2;
     int ledsToAnimateSide = ledsToAnimate / 2;
 
+    float p = phase_10_progress;
+    p = 3 * p * p - 2 * p * p * p;
+
     for (int i = 0; i < numLEDs; i++)
     {
       if (i < effective_size)
@@ -331,12 +334,12 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
       if (i >= numLEDs - effective_size)
         buffer[i] = color; // Right side
 
-      if (i > effective_size && i < effective_size + (ledsToAnimateSide * phase_10_progress))
+      if (i > effective_size && i < effective_size + (ledsToAnimateSide * p))
       {
         buffer[i] = color;
       }
 
-      if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * phase_10_progress))
+      if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * p))
       {
         buffer[i] = color;
       }
@@ -356,8 +359,11 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
   else if (phase == 20)
   { // Phase 20: fade full white strip to off by starting
 
+    float p = phase_20_progress;
+    p = 3 * p * p - 2 * p * p * p;
+
     int ledsPerSide = numLEDs / 2;
-    int ledsOffPerSide = ledsPerSide * phase_20_progress;
+    int ledsOffPerSide = ledsPerSide * p;
 
     for (int i = 0; i < numLEDs; i++)
     {

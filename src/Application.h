@@ -3,7 +3,6 @@
 #pragma once
 
 #include "config.h"
-#include "FastLED.h"
 #include "IO/LED/LEDStrip.h"
 #include "IO/LED/Effects/BrakeLightEffect.h"
 #include "IO/LED/Effects/IndicatorEffect.h"

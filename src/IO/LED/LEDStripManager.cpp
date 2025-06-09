@@ -46,9 +46,7 @@ LEDStripManager::~LEDStripManager()
 
 void LEDStripManager::begin()
 {
-
-  // Set initial brightness for all strips
-  FastLED.setBrightness(255);
+  setBrightness(255);
 }
 
 LEDStrip *LEDStripManager::getStrip(LEDStripType type)
@@ -60,11 +58,11 @@ LEDStrip *LEDStripManager::getStrip(LEDStripType type)
   return nullptr;
 }
 
-CRGB *LEDStripManager::getStripBuffer(LEDStripType type)
+Color *LEDStripManager::getStripBuffer(LEDStripType type)
 {
-  if (strips.find(type) != strips.end())
+  if (strips.find(type) != strips.end() && strips[type].strip)
   {
-    return strips[type].strip ? strips[type].strip->getFastLEDBuffer() : nullptr;
+    return strips[type].strip->getBuffer();
   }
   return nullptr;
 }
@@ -103,31 +101,15 @@ void LEDStripManager::setBrightness(uint8_t brightness)
 
 void LEDStripManager::updateEffects()
 {
-  // We'll use an approach that works without direct access to effect objects
-  // Create a map to store pointers to LEDStrip instances that we've processed
-  std::map<LEDStrip *, bool> processedStrips;
 
-  // First pass: Mark all strips
   for (auto &pair : strips)
   {
     if (pair.second.strip)
     {
-      processedStrips[pair.second.strip] = false;
+      pair.second.strip->updateEffects();
     }
   }
 
-  // Second pass: Update each strip exactly once
-  for (auto &processed : processedStrips)
-  {
-    if (!processed.second && processed.first)
-    {
-      // Update this strip's effects
-      processed.first->updateEffects();
-
-      // Mark as processed
-      processed.second = true;
-    }
-  }
 }
 
 void LEDStripManager::draw()
@@ -136,20 +118,8 @@ void LEDStripManager::draw()
   for (auto &pair : strips)
   {
     if (pair.second.strip)
-    {
-      LEDStrip *strip = pair.second.strip;
-      auto buf = strip->getBuffer();
-
-      for (int i = 0; i < strip->getNumLEDs(); i++)
-      {
-        if (strip->getFliped())
-          strip->getFastLEDBuffer()[strip->getNumLEDs() - 1 - i] = CRGB(buf[i].r, buf[i].g, buf[i].b);
-        else
-          strip->getFastLEDBuffer()[i] = CRGB(buf[i].r, buf[i].g, buf[i].b);
-      }
-    }
+      pair.second.strip->draw();
   }
 
-  // Send the LED data to the physical LED strips
   FastLED.show();
 }

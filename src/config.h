@@ -75,8 +75,8 @@ extern Preferences preferences;
 #define INPUT_6_PIN 6
 #endif
 
-// #define ENABLE_HEADLIGHTS
-#define ENABLE_TAILLIGHTS
+#define ENABLE_HEADLIGHTS
+// #define ENABLE_TAILLIGHTS
 // #define ENABLE_UNDERGLOW
 // #define ENABLE_INTERIOR
 

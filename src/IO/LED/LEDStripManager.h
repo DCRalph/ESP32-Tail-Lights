@@ -1,7 +1,7 @@
 #pragma once
 
 #include "LEDStrip.h"
-#include "FastLED.h"
+// #include "FastLED.h"
 #include <map>
 #include <string>
 
@@ -44,7 +44,7 @@ public:
   LEDStrip *getStrip(LEDStripType type);
 
   // Get the LED buffer for a specific strip type
-  CRGB *getStripBuffer(LEDStripType type);
+  Color *getStripBuffer(LEDStripType type);
 
   // Get the number of LEDs for a specific strip type
   uint16_t getStripLEDCount(LEDStripType type);

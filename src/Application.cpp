@@ -2,8 +2,7 @@
 
 #include "Application.h"
 #include "config.h"
-#include "IO/Wireless.h" // Your wireless library
-#include "FastLED.h"
+#include "IO/Wireless.h"
 #include "IO/LED/LEDStripManager.h"
 #include "Sync/SyncManager.h"
 
@@ -112,57 +111,47 @@ void Application::begin()
 
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
+  FastLED.setBrightness(255);
 
 #ifdef ENABLE_HEADLIGHTS
   LEDStripConfig headlights(
       LEDStripType::HEADLIGHT,
-      new LEDStrip(HEADLIGHT_LED_COUNT),
+      new LEDStrip(HEADLIGHT_LED_COUNT, HEADLIGHT_LED_PIN),
       "Headlights");
-  FastLED.addLeds<WS2812, HEADLIGHT_LED_PIN, GRB>(headlights.strip->getFastLEDBuffer(), HEADLIGHT_LED_COUNT);
 #ifdef HEADLIGHT_FLIPED
   headlights.strip->setFliped(true);
 #endif
   ledManager->addLEDStrip(headlights);
-
-  // Flash a test LED to indicate startup.
-  headlights.strip->getFastLEDBuffer()[0] = CRGB(255, 0, 0);
-  FastLED.show();
-  delay(500);
-  headlights.strip->getFastLEDBuffer()[0] = CRGB(0, 0, 0);
-  FastLED.show();
 
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
   LEDStripConfig taillights(
       LEDStripType::TAILLIGHT,
-      new LEDStrip(TAILLIGHT_LED_COUNT),
+      new LEDStrip(TAILLIGHT_LED_COUNT, TAILLIGHT_LED_PIN),
       "Taillights");
-  FastLED.addLeds<WS2812, TAILLIGHT_LED_PIN, GRB>(taillights.strip->getFastLEDBuffer(), TAILLIGHT_LED_COUNT);
   ledManager->addLEDStrip(taillights);
 
-  taillights.strip->getFastLEDBuffer()[0] = CRGB(255, 0, 0);
+  taillights.strip->getBuffer()[0] = Color(255, 0, 0);
   FastLED.show();
   delay(500);
-  taillights.strip->getFastLEDBuffer()[0] = CRGB(0, 0, 0);
+  taillights.strip->getBuffer()[0] = Color(0, 0, 0);
   FastLED.show();
 #endif
 
 #ifdef ENABLE_UNDERGLOW
   LEDStripConfig underglow(
       LEDStripType::UNDERGLOW,
-      new LEDStrip(UNDERGLOW_LED_COUNT),
+      new LEDStrip(UNDERGLOW_LED_COUNT, UNDERGLOW_LED_PIN),
       "Underglow");
-  FastLED.addLeds<WS2812, UNDERGLOW_LED_PIN, GRB>(underglow.strip->getFastLEDBuffer(), UNDERGLOW_LED_COUNT);
   ledManager->addLEDStrip(underglow);
 #endif
 
 #ifdef ENABLE_INTERIOR
   LEDStripConfig interior(
       LEDStripType::INTERIOR,
-      new LEDStrip(INTERIOR_LED_COUNT),
+      new LEDStrip(INTERIOR_LED_COUNT, INTERIOR_LED_PIN),
       "Interior");
-  FastLED.addLeds<WS2812, INTERIOR_LED_PIN, GRB>(interior.strip->getFastLEDBuffer(), INTERIOR_LED_COUNT);
   ledManager->addLEDStrip(interior);
 #endif
 
@@ -200,10 +189,6 @@ void Application::begin()
 
   // set brightness to 100
   ledManager->setBrightness(255);
-
-  // clear all buffers and fastled.show
-  FastLED.clear();
-  FastLED.show();
 }
 
 void Application::updateInputs()
