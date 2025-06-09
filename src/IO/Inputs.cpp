@@ -38,6 +38,18 @@ void HVInput::update()
   if (!_gpio)
     return;
 
+  if (_override)
+  {
+    _lastState = _state;
+    _state = _overrideState;
+
+    if (_state == _activeState)
+    {
+      _lastActiveTime = millis();
+    }
+    return;
+  }
+
   float adcReading = (float)_gpio->analogRead();
   float newVoltage = (adcReading / ADC_MAX) * ADC_REF_VOLTAGE * DIVIDER_FACTOR;
 
@@ -111,4 +123,15 @@ void HVInput::setLastActiveTime(uint64_t time)
 uint64_t HVInput::getLastActiveTime()
 {
   return _lastActiveTime;
+}
+
+void HVInput::override(bool state)
+{
+  _override = true;
+  _overrideState = state;
+}
+
+void HVInput::clearOverride()
+{
+  _override = false;
 }

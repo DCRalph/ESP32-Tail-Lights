@@ -8,6 +8,8 @@ constexpr uint8_t CMD_PING = 0xe0;
 constexpr uint8_t CMD_SET_MODE = 0xe1;
 constexpr uint8_t CMD_SET_EFFECTS = 0xe2;
 constexpr uint8_t CMD_GET_EFFECTS = 0xe3;
+constexpr uint8_t CAR_CMD_SET_INPUTS = 0xe4;
+constexpr uint8_t CAR_CMD_GET_INPUTS = 0xe5;
 
 // Struct definitions for wireless communication
 struct PingCmd
@@ -47,6 +49,15 @@ struct EffectsCmd
   int headlightStartup;
   bool police;
   PoliceMode policeMode;
+};
+
+struct InputsCmd
+{
+  bool accOn;
+  bool indicatorLeft;
+  bool indicatorRight;
+  bool brake;
+  bool reverse;
 };
 
 // Setup wireless communication handlers
@@ -202,6 +213,40 @@ void Application::setupWireless()
                              brakeEffect->setIsReversing(eCmd.reverse);
                              reverseLightEffect->setActive(eCmd.reverse);
 
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_SET_INPUTS, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             InputsCmd iCmd = {0};
+                             memcpy(&iCmd, fp->p.data, sizeof(iCmd));
+
+                             accOnInput->override(iCmd.accOn);
+                             leftIndicatorInput->override(iCmd.indicatorLeft);
+                             rightIndicatorInput->override(iCmd.indicatorRight);
+                             brakeInput->override(iCmd.brake);
+
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_GET_INPUTS, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             InputsCmd iCmd = {0};
+                             iCmd.accOn = accOnInput->get();
+                             iCmd.indicatorLeft = leftIndicatorInput->get();
+                             iCmd.indicatorRight = rightIndicatorInput->get();
+                             iCmd.brake = brakeInput->get();
+
+                             data_packet pTX = {0};
+                             pTX.type = CAR_CMD_GET_INPUTS;
+                             pTX.len = sizeof(iCmd);
+                             memcpy(pTX.data, &iCmd, sizeof(iCmd));
+
+                             wireless.send(&pTX, fp->mac);
                              //
                            });
 }

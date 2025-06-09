@@ -84,7 +84,7 @@ private:
   HVInput *accOnInput;           // 12v ACC
   HVInput *leftIndicatorInput;   // Left indicator
   HVInput *rightIndicatorInput;  // Right indicator
-  HVInput *externalControlInput; // button to do things
+  // HVInput *externalControlInput; // button to do things
 
   // HVInput *highBeamInput; // High beam
   // HVInput *lowBeamInput;  // Low beam

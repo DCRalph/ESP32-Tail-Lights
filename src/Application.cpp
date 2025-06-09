@@ -26,12 +26,12 @@ Application::Application()
   accOnInput = new HVInput(&input1, HV_HIGH_ACTIVE);
   leftIndicatorInput = new HVInput(&input2, HV_HIGH_ACTIVE);
   rightIndicatorInput = new HVInput(&input3, HV_HIGH_ACTIVE);
-  externalControlInput = new HVInput(&input4, HV_HIGH_ACTIVE);
+  // externalControlInput = new HVInput(&input4, HV_HIGH_ACTIVE);
 
-// #ifdef ENABLE_HEADLIGHTS
-//   highBeamInput = new HVInput(&input5, HV_HIGH_ACTIVE);
-//   lowBeamInput = new HVInput(&input6, HV_HIGH_ACTIVE);
-// #endif
+  // #ifdef ENABLE_HEADLIGHTS
+  //   highBeamInput = new HVInput(&input5, HV_HIGH_ACTIVE);
+  //   lowBeamInput = new HVInput(&input6, HV_HIGH_ACTIVE);
+  // #endif
 
 #ifdef ENABLE_TAILLIGHTS
   brakeInput = new HVInput(&input5, HV_HIGH_ACTIVE);
@@ -123,12 +123,12 @@ Application::~Application()
   delete accOnInput;
   delete leftIndicatorInput;
   delete rightIndicatorInput;
-  delete externalControlInput;
+  // delete externalControlInput;
 
-// #ifdef ENABLE_HEADLIGHTS
-//   delete highBeamInput;
-//   delete lowBeamInput;
-// #endif
+  // #ifdef ENABLE_HEADLIGHTS
+  //   delete highBeamInput;
+  //   delete lowBeamInput;
+  // #endif
 
 #ifdef ENABLE_TAILLIGHTS
   delete brakeInput;
@@ -248,12 +248,12 @@ void Application::updateInputs()
   updateInput(accOnInput);
   updateInput(leftIndicatorInput);
   updateInput(rightIndicatorInput);
-  updateInput(externalControlInput);
+  // updateInput(externalControlInput);
 
-// #ifdef ENABLE_HEADLIGHTS
-//   updateInput(highBeamInput);
-//   updateInput(lowBeamInput);
-// #endif
+  // #ifdef ENABLE_HEADLIGHTS
+  //   updateInput(highBeamInput);
+  //   updateInput(lowBeamInput);
+  // #endif
 
 #ifdef ENABLE_TAILLIGHTS
   updateInput(brakeInput);
@@ -310,7 +310,8 @@ void Application::loop()
 
   case ApplicationMode::TEST:
   {
-    handleTestEffects();
+    // handleTestEffects();
+    handleNormalEffects();
   }
   break;
 

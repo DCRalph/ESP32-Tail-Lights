@@ -31,6 +31,9 @@ private:
   uint64_t _lastActiveTime;
   float _debounceTime;
 
+  bool _override;
+  bool _overrideState;
+
 public:
   HVInput(GpIO *gpio, bool activeState, float threshold = DEFAULT_VOLTAGE_THRESHOLD, float debounceTime = DEFAULT_DEBOUNCE_TIME);
   void enable();
@@ -44,4 +47,7 @@ public:
   bool isActiveFor(uint64_t duration);
   void setLastActiveTime(uint64_t time);
   uint64_t getLastActiveTime();
+
+  void override(bool state);
+  void clearOverride();
 };
