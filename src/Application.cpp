@@ -23,34 +23,17 @@ Application::Application()
 {
 // Initialize HVInput instances.
 #ifdef ENABLE_HV_INPUTS
-  accOnInput = new HVInput(&input1, HV_HIGH_ACTIVE);
-  leftIndicatorInput = new HVInput(&input2, HV_HIGH_ACTIVE);
-  rightIndicatorInput = new HVInput(&input3, HV_HIGH_ACTIVE);
-  // externalControlInput = new HVInput(&input4, HV_HIGH_ACTIVE);
-
-  // #ifdef ENABLE_HEADLIGHTS
-  //   highBeamInput = new HVInput(&input5, HV_HIGH_ACTIVE);
-  //   lowBeamInput = new HVInput(&input6, HV_HIGH_ACTIVE);
-  // #endif
-
-#ifdef ENABLE_TAILLIGHTS
-  brakeInput = new HVInput(&input5, HV_HIGH_ACTIVE);
-  reverseInput = new HVInput(&input6, HV_HIGH_ACTIVE);
-#endif
-#else
-  accOnInput = nullptr;
-  leftIndicatorInput = nullptr;
-  rightIndicatorInput = nullptr;
-  externalControlInput = nullptr;
+  accOnInput = HVInput(&input1, HV_HIGH_ACTIVE);
+  leftIndicatorInput = HVInput(&input2, HV_HIGH_ACTIVE);
+  rightIndicatorInput = HVInput(&input3, HV_HIGH_ACTIVE);
 
 #ifdef ENABLE_HEADLIGHTS
-  highBeamInput = nullptr;
-  lowBeamInput = nullptr;
+  headlightInput = HVInput(&input5, HV_HIGH_ACTIVE);
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
-  brakeInput = nullptr;
-  reverseInput = nullptr;
+  brakeInput = HVInput(&input5, HV_HIGH_ACTIVE);
+  reverseInput = HVInput(&input6, HV_HIGH_ACTIVE);
 #endif
 #endif
 
@@ -116,24 +99,6 @@ Application::~Application()
 
 #ifdef ENABLE_HEADLIGHTS
   // No headlight-specific sequences to delete yet
-#endif
-
-  // Clean up HVInput instances
-#ifdef ENABLE_HV_INPUTS
-  delete accOnInput;
-  delete leftIndicatorInput;
-  delete rightIndicatorInput;
-  // delete externalControlInput;
-
-  // #ifdef ENABLE_HEADLIGHTS
-  //   delete highBeamInput;
-  //   delete lowBeamInput;
-  // #endif
-
-#ifdef ENABLE_TAILLIGHTS
-  delete brakeInput;
-  delete reverseInput;
-#endif
 #endif
 }
 
@@ -245,20 +210,12 @@ void Application::updateInputs()
 {
 #ifdef ENABLE_HV_INPUTS
   // Simply call update() on each HVInput instance
-  updateInput(accOnInput);
-  updateInput(leftIndicatorInput);
-  updateInput(rightIndicatorInput);
-  // updateInput(externalControlInput);
-
-  // #ifdef ENABLE_HEADLIGHTS
-  //   updateInput(highBeamInput);
-  //   updateInput(lowBeamInput);
-  // #endif
-
-#ifdef ENABLE_TAILLIGHTS
-  updateInput(brakeInput);
-  updateInput(reverseInput);
-#endif
+  accOnInput.update();
+  leftIndicatorInput.update();
+  rightIndicatorInput.update();
+  headlightInput.update();
+  brakeInput.update();
+  reverseInput.update();
 #endif
 }
 
@@ -298,7 +255,7 @@ void Application::loop()
 
   // handle brake tap sequence. always check if this is triggered
 #ifdef ENABLE_TAILLIGHTS
-  brakeTapSequence3->setInput(getInput(brakeInput));
+  brakeTapSequence3->setInput(brakeInput.get());
   brakeTapSequence3->loop();
 #endif
 
@@ -371,6 +328,14 @@ void Application::enableNormalMode()
 {
   mode = ApplicationMode::NORMAL;
   preferences.putUInt("mode", static_cast<uint8_t>(mode));
+
+  // clear all overrides
+  accOnInput.clearOverride();
+  leftIndicatorInput.clearOverride();
+  rightIndicatorInput.clearOverride();
+  headlightInput.clearOverride();
+  brakeInput.clearOverride();
+  reverseInput.clearOverride();
 }
 
 void Application::enableTestMode()

@@ -1,6 +1,26 @@
 #include "Inputs.h"
 #include <Arduino.h>
 
+HVInput::HVInput()
+{
+  _gpio = nullptr;
+  _activeState = HV_HIGH_ACTIVE;
+  _threshold = 0.0f;
+  _debounceTime = 0.0f;
+
+  _state = !_activeState;
+  _lastState = _state;
+  _debouncedState = _state;
+  _lastRawState = _state;
+  _voltage = 0.0f;
+  _lastActiveTime = 0;
+  _lastDebounceTime = 0;
+
+  _enabled = false;
+  _override = false;
+  _overrideState = false;
+}
+
 HVInput::HVInput(GpIO *gpio, bool activeState, float threshold, float debounceTime)
     : _gpio(gpio), _activeState(activeState), _threshold(threshold), _debounceTime(debounceTime)
 {
@@ -13,6 +33,8 @@ HVInput::HVInput(GpIO *gpio, bool activeState, float threshold, float debounceTi
   _lastDebounceTime = 0;
 
   _enabled = true;
+  _override = false;
+  _overrideState = false;
 }
 
 void HVInput::enable()

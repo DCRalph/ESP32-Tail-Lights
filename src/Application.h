@@ -26,24 +26,19 @@
 #include "IO/Inputs.h"
 #include "IO/Wireless.h"
 
-static void updateInput(HVInput *input)
+static void updateInput(HVInput input)
 {
-  if (input)
-    input->update();
+  input.update();
 }
 
-static bool getInput(HVInput *input)
+static bool getInput(HVInput input)
 {
-  if (input)
-    return input->get();
-  return false;
+  return input.get();
 }
 
-static bool isEnabled(HVInput *input)
+static bool isEnabled(HVInput input)
 {
-  if (input)
-    return input->isEnabled();
-  return false;
+  return input.isEnabled();
 }
 
 enum class ApplicationMode
@@ -81,16 +76,12 @@ public:
 
 private:
   // HVInput instances
-  HVInput *accOnInput;           // 12v ACC
-  HVInput *leftIndicatorInput;   // Left indicator
-  HVInput *rightIndicatorInput;  // Right indicator
-  // HVInput *externalControlInput; // button to do things
-
-  // HVInput *highBeamInput; // High beam
-  // HVInput *lowBeamInput;  // Low beam
-
-  HVInput *brakeInput;   // Brake
-  HVInput *reverseInput; // Reverse
+  HVInput accOnInput;          // 12v ACC
+  HVInput leftIndicatorInput;  // Left indicator
+  HVInput rightIndicatorInput; // Right indicator
+  HVInput headlightInput;      // Headlight
+  HVInput brakeInput;          // Brake
+  HVInput reverseInput;        // Reverse
 
   void updateInputs();
   void setupWireless();

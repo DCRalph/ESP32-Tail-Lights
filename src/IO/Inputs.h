@@ -35,6 +35,7 @@ private:
   bool _overrideState;
 
 public:
+  HVInput();
   HVInput(GpIO *gpio, bool activeState, float threshold = DEFAULT_VOLTAGE_THRESHOLD, float debounceTime = DEFAULT_DEBOUNCE_TIME);
   void enable();
   void disable();

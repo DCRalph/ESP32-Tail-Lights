@@ -75,8 +75,8 @@ extern Preferences preferences;
 #define INPUT_6_PIN 6
 #endif
 
-#define ENABLE_HEADLIGHTS
-// #define ENABLE_TAILLIGHTS
+// #define ENABLE_HEADLIGHTS
+#define ENABLE_TAILLIGHTS
 // #define ENABLE_UNDERGLOW
 // #define ENABLE_INTERIOR
 
@@ -88,7 +88,7 @@ extern Preferences preferences;
 
 #ifdef ENABLE_TAILLIGHTS
 #define TAILLIGHT_LED_COUNT 120
-#define TAILLIGHT_LED_PIN 6
+#define TAILLIGHT_LED_PIN 16
 #endif
 
 #ifdef ENABLE_UNDERGLOW

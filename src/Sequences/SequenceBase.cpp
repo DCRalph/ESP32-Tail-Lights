@@ -81,6 +81,14 @@ void SequenceBase::VReset()
 {
 }
 
+void SequenceBase::trigger()
+{
+  if (callback)
+  {
+    callback();
+  }
+}
+
 bool SequenceBase::update()
 {
   return false;

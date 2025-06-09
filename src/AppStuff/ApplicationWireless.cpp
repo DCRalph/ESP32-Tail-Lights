@@ -10,6 +10,7 @@ constexpr uint8_t CMD_SET_EFFECTS = 0xe2;
 constexpr uint8_t CMD_GET_EFFECTS = 0xe3;
 constexpr uint8_t CAR_CMD_SET_INPUTS = 0xe4;
 constexpr uint8_t CAR_CMD_GET_INPUTS = 0xe5;
+constexpr uint8_t CAR_CMD_TRIGGER_SEQUENCE = 0xe6;
 
 // Struct definitions for wireless communication
 struct PingCmd
@@ -56,8 +57,14 @@ struct InputsCmd
   bool accOn;
   bool indicatorLeft;
   bool indicatorRight;
+  bool headlight;
   bool brake;
   bool reverse;
+};
+
+struct TriggerSequenceCmd
+{
+  uint8_t sequence;
 };
 
 // Setup wireless communication handlers
@@ -72,8 +79,6 @@ void Application::setupWireless()
 
                              data_packet pTX = {0};
                              pTX.type = CMD_PING;
-
-                             // Determine the number of enabled strips
 
                              PingCmd pCmd;
                              pCmd.mode = mode;
@@ -223,10 +228,15 @@ void Application::setupWireless()
                              InputsCmd iCmd = {0};
                              memcpy(&iCmd, fp->p.data, sizeof(iCmd));
 
-                             accOnInput->override(iCmd.accOn);
-                             leftIndicatorInput->override(iCmd.indicatorLeft);
-                             rightIndicatorInput->override(iCmd.indicatorRight);
-                             brakeInput->override(iCmd.brake);
+                             if (mode != ApplicationMode::TEST)
+                               return;
+
+                             accOnInput.override(iCmd.accOn);
+                             leftIndicatorInput.override(iCmd.indicatorLeft);
+                             rightIndicatorInput.override(iCmd.indicatorRight);
+                             headlightInput.override(iCmd.headlight);
+                             brakeInput.override(iCmd.brake);
+                             reverseInput.override(iCmd.reverse);
 
                              //
                            });
@@ -236,10 +246,12 @@ void Application::setupWireless()
                              lastRemotePing = millis();
 
                              InputsCmd iCmd = {0};
-                             iCmd.accOn = accOnInput->get();
-                             iCmd.indicatorLeft = leftIndicatorInput->get();
-                             iCmd.indicatorRight = rightIndicatorInput->get();
-                             iCmd.brake = brakeInput->get();
+                             iCmd.accOn = accOnInput.get();
+                             iCmd.indicatorLeft = leftIndicatorInput.get();
+                             iCmd.indicatorRight = rightIndicatorInput.get();
+                             iCmd.headlight = headlightInput.get();
+                             iCmd.brake = brakeInput.get();
+                             iCmd.reverse = reverseInput.get();
 
                              data_packet pTX = {0};
                              pTX.type = CAR_CMD_GET_INPUTS;
@@ -247,6 +259,35 @@ void Application::setupWireless()
                              memcpy(pTX.data, &iCmd, sizeof(iCmd));
 
                              wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_TRIGGER_SEQUENCE, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             TriggerSequenceCmd tCmd = {0};
+                             memcpy(&tCmd, fp->p.data, sizeof(tCmd));
+
+                             switch (tCmd.sequence)
+                             {
+                             case 0:
+                               if (unlockSequence)
+                                 unlockSequence->trigger();
+                               break;
+                             case 1:
+                               if (lockSequence)
+                                 lockSequence->trigger();
+                               break;
+                             case 2:
+                               if (RGBFlickSequence)
+                                 RGBFlickSequence->trigger();
+                               break;
+                             case 3:
+                               if (nightRiderFlickSequence)
+                                 nightRiderFlickSequence->trigger();
+                               break;
+                             }
                              //
                            });
 }

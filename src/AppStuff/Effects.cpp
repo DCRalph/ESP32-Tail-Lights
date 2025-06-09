@@ -13,18 +13,17 @@ void Application::setupEffects()
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
   rightIndicatorEffect->setOtherIndicator(leftIndicatorEffect);
 
-  rgbEffect = new RGBEffect(2, false);
-  policeEffect = new PoliceEffect(2, false);
-  nightriderEffect = new NightRiderEffect(2, false);
+  brakeEffect = new BrakeLightEffect(8, false);
+  reverseLightEffect = new ReverseLightEffect(6, false);
+  headlightEffect = new HeadlightEffect(7, false);
+
   taillightStartupEffect = new TaillightStartupEffect(4, false);
   headlightStartupEffect = new HeadlightStartupEffect(4, false);
 
-  headlightEffect = new HeadlightEffect(7, false);
+  rgbEffect = new RGBEffect(5, false);
+  nightriderEffect = new NightRiderEffect(5, false);
 
-  brakeEffect = new BrakeLightEffect(8, false);
-  reverseLightEffect = new ReverseLightEffect(6, false);
-
-  // Initialize our new effects
+  policeEffect = new PoliceEffect(2, false);
   pulseWaveEffect = new PulseWaveEffect(2, false);
   auroraEffect = new AuroraEffect(2, false);
 

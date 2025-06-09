@@ -24,9 +24,9 @@ void Application::handleNormalEffects()
   RGBFlickSequence->loop();
   nightRiderFlickSequence->loop();
 
-  if (isEnabled(accOnInput) && accOnInput->getLastActiveTime() != 0 && currentTime - accOnInput->getLastActiveTime() > 1 * 60 * 1000)
+  if (isEnabled(accOnInput) && accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000)
   {
-    accOnInput->setLastActiveTime(0);
+    accOnInput.setLastActiveTime(0);
     unlockSequence->setActive(true);
 
     // turn off all effects
@@ -46,13 +46,13 @@ void Application::handleNormalEffects()
     reverseLightEffect->setActive(false);
   }
 
-  if (isEnabled(accOnInput) && accOnInput->getLast() != accOnInput->get() && accOnInput->get() == false)
+  if (isEnabled(accOnInput) && accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)
   {
     taillightStartupEffect->setActive(true);
     // headlightStartupEffect->setStartup();
   }
 
-  if (isEnabled(accOnInput) && accOnInput->get() == false)
+  if (isEnabled(accOnInput) && accOnInput.get() == false)
   {
     // Since ACC is off, disable the other effects.
     leftIndicatorEffect->setActive(false);

@@ -29,6 +29,8 @@ public:
   void reset();
   virtual void VReset() = 0;
 
+  void trigger();
+
   // Update the sequence state.
   // Return true if the sequence is complete.
   virtual bool update() = 0;
