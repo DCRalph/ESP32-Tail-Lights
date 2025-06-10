@@ -41,8 +41,7 @@ Application::Application()
   rightIndicatorEffect = nullptr;
   rgbEffect = nullptr;
   nightriderEffect = nullptr;
-  taillightStartupEffect = nullptr;
-  headlightStartupEffect = nullptr;
+  taillightEffect = nullptr;
   policeEffect = nullptr;
   pulseWaveEffect = nullptr;
   auroraEffect = nullptr;
@@ -68,22 +67,18 @@ Application::~Application()
   rightIndicatorEffect = nullptr;
   rgbEffect = nullptr;
   nightriderEffect = nullptr;
-  taillightStartupEffect = nullptr;
-  headlightStartupEffect = nullptr;
+  taillightEffect = nullptr;
   policeEffect = nullptr;
   pulseWaveEffect = nullptr;
   auroraEffect = nullptr;
 
-  delete brakeEffect;
-  delete reverseLightEffect;
+  delete taillightEffect;
   delete policeEffect;
   delete headlightEffect;
   delete leftIndicatorEffect;
   delete rightIndicatorEffect;
   delete rgbEffect;
   delete nightriderEffect;
-  delete taillightStartupEffect;
-  delete headlightStartupEffect;
   delete pulseWaveEffect;
   delete auroraEffect;
 
@@ -173,8 +168,9 @@ void Application::begin()
       rightIndicatorEffect->setActive(state.rightIndicator);
       rgbEffect->setActive(state.rgb);
       nightriderEffect->setActive(state.nightrider);
-      taillightStartupEffect->setActive(state.startup);
-      headlightStartupEffect->setActive(state.startup);
+      if (taillightEffect) {
+        taillightEffect->setMode(state.startup ? TaillightEffectMode::Startup : TaillightEffectMode::CarOn);
+      }
       policeEffect->setActive(state.police);
       pulseWaveEffect->setActive(state.pulseWave);
       auroraEffect->setActive(state.aurora);
@@ -225,16 +221,14 @@ void Application::loop()
       rightIndicatorEffect->setActive(false);
       rgbEffect->setActive(false);
       nightriderEffect->setActive(false);
-      taillightStartupEffect->setActive(false);
-      headlightStartupEffect->setOff();
+      if (taillightEffect)
+      {
+        taillightEffect->setOff();
+      }
 
-      headlightEffect->setActive(false);
+      headlightEffect->setOff();
       headlightEffect->setSplit(false);
       headlightEffect->setColor(false, false, false);
-
-      brakeEffect->setActive(false);
-      brakeEffect->setIsReversing(false);
-      reverseLightEffect->setActive(false);
     }
   }
 
@@ -268,16 +262,14 @@ void Application::loop()
     rightIndicatorEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
-    taillightStartupEffect->setActive(false);
-    headlightStartupEffect->setOff();
+    if (taillightEffect)
+    {
+      taillightEffect->setOff();
+    }
 
-    headlightEffect->setActive(false);
+    headlightEffect->setOff();
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
-
-    brakeEffect->setActive(false);
-    brakeEffect->setIsReversing(false);
-    reverseLightEffect->setActive(false);
   }
   break;
   }
@@ -295,7 +287,7 @@ void Application::loop()
     state.rightIndicator = rightIndicatorEffect->isActive();
     state.rgb = rgbEffect->isActive();
     state.nightrider = nightriderEffect->isActive();
-    state.startup = taillightStartupEffect->isActive() || headlightStartupEffect->isActive();
+    state.startup = taillightEffect ? (taillightEffect->getMode() == TaillightEffectMode::Startup) : false;
     state.police = policeEffect->isActive();
     state.pulseWave = pulseWaveEffect->isActive();
     state.aurora = auroraEffect->isActive();
@@ -345,16 +337,14 @@ void Application::enableOffMode()
   rightIndicatorEffect->setActive(false);
   rgbEffect->setActive(false);
   nightriderEffect->setActive(false);
-  taillightStartupEffect->setActive(false);
-  headlightStartupEffect->setOff();
+  if (taillightEffect)
+  {
+    taillightEffect->setOff();
+  }
 
-  headlightEffect->setActive(false);
+  headlightEffect->setOff();
   headlightEffect->setSplit(false);
   headlightEffect->setColor(false, false, false);
-
-  brakeEffect->setActive(false);
-  brakeEffect->setIsReversing(false);
-  reverseLightEffect->setActive(false);
 
   pulseWaveEffect->setActive(false);
   auroraEffect->setActive(false);

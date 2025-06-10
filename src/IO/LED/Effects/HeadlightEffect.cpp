@@ -1,77 +1,152 @@
 #include "HeadlightEffect.h"
-#include <Arduino.h>
 #include <cmath>
+#include <Arduino.h> // For millis()
 
-// Ease in function for smooth lighting transitions
-static inline float easeIn(float t)
-{
-  return t * t;
-}
-
-// ease out function for smooth lighting transitions
-static inline float easeOut(float t)
-{
-  return 1.0f - (1.0f - t) * (1.0f - t);
-}
-
-// Ease in/out function using a cosine interpolation for smoother transitions
-static inline float easeInOut(float t)
-{
-  return 0.5f * (1.0f - cosf(t * PI));
-}
-
-HeadlightEffect::HeadlightEffect(uint8_t priority,
-                                 bool transparent)
+HeadlightEffect::HeadlightEffect(uint8_t priority, bool transparent)
     : LEDEffect(priority, transparent),
-      lastUpdate(0),
-      headlightActive(false),
-      split(false),
-      ledPerSide(20),
+      mode(HeadlightEffectMode::Off),
+      phase(-1),
+      phase_start(0),
+      T0(10.0f),          // 10 seconds for half brightness fill
+      T1(0.2f),           // 0.2 seconds delay
+      T2(1.0f),           // 1 second for full brightness fill
+      T10(1.0f),          // 1 second for full brightness fill
+      T20(1.0f),          // 1 second for full brightness fill
+      T13(0.8f),          // 0.8 seconds for transition from full to split
+      T14(0.8f),          // 0.8 seconds for transition from split to full
+      headlight_size(20), // 10 LEDs from each edge by default
+      ledsStepSize(2),    // Default to 1 LED at a time
+      phase_0_progress(0.0f),
+      phase_0_single_led_index(0),
+      phase_0_single_led_progress(0.0f),
+      phase_1_progress(0.0f),
+      phase_2_progress(0.0f),
+      phase_10_progress(0.0f),
+      phase_20_progress(0.0f),
+      phase_13_progress(0.0f),
+      phase_14_progress(0.0f),
       red(false),
       blue(false),
       green(false),
-      intensity(0.0f),
-      maxIntensity(1.0f),
-      rampDuration(0.3f), // Ramp up time in seconds
-      progress(0.0f),
-      animationSpeed(1.0f), // Default 1 second for a full animation cycle
-      baseHueCenter(1.0f),  // Default center hue is red.
+      split(false),
+      baseHueCenter(1.0f), // Default center hue is red.
       baseHueEdge(180.0f),
       hueCenter(0.0f), // Start with red
       hueEdge(240.0f), // End with blue
       hueOffset(0.0f),
-      rainbowSpeed(120.0f) // 120 degrees per second (full color cycle in 3 seconds)
+      rainbowSpeed(120.0f),
+      lastUpdate(0)
 {
 }
 
-void HeadlightEffect::setActive(bool active)
+bool HeadlightEffect::isActive()
 {
-  // Only update if state is changing
-  if (active == headlightActive)
-  {
+  // return active;
+  return mode != HeadlightEffectMode::Off && phase != -1;
+}
+
+void HeadlightEffect::setOff()
+{
+  if (mode == HeadlightEffectMode::Off)
     return;
-  }
 
-  headlightActive = active;
-
-  // Start with current intensity to allow smooth transitions
-  if (!headlightActive)
+  if (mode == HeadlightEffectMode::CarOn)
   {
-    // Keep the current intensity for fade-out animation
+    phase = 20;
+    phase_start = millis(); // Record the starting time (ms)
+    phase_20_progress = 0.0f;
+  }
+  else
+  {
+    phase = -1;
+    phase_start = 0;
+  }
+  mode = HeadlightEffectMode::Off;
+}
+
+void HeadlightEffect::setStartup()
+{
+  if (mode == HeadlightEffectMode::Startup)
+    return;
+
+  mode = HeadlightEffectMode::Startup;
+  phase = 0;
+  phase_start = millis(); // Record the starting time (ms)
+  phase_0_progress = 0.0f;
+  phase_0_single_led_index = 0;
+  phase_0_single_led_progress = 0.0f;
+  phase_0_start_single_led = 0;
+  phase_1_progress = 0.0f;
+  phase_2_progress = 0.0f;
+}
+
+void HeadlightEffect::setCarOn()
+{
+  if (mode == HeadlightEffectMode::CarOn)
+    return;
+
+  mode = HeadlightEffectMode::CarOn;
+  phase = 10;
+  phase_start = millis(); // Record the starting time (ms)
+  phase_10_progress = 0.0f;
+  phase_13_progress = 0.0f;
+  phase_14_progress = 0.0f;
+}
+
+void HeadlightEffect::setMode(HeadlightEffectMode mode)
+{
+  if (this->mode == mode)
+    return;
+
+  this->mode = mode;
+}
+
+void HeadlightEffect::setMode(int mode)
+{
+  if (mode == 0)
+    setOff();
+  else if (mode == 1)
+    setStartup();
+  else if (mode == 2)
+    setCarOn();
+  else
+    setOff();
+}
+
+HeadlightEffectMode HeadlightEffect::getMode()
+{
+  return mode;
+}
+
+void HeadlightEffect::setSplit(bool split)
+{
+  if (this->split == split)
+    return;
+
+  this->split = split;
+
+  // If we're in CarOn mode and in steady states, transition between them
+  if (mode == HeadlightEffectMode::CarOn)
+  {
+    if (phase >= 11 && phase <= 14)
+    {
+      if (split) // Transition from full strip to split mode
+      {
+        phase = 13;
+        phase_start = millis();
+        phase_13_progress = 0.0f;
+      }
+      else if (!split) // Transition from split mode to full strip
+      {
+        phase = 14;
+        phase_start = millis();
+        phase_14_progress = 0.0f;
+      }
+    }
   }
 }
 
-bool HeadlightEffect::isActive() const
-{
-  return headlightActive;
-}
-
-void HeadlightEffect::setSplit(bool _split)
-{
-  split = _split;
-}
-
-bool HeadlightEffect::getSplit() const
+bool HeadlightEffect::getSplit()
 {
   return split;
 }
@@ -83,7 +158,7 @@ void HeadlightEffect::setColor(bool r, bool g, bool b)
   blue = b;
 }
 
-void HeadlightEffect::getColor(bool &r, bool &g, bool &b) const
+void HeadlightEffect::getColor(bool &r, bool &g, bool &b)
 {
   r = red;
   g = green;
@@ -92,56 +167,137 @@ void HeadlightEffect::getColor(bool &r, bool &g, bool &b) const
 
 void HeadlightEffect::update(LEDStrip *strip)
 {
-  unsigned long currentTime = millis();
-  if (lastUpdate == 0)
-  {
-    lastUpdate = currentTime;
+  // if (!active)
+  if (mode == HeadlightEffectMode::Off && phase == -1)
     return;
-  }
 
-  // Compute elapsed time in seconds
-  unsigned long dtMillis = currentTime - lastUpdate;
+  unsigned long now = millis();
+  if (phase_start == 0)
+    phase_start = now;
+
+  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDs / 2);
+
+  // Convert elapsed time from milliseconds to seconds.
+  float elapsed = (now - phase_start) / 1000.0f;
+
+  unsigned long dtMillis = now - lastUpdate;
   float dtSeconds = dtMillis / 1000.0f;
-  lastUpdate = currentTime;
+  lastUpdate = now;
 
-  // Update intensity based on active state
-  if (headlightActive)
+  // #########################################################
+  // mode == HeadlightEffectMode::Startup
+  // #########################################################
+
+  if (phase == 0) // Phase 0: Filling from outside at half brightness
   {
-    // Increase intensity to maximum
-    intensity += dtSeconds / rampDuration;
-    if (intensity > maxIntensity)
+    if (phase_0_start_single_led == 0)
     {
-      intensity = maxIntensity;
+      phase_0_start_single_led = now;
     }
 
-    // Update progress for animation
-    progress += dtSeconds / animationSpeed;
-    if (progress > 1.0f)
+    float T0_perLed = T0 / effective_size;
+    float elapsed_perLed = (now - phase_0_start_single_led) / 1000.0f;
+
+    phase_0_progress = std::min(elapsed / T0, 1.0f); // probaly not needed
+    phase_0_single_led_progress = std::min(elapsed_perLed / T0_perLed, 1.0f);
+
+    int single_led_to_light = static_cast<float>(effective_size) * phase_0_single_led_progress;
+
+    if (elapsed_perLed > T0_perLed || single_led_to_light >= (effective_size - phase_0_single_led_index) - ledsStepSize)
     {
-      progress = 1.0f;
+      phase_0_single_led_index += ledsStepSize;
+      phase_0_start_single_led = now;
+    }
+
+    if (elapsed > T0 || phase_0_single_led_index >= effective_size)
+    {
+      phase = 1;
+      phase_start = now;
     }
   }
-  else
+  else if (phase == 1) // Phase 1: Delay
   {
-    // Decrease intensity to zero
-    intensity -= dtSeconds / (rampDuration * 0.5f); // Faster fade-out
-    if (intensity < 0.0f)
+    phase_1_progress = std::min(elapsed / T1, 1.0f);
+
+    if (elapsed > T1)
     {
-      intensity = 0.0f;
+      phase = 2;
+      phase_start = now;
+    }
+  }
+  else if (phase == 2) // Phase 2: Filling from outside at full brightness
+  {
+    phase_2_progress = std::min(elapsed / T2, 1.0f);
+
+    if (elapsed > T2)
+    {
+      phase = 3;
+      phase_start = now;
+    }
+  }
+  else if (phase == 3) // Phase 3: Final phase - all LEDs at full brightness
+  {
+    // do nothing
+  }
+
+  // #########################################################
+  // mode == HeadlightEffectMode::CarOn
+  // #########################################################
+  else if (phase == 10) // Phase 10: filling entire strip to full brightness
+  {
+    if (split)
+    {
+      phase = 12;
+      phase_start = now;
     }
 
-    // Update progress for animation
-    progress -= dtSeconds / (animationSpeed * 0.75f); // Faster fade-out
-    if (progress < 0.0f)
+    phase_10_progress = std::min(elapsed / T10, 1.0f);
+
+    if (elapsed > T10)
     {
-      progress = 0.0f;
+      phase = 11;
+      phase_start = now;
+    }
+  }
+  else if (phase == 13) // Phase 13: Transition from full strip to split mode
+  {
+    phase_13_progress = std::min(elapsed / T13, 1.0f);
+
+    if (elapsed > T13)
+    {
+      phase = 12;
+      phase_start = now;
+    }
+  }
+  else if (phase == 14) // Phase 14: Transition from split mode to full strip
+  {
+    phase_14_progress = std::min(elapsed / T14, 1.0f);
+
+    if (elapsed > T14)
+    {
+      phase = 11;
+      phase_start = now;
     }
   }
 
-  // Update rainbow mode animation
-  if (red && green && blue && headlightActive)
+  // #########################################################
+  // mode == HeadlightEffectMode::TurningOff
+  // #########################################################
+  else if (phase == 20) // Phase 20: fade full white strip to off by starting from the edges and moving inward
   {
-    // Update the cumulative hue offset based on time
+    phase_20_progress = std::min(elapsed / T20, 1.0f);
+
+    if (elapsed > T20)
+    {
+      phase = -1;
+      phase_start = now;
+      mode = HeadlightEffectMode::Off;
+    }
+  }
+
+  if (red && green && blue)
+  {
     hueOffset += rainbowSpeed * dtSeconds;
     // Wrap hueOffset to the range [0, 360)
     hueOffset = fmod(hueOffset, 360.0f);
@@ -154,133 +310,319 @@ void HeadlightEffect::update(LEDStrip *strip)
 
     hueCenter = fmod(hueCenter, 360.0f);
     hueEdge = fmod(hueEdge, 360.0f);
-
-    // log the hue values to the serial monitor.
-    // Serial.print("Hue Center: ");
-    // Serial.print(hueCenter);
-    // Serial.print(" Hue Edge: ");
-    // Serial.print(hueEdge);
-    // Serial.print(" Hue Offset: ");
-    // Serial.println(hueOffset);
   }
 }
 
 void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
 {
-  if (!headlightActive && intensity <= 0.0f)
-  {
+  // if (!active)
+  if (mode == HeadlightEffectMode::Off && phase == -1)
     return;
+
+  // Define colors
+
+  float halfBrightness = 0.35f; // Half brightness version
+
+  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDsHalf = numLEDs / 2;
+  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDs / 2);
+
+  // For each phase, calculate which LEDs should be lit and at what brightness
+  if (phase == 0) // Phase 0: Filling from outside at half brightness
+  {
+    int leds = floor(phase_0_progress * effective_size);
+
+    int single_led_to_light = static_cast<float>(effective_size) * phase_0_single_led_progress;
+
+    // Fill left side from the edge inward
+    if (phase_0_single_led_index > 1)
+    {
+      for (int i = 0; i < phase_0_single_led_index; i++)
+      {
+        buffer[effective_size - i - 1] = _getColor(strip, effective_size - i - 1, numLEDsHalf) * halfBrightness;
+        buffer[numLEDs - 1 - (effective_size - i - 1)] = buffer[effective_size - i - 1];
+      }
+    }
+
+    // Highlight the current LED being filled
+    for (int i = 0; i < ledsStepSize; i++)
+    {
+      int ledIndex = single_led_to_light + i;
+      if (ledIndex < effective_size)
+      {
+        buffer[ledIndex] = _getColor(strip, ledIndex, numLEDsHalf) * halfBrightness;
+        buffer[numLEDs - 1 - ledIndex] = buffer[ledIndex];
+      }
+    }
   }
+  else if (phase == 1) // Phase 1: Delay
+  {
+    // fill with half brightness
+    for (int i = 0; i < effective_size; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf) * halfBrightness;
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+  else if (phase == 2) // Phase 2: Filling from outside at full brightness
+  {
+    // First, set all LEDs that should be at half brightness
+    for (int i = 0; i < effective_size; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf) * halfBrightness; // Left side
+      buffer[numLEDs - 1 - i] = buffer[i];                           // Right side
+    }
+
+    // Then, set LEDs that should be at full brightness based on progress
+    int leftLeds = floor(phase_2_progress * effective_size);
+    int rightLeds = floor(phase_2_progress * effective_size);
+
+    // Fill left side from the edge inward with full brightness
+    for (int i = 0; i < leftLeds; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf);
+    }
+
+    // Fill right side from the edge inward with full brightness
+    for (int i = 0; i < rightLeds; i++)
+    {
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+  else if (phase == 3) // Final phase - all LEDs at full brightness
+  {
+    // Set all headlight LEDs to full brightness
+    for (int i = 0; i < effective_size; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf); // Left side
+      buffer[numLEDs - 1 - i] = buffer[i];          // Right side
+    }
+  }
+
+  // #########################################################
+  // mode == HeadlightEffectMode::CarOn
+  // #########################################################
+  else if (phase == 10) // Phase 10: filling entire strip to full brightness
+  {
+    int ledsToAnimate = numLEDs - effective_size * 2;
+    int ledsToAnimateSide = ledsToAnimate / 2;
+
+    float p = phase_10_progress;
+    p = 3 * p * p - 2 * p * p * p;
+
+    for (int i = 0; i < numLEDs; i++)
+    {
+      if (i < effective_size)
+        buffer[i] = _getColor(strip, i, numLEDsHalf); // Left side
+
+      if (i >= numLEDs - effective_size)
+        buffer[i] = buffer[numLEDs - 1 - i];
+
+      if (i > effective_size && i < effective_size + (ledsToAnimateSide * p))
+        buffer[i] = _getColor(strip, i, numLEDsHalf);
+
+      if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * p))
+        buffer[i] = buffer[numLEDs - 1 - i];
+    }
+  }
+  else if (phase == 11) // full strip full brightness
+  {
+    for (int i = 0; i < numLEDs / 2; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf);
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+  else if (phase == 12) // split strip full brightness
+  {
+    for (int i = 0; i < effective_size; i++)
+    {
+      buffer[i] = _getColor(strip, i, numLEDsHalf);
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+  else if (phase == 13) // Transition from full strip to split mode
+  {
+    // Animate turning off middle section
+    int middleLength = numLEDsHalf - effective_size;
+
+    float p = phase_13_progress;
+    p = 3 * p * p - 2 * p * p * p; // Smooth step
+
+    int ledsToTurnOff = middleLength * p;
+
+    // Handle left half of the strip
+    for (int i = 0; i < numLEDsHalf; i++)
+    {
+      if (i < effective_size)
+      {
+        // Keep headlight section on
+        buffer[i] = _getColor(strip, i, numLEDsHalf);
+      }
+      else if (i >= numLEDsHalf - ledsToTurnOff)
+      {
+        // Turn off middle section progressively from center outward
+        buffer[i] = Color(0, 0, 0);
+      }
+      else
+      {
+        // Keep remaining middle section on until its turn
+        buffer[i] = _getColor(strip, i, numLEDsHalf);
+      }
+
+      // Mirror to right side
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+  else if (phase == 14) // Transition from split mode to full strip
+  {
+    // Animate turning on middle section
+    int middleLength = numLEDsHalf - effective_size;
+
+    float p = phase_14_progress;
+    p = 3 * p * p - 2 * p * p * p; // Smooth step
+
+    int ledsToTurnOn = middleLength * p;
+
+    // Handle left half of the strip
+    for (int i = 0; i < numLEDsHalf; i++)
+    {
+      if (i < effective_size)
+      {
+        // Keep headlight section on
+        buffer[i] = _getColor(strip, i, numLEDsHalf);
+      }
+      else if (i < effective_size + ledsToTurnOn)
+      {
+        // Turn on middle section progressively from headlight outward
+        buffer[i] = _getColor(strip, i, numLEDsHalf);
+      }
+      else
+      {
+        // Keep remaining middle section off until its turn
+        buffer[i] = Color(0, 0, 0);
+      }
+
+      // Mirror to right side
+      buffer[numLEDs - 1 - i] = buffer[i];
+    }
+  }
+
+  // #########################################################
+  // mode == HeadlightEffectMode::TurningOff
+  // #########################################################
+  else if (phase == 20)
+  { // Phase 20: fade full white strip to off by starting
+
+    float p = phase_20_progress;
+    p = 3 * p * p - 2 * p * p * p;
+
+    if (split)
+    {
+      // Only fade the headlight sections (effective_size LEDs from each edge)
+      // Animation goes from inside out when split is true
+      int ledsOffPerSide = effective_size * p;
+
+      for (int i = 0; i < numLEDs; i++)
+      {
+        // Left side headlight section
+        if (i < effective_size)
+        {
+          // Turn off LEDs from inside out: start at (effective_size - 1) and work towards 0
+          if (i >= effective_size - ledsOffPerSide)
+          {
+            buffer[i] = Color(0, 0, 0);
+          }
+          else
+          {
+            buffer[i] = _getColor(strip, i, numLEDsHalf);
+          }
+        }
+        // Right side headlight section
+        else if (i >= numLEDs - effective_size)
+        {
+          // Turn off LEDs from inside out: start at (numLEDs - effective_size) and work towards end
+          if (i < numLEDs - effective_size + ledsOffPerSide)
+          {
+            buffer[i] = Color(0, 0, 0);
+          }
+          else
+          {
+            buffer[i] = _getColor(strip, i, numLEDsHalf);
+          }
+        }
+        // Middle section remains off when split is true
+        else
+        {
+          buffer[i] = Color(0, 0, 0);
+        }
+      }
+    }
+    else
+    {
+      // Original behavior: fade entire strip from edges
+      int ledsPerSide = numLEDs / 2;
+      int ledsOffPerSide = ledsPerSide * p;
+
+      for (int i = 0; i < numLEDsHalf; i++)
+      {
+        // If the LED is within the off-section on either side, turn it off.
+        if (i < ledsOffPerSide)
+        {
+          buffer[i] = Color(0, 0, 0);
+          buffer[numLEDs - 1 - i] = buffer[i];
+        }
+        else
+        {
+          buffer[i] = _getColor(strip, i, numLEDsHalf);
+          buffer[numLEDs - 1 - i] = buffer[i];
+        }
+      }
+    }
+  }
+  else if (phase == -1) // full strip off
+  {
+    for (int i = 0; i < numLEDs; i++)
+    {
+      buffer[i] = Color(0, 0, 0);
+    }
+  }
+}
+
+Color HeadlightEffect::_getColor(LEDStrip *strip, int i, int size)
+{
+  Color color;
+  color.r = red ? 255 : 0;
+  color.g = green ? 255 : 0;
+  color.b = blue ? 255 : 0;
+
+  bool rainbow = false;
+  if (color == Color(255, 255, 255))
+    rainbow = true;
+
+  if (color == Color(0, 0, 0))
+    color = Color(255, 255, 255);
 
   uint16_t numLEDs = strip->getNumLEDs();
 
-  // Apply easing for smoother transition
-  float smoothIntensity = easeIn(intensity);
-
-  // Apply easing to the progress for smoother animation
-  float p = easeInOut(progress);
-
-  // Check if in rainbow mode (all three color flags are true)
-  bool rainbowMode = red && green && blue;
-
-  if (split)
+  if (rainbow)
   {
-    // Split mode - only light up the first and last sections
-    for (uint16_t i = 0; i < ledPerSide; i++)
+    float normDist = (float)i / size; // 0 at edge, 1 at center
+
+    float diff = hueEdge - hueCenter;
+    if (diff < 0)
     {
-      float pEaseOut = easeOut(p);
-
-      // Calculate animation factor based on position (fading from edges)
-      float normDist = (float)i / ledPerSide; // 0 at edge, 1 at center
-      float animationFactor = (normDist <= pEaseOut) ? 1.0f : 0.0f;
-
-      Color c;
-
-      if (rainbowMode)
-      {
-        // For rainbow mode, interpolate between hueEdge and hueCenter based on position
-        float diff = hueEdge - hueCenter;
-        if (diff < 0)
-        {
-          diff += 360.0f;
-        }
-        // Linearly interpolate along the positive direction.
-        float hue = hueCenter - diff * normDist;
-
-        // Normalize the hue to the [0, 360) range.
-        hue = fmod(hue, 360.0f);
-        if (hue < 0)
-          hue += 360.0f;
-        c = Color::hsv2rgb(hue, 1.0f, smoothIntensity * animationFactor);
-      }
-      else
-      {
-        // Standard solid color mode
-        uint8_t baseRed = red ? 255 : ((!red && !green && !blue) ? 255 : 0);
-        uint8_t baseGreen = green ? 255 : ((!red && !green && !blue) ? 255 : 0);
-        uint8_t baseBlue = blue ? 255 : ((!red && !green && !blue) ? 255 : 0);
-
-        // First section (left side)
-        c = Color(
-            static_cast<uint8_t>(baseRed * smoothIntensity * animationFactor),
-            static_cast<uint8_t>(baseGreen * smoothIntensity * animationFactor),
-            static_cast<uint8_t>(baseBlue * smoothIntensity * animationFactor));
-      }
-
-      // Apply to first section (left side)
-      buffer[i] = c;
-
-      // Apply to last section (right side)
-      uint16_t endIndex = numLEDs - i - 1;
-      buffer[endIndex] = c;
+      diff += 360.0f;
     }
+    // Linearly interpolate along the positive direction.
+    float hue = hueCenter - diff * normDist;
+
+    // Normalize the hue to the [0, 360) range.
+    hue = fmod(hue, 360.0f);
+    if (hue < 0)
+      hue += 360.0f;
+
+    return Color::hsv2rgb(hue, 1.0f, 1.0f);
   }
-  else
-  {
-    // Full mode - light up all LEDs with fade-in from edges
-    uint16_t mid = numLEDs / 2;
-
-    for (uint16_t i = 0; i < numLEDs; i++)
-    {
-
-      // Calculate distance from center (normalized)
-      float normDist = (mid > 0)
-                           ? fabs(static_cast<int>(i) - static_cast<int>(mid)) /
-                                 static_cast<float>(mid)
-                           : 0.0f;
-
-      // Animation factor based on position and progress
-      float animationFactor = (normDist <= p) ? 1.0f : 0.0f;
-
-      if (rainbowMode)
-      {
-        float diff = hueEdge - hueCenter;
-        if (diff < 0)
-        {
-          diff += 360.0f;
-        }
-        // Linearly interpolate along the positive direction.
-        float hue = hueCenter - diff * normDist;
-
-        // Normalize the hue to the [0, 360) range.
-        hue = fmod(hue, 360.0f);
-        if (hue < 0)
-          hue += 360.0f;
-
-        // Convert HSV to RGB with intensity factor
-        buffer[i] = Color::hsv2rgb(hue, 1.0f, smoothIntensity * animationFactor);
-      }
-      else
-      {
-        // Standard solid color mode
-        uint8_t baseRed = red ? 255 : ((!red && !green && !blue) ? 255 : 0);
-        uint8_t baseGreen = green ? 255 : ((!red && !green && !blue) ? 255 : 0);
-        uint8_t baseBlue = blue ? 255 : ((!red && !green && !blue) ? 255 : 0);
-
-        buffer[i].r = static_cast<uint8_t>(baseRed * smoothIntensity * animationFactor);
-        buffer[i].g = static_cast<uint8_t>(baseGreen * smoothIntensity * animationFactor);
-        buffer[i].b = static_cast<uint8_t>(baseBlue * smoothIntensity * animationFactor);
-      }
-    }
-  }
+  return color;
 }

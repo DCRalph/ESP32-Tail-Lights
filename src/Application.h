@@ -9,9 +9,9 @@
 #include "IO/LED/Effects/ReverseLightEffect.h"
 #include "IO/LED/Effects/RGBEffect.h"
 #include "IO/LED/Effects/NightRiderEffect.h"
-#include "IO/LED/Effects/TaillightStartupEffect.h"
+#include "IO/LED/Effects/TaillightEffect.h"
 #include "IO/LED/Effects/HeadlightEffect.h"
-#include "IO/LED/Effects/HeadlightStartupEffect.h"
+// #include "IO/LED/Effects/HeadlightStartupEffect.h"
 #include "IO/LED/Effects/PoliceEffect.h"
 #include "IO/LED/Effects/PulseWaveEffect.h"
 #include "IO/LED/Effects/AuroraEffect.h"
@@ -90,10 +90,9 @@ private:
   IndicatorEffect *rightIndicatorEffect;
   RGBEffect *rgbEffect;
   NightRiderEffect *nightriderEffect;
-  TaillightStartupEffect *taillightStartupEffect;
-  HeadlightStartupEffect *headlightStartupEffect;
 
   HeadlightEffect *headlightEffect;
+  TaillightEffect *taillightEffect;
 
   BrakeLightEffect *brakeEffect;
   ReverseLightEffect *reverseLightEffect;

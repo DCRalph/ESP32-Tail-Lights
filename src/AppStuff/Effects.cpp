@@ -15,10 +15,9 @@ void Application::setupEffects()
 
   brakeEffect = new BrakeLightEffect(8, false);
   reverseLightEffect = new ReverseLightEffect(6, false);
-  headlightEffect = new HeadlightEffect(7, false);
+  headlightEffect = new HeadlightEffect(4, false);
 
-  taillightStartupEffect = new TaillightStartupEffect(4, false);
-  headlightStartupEffect = new HeadlightStartupEffect(4, false);
+  taillightEffect = new TaillightEffect(4, false);
 
   rgbEffect = new RGBEffect(5, false);
   nightriderEffect = new NightRiderEffect(5, false);
@@ -34,17 +33,14 @@ void Application::setupEffects()
 
   if (headlightStrip)
   {
-    headlightStrip->addEffect(rgbEffect);
-    headlightStrip->addEffect(nightriderEffect);
-    headlightStrip->addEffect(headlightStartupEffect);
-
     headlightStrip->addEffect(leftIndicatorEffect);
     headlightStrip->addEffect(rightIndicatorEffect);
 
     headlightStrip->addEffect(headlightEffect);
-    headlightStrip->addEffect(policeEffect);
 
-    // Add our new effects to the headlights
+    headlightStrip->addEffect(rgbEffect);
+    headlightStrip->addEffect(nightriderEffect);
+    headlightStrip->addEffect(policeEffect);
     headlightStrip->addEffect(pulseWaveEffect);
     headlightStrip->addEffect(auroraEffect);
   }
@@ -53,15 +49,14 @@ void Application::setupEffects()
   {
     taillightStrip->addEffect(leftIndicatorEffect);
     taillightStrip->addEffect(rightIndicatorEffect);
-    taillightStrip->addEffect(rgbEffect);
-    taillightStrip->addEffect(taillightStartupEffect);
-    taillightStrip->addEffect(policeEffect);
 
-#ifdef ENABLE_TAILLIGHTS
+    taillightStrip->addEffect(taillightEffect);
+
     taillightStrip->addEffect(brakeEffect);
     taillightStrip->addEffect(reverseLightEffect);
-#endif
 
+    taillightStrip->addEffect(rgbEffect);
+    taillightStrip->addEffect(policeEffect);
     taillightStrip->addEffect(pulseWaveEffect);
     taillightStrip->addEffect(auroraEffect);
   }

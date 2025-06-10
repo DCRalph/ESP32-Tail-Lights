@@ -1,6 +1,5 @@
 #include "Application.h"
 
-
 void Application::handleNormalEffects()
 {
   unsigned long currentTime = millis();
@@ -34,10 +33,12 @@ void Application::handleNormalEffects()
     rightIndicatorEffect->setActive(false);
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
-    taillightStartupEffect->setActive(false);
-    headlightStartupEffect->setOff();
+    if (taillightEffect)
+    {
+      taillightEffect->setOff();
+    }
 
-    headlightEffect->setActive(false);
+    headlightEffect->setOff();
     headlightEffect->setSplit(false);
     headlightEffect->setColor(false, false, false);
 
@@ -48,7 +49,10 @@ void Application::handleNormalEffects()
 
   if (isEnabled(accOnInput) && accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)
   {
-    taillightStartupEffect->setActive(true);
+    if (taillightEffect)
+    {
+      taillightEffect->setStartup();
+    }
     // headlightStartupEffect->setStartup();
   }
 
@@ -58,9 +62,9 @@ void Application::handleNormalEffects()
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
 
-    headlightEffect->setActive(false);
-    headlightEffect->setSplit(false);
-    headlightEffect->setColor(false, false, false);
+    // headlightEffect->setOff();
+    // headlightEffect->setSplit(false);
+    // headlightEffect->setColor(false, false, false);
 
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
@@ -71,8 +75,12 @@ void Application::handleNormalEffects()
   }
   else
   {
-    taillightStartupEffect->setActive(false);
-    headlightStartupEffect->setCarOn();
+    if (taillightEffect)
+    {
+      // Set to dim mode when car is on (as requested)
+      taillightEffect->setDim();
+    }
+    headlightEffect->setCarOn();
 
     // Only apply physical input controls if we're the master
     // or we're not syncing with other devices
@@ -87,6 +95,7 @@ void Application::handleNormalEffects()
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
+      // Keep separate brake and reverse effects
       brakeEffect->setActive(getInput(brakeInput));
       brakeEffect->setIsReversing(getInput(reverseInput) || reverseLightEffect->isAnimating());
       reverseLightEffect->setActive(getInput(reverseInput));

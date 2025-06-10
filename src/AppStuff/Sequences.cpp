@@ -15,8 +15,8 @@ void Application::setupSequences()
   unlockSequence->setActive(true);
   unlockSequence->setCallback([this]()
                               {
-                                taillightStartupEffect->setActive(true);
-                                headlightStartupEffect->setStartup();
+                                taillightEffect->setStartup();
+                                headlightEffect->setStartup();
                                 unlockSequence->setActive(false);
                                 lockSequence->reset();
                                 //
@@ -25,8 +25,8 @@ void Application::setupSequences()
   lockSequence->setActive(true);
   lockSequence->setCallback([this]()
                             {
-                              taillightStartupEffect->setActive(false);
-                              headlightStartupEffect->setOff();
+                              taillightEffect->setOff();
+                              headlightEffect->setOff();
                               unlockSequence->setActive(true);
                               //
                             });

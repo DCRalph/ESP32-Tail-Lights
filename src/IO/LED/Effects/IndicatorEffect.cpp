@@ -7,7 +7,7 @@ IndicatorEffect::IndicatorEffect(Side side, uint8_t priority, bool transparent)
       side(side),
       indicatorActive(false),
       fadeFactor(0.0f),
-      // Default parameters – feel free to adjust.
+      // Default parameters - feel free to adjust.
       blinkCycle(1200),
       fadeInTime(250)
 {
@@ -18,7 +18,7 @@ IndicatorEffect::IndicatorEffect(Side side, uint8_t priority, bool transparent)
 
   // Default color is amber/yellow.
   baseR = 255;
-  baseG = 100;
+  baseG = 120;
   baseB = 0;
 }
 

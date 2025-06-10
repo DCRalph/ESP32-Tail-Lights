@@ -29,27 +29,27 @@ struct SetModeCmd
 
 struct EffectsCmd
 {
-  bool testEffect1;
-  bool testEffect2;
-
   bool leftIndicator;
   bool rightIndicator;
 
-  bool headlight;
+  int headlightMode;
   bool headlightSplit;
   bool headlightR;
   bool headlightG;
   bool headlightB;
+
+  int taillightMode;
+  bool taillightSplit;
 
   bool brake;
   bool reverse;
 
   bool rgb;
   bool nightrider;
-  int startup;
-  int headlightStartup;
   bool police;
   PoliceMode policeMode;
+  bool testEffect1;
+  bool testEffect2;
 };
 
 struct InputsCmd
@@ -160,24 +160,26 @@ void Application::setupWireless()
 
                              EffectsCmd eCmd = {0};
 
-                             eCmd.testEffect1 = pulseWaveEffect->isActive();
-                             eCmd.testEffect2 = auroraEffect->isActive();
-
                              eCmd.leftIndicator = leftIndicatorEffect->isActive();
                              eCmd.rightIndicator = rightIndicatorEffect->isActive();
-                             eCmd.rgb = rgbEffect->isActive();
-                             eCmd.nightrider = nightriderEffect->isActive();
-                             eCmd.startup = taillightStartupEffect->isActive();
-                             eCmd.headlightStartup = static_cast<int>(headlightStartupEffect->getMode());
-                             eCmd.police = policeEffect->isActive();
-                             eCmd.policeMode = policeEffect->getMode();
 
-                             eCmd.headlight = headlightEffect->isActive();
+                             eCmd.headlightMode = headlightEffect ? static_cast<int>(headlightEffect->getMode()) : 0;
                              eCmd.headlightSplit = headlightEffect->getSplit();
                              headlightEffect->getColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
 
+                             // Use new TaillightEffect
+                             eCmd.taillightMode = taillightEffect ? static_cast<int>(taillightEffect->getMode()) : 0;
+
+                             // Keep separate brake and reverse effects
                              eCmd.brake = brakeEffect->isActive();
                              eCmd.reverse = reverseLightEffect->isActive();
+
+                             eCmd.rgb = rgbEffect->isActive();
+                             eCmd.nightrider = nightriderEffect->isActive();
+                             eCmd.police = policeEffect->isActive();
+                             eCmd.policeMode = policeEffect->getMode();
+                             eCmd.testEffect1 = pulseWaveEffect->isActive();
+                             eCmd.testEffect2 = auroraEffect->isActive();
 
                              pTX.len = sizeof(eCmd);
                              memcpy(pTX.data, &eCmd, sizeof(eCmd));
@@ -196,31 +198,26 @@ void Application::setupWireless()
                              EffectsCmd eCmd = {0};
                              memcpy(&eCmd, fp->p.data, sizeof(eCmd));
 
-                             pulseWaveEffect->setActive(eCmd.testEffect1);
-                             auroraEffect->setActive(eCmd.testEffect2);
-
                              leftIndicatorEffect->setActive(eCmd.leftIndicator);
                              rightIndicatorEffect->setActive(eCmd.rightIndicator);
 
-                             rgbEffect->setActive(eCmd.rgb);
-                             nightriderEffect->setActive(eCmd.nightrider);
-                             taillightStartupEffect->setActive(eCmd.startup);
-                             headlightStartupEffect->setMode(eCmd.headlightStartup);
-                             headlightStartupEffect->setSplit(eCmd.headlightSplit);
-                             headlightStartupEffect->setColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
-
-                             policeEffect->setActive(eCmd.police);
-                             policeEffect->setMode(eCmd.policeMode);
-
-                             headlightEffect->setActive(eCmd.headlight);
+                             headlightEffect->setMode(eCmd.headlightMode);
                              headlightEffect->setSplit(eCmd.headlightSplit);
                              headlightEffect->setColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
 
+                             taillightEffect->setMode(eCmd.taillightMode);
 
-
+                             // Keep separate brake and reverse effects
                              brakeEffect->setActive(eCmd.brake);
                              brakeEffect->setIsReversing(eCmd.reverse);
                              reverseLightEffect->setActive(eCmd.reverse);
+
+                             rgbEffect->setActive(eCmd.rgb);
+                             nightriderEffect->setActive(eCmd.nightrider);
+                             policeEffect->setActive(eCmd.police);
+                             policeEffect->setMode(eCmd.policeMode);
+                             pulseWaveEffect->setActive(eCmd.testEffect1);
+                             auroraEffect->setActive(eCmd.testEffect2);
 
                              //
                            });
