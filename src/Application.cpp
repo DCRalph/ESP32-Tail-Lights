@@ -159,22 +159,33 @@ void Application::begin()
   syncMgr->begin();
 
 #ifdef ENABLE_SYNC
-  // Set the callback for effect state changes from sync
-  syncMgr->setEffectChangeCallback([this](const EffectSyncState &state)
+  // Set up callbacks for sync events
+  syncMgr->setDeviceJoinCallback([this](const DeviceInfo &device)
+                                 {
+                                   Serial.println("Application: Device joined sync network - ID: 0x" + String(device.deviceId, HEX));
+                                   // TODO: Implement effect sync handshake here
+                                 });
+
+  syncMgr->setDeviceLeaveCallback([this](uint32_t deviceId)
+                                  { Serial.println("Application: Device left sync network - ID: 0x" + String(deviceId, HEX)); });
+
+  syncMgr->setMasterChangeCallback([this](uint32_t newMasterDeviceId)
                                    {
-    // Only apply sync changes if in NORMAL mode and ACC is on
-    if (mode == ApplicationMode::NORMAL) {
-      leftIndicatorEffect->setActive(state.leftIndicator);
-      rightIndicatorEffect->setActive(state.rightIndicator);
-      rgbEffect->setActive(state.rgb);
-      nightriderEffect->setActive(state.nightrider);
-      if (taillightEffect) {
-        taillightEffect->setMode(state.startup ? TaillightEffectMode::Startup : TaillightEffectMode::CarOn);
-      }
-      policeEffect->setActive(state.police);
-      pulseWaveEffect->setActive(state.pulseWave);
-      auroraEffect->setActive(state.aurora);
-    } });
+                                     Serial.println("Application: Master changed to device ID: 0x" + String(newMasterDeviceId, HEX));
+                                     // TODO: Implement master-specific effect sync logic here
+                                   });
+
+  syncMgr->setTimeSyncCallback([this](uint32_t syncedTime)
+                               {
+                                 Serial.println("Application: Time synchronized - synced time: " + String(syncedTime));
+                                 // TODO: Use synchronized time for effect timing coordination
+                               });
+
+  // Enable auto-join functionality
+  // syncMgr->enableAutoJoin(true);
+  // syncMgr->setAutoJoinTimeout(8000); // Wait 8 seconds before creating own group
+
+  Serial.println("Application: Auto-join enabled - devices will automatically pair");
 #endif
 
   // #ifndef ENABLE_HV_INPUTS
@@ -262,23 +273,34 @@ void Application::loop()
   start = micros();
   SyncManager *syncMgr = SyncManager::getInstance();
   syncMgr->loop();
+
+  // Update synchronized LED blinking
+  syncMgr->updateSyncedLED();
+
   stats.updateSyncTime = micros() - start;
 
 #ifdef ENABLE_SYNC
-  // If in normal mode and we have ACC on, sync our effect states
-  if (mode == ApplicationMode::NORMAL || mode == ApplicationMode::REMOTE)
-  {
-    EffectSyncState state;
-    state.leftIndicator = leftIndicatorEffect->isActive();
-    state.rightIndicator = rightIndicatorEffect->isActive();
-    state.rgb = rgbEffect->isActive();
-    state.nightrider = nightriderEffect->isActive();
-    state.startup = taillightEffect ? (taillightEffect->getMode() == TaillightEffectMode::Startup) : false;
-    state.police = policeEffect->isActive();
-    state.pulseWave = pulseWaveEffect->isActive();
-    state.aurora = auroraEffect->isActive();
+  // TODO: Implement effect synchronization on top of the core sync foundation
+  // This is where you would:
+  // 1. Collect current effect states
+  // 2. Send effect updates to other devices (if master)
+  // 3. Apply effect updates from master (if slave)
+  // 4. Use synchronized time for coordinated effects
 
-    syncMgr->updateEffectStates(state);
+  // Example of how to check sync status:
+  if (syncMgr->isSyncing())
+  {
+    // We have other devices in the network
+    if (syncMgr->isMaster())
+    {
+      // We're the master - we can broadcast effect states
+      // TODO: Implement master effect broadcasting
+    }
+    else
+    {
+      // We're a slave - we should listen for effect states
+      // TODO: Implement slave effect listening
+    }
   }
 #endif
 

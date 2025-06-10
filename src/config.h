@@ -17,11 +17,12 @@
 
 extern Preferences preferences;
 
-// #define S3_V1
-// #define S3_DEV
-#define S2_CAR
+void restart();
+String formatBytes(size_t bytes, bool _short = false);
 
-#define ENABLE_HV_INPUTS
+// #define S3_V1
+#define S3_DEV
+// #define S2_CAR
 
 // WiFi
 
@@ -31,7 +32,7 @@ extern Preferences preferences;
 // #define ESPNOW_NO_DISABLE_WIFI
 
 #define DEBUG_SYNC
-// #define ENABLE_SYNC
+#define ENABLE_SYNC
 
 #ifdef S3_V1
 #define LED_PIN 15
@@ -62,10 +63,15 @@ extern Preferences preferences;
 
 #ifdef S3_DEV
 #define LED_PIN 21
+
+// #define ENABLE_HV_INPUTS
+
 #endif
 
 #ifdef S2_CAR
 #define LED_PIN 15
+
+#define ENABLE_HV_INPUTS
 
 #define INPUT_1_PIN 1
 #define INPUT_2_PIN 2
@@ -87,8 +93,13 @@ extern Preferences preferences;
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
+#ifdef S3_DEV
+#define TAILLIGHT_LED_COUNT 24
+#define TAILLIGHT_LED_PIN 16
+#else
 #define TAILLIGHT_LED_COUNT 120
 #define TAILLIGHT_LED_PIN 16
+#endif
 #endif
 
 #ifdef ENABLE_UNDERGLOW

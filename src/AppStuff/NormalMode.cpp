@@ -4,14 +4,14 @@ void Application::handleNormalEffects()
 {
   unsigned long currentTime = millis();
 
-#ifdef ENABLE_SYNC
-  SyncManager *syncMgr = SyncManager::getInstance();
-  bool isSyncing = syncMgr->isSyncing();
-  bool isMaster = syncMgr->isMaster();
-#else
+// #ifdef ENABLE_SYNC
+//   SyncManager *syncMgr = SyncManager::getInstance();
+//   bool isSyncing = syncMgr->isSyncing();
+//   bool isMaster = syncMgr->isMaster();
+// #else
   bool isSyncing = false;
   bool isMaster = false;
-#endif
+// #endif
 
   unlockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
   lockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));

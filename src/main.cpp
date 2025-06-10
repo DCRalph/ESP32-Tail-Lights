@@ -6,12 +6,14 @@
 #include "IO/GPIO.h"
 #include "IO/Wireless.h"
 #include "Application.h"
+#include "SerialMenu.h"
 
 Application *app;
 
 void setup()
 {
   Serial.begin(115200);
+  Serial.setTimeout(10);
   // delay(1000);
 
   WiFi.mode(WIFI_AP_STA);
@@ -49,6 +51,8 @@ void setup()
         vTaskDelete(NULL);
       },
       "startup_blink", 10000, NULL, 1, NULL, 1);
+
+  initSerialMenu();
 }
 
 // unsigned long lastSerialPrintTime = 0;
@@ -59,6 +63,22 @@ void loop()
   wireless.loop();
 
   app->loop();
+
+  try
+  {
+    if (Serial.available() > 0)
+    {
+      String input = Serial.readString();
+      input.trim();
+
+      // Pass to the menu system
+      processMenuInput(input);
+    }
+  }
+  catch (...)
+  {
+    Serial.println("[ERROR] Exception in serialTask");
+  }
 
   // if (currentTime - lastSerialPrintTime >= 1000)
   // {
