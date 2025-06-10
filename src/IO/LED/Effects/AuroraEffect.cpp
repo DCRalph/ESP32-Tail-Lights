@@ -198,3 +198,8 @@ void AuroraEffect::render(LEDStrip *strip, Color *buffer)
     }
   }
 }
+
+void AuroraEffect::onDisable()
+{
+  active = false;
+}

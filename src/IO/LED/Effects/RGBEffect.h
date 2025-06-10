@@ -11,6 +11,7 @@ public:
 
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void onDisable() override;
 
   // Activate or disable the effect.
   void setActive(bool active);

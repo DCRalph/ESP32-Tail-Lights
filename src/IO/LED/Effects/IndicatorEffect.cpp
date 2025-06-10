@@ -209,3 +209,8 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
     }
   }
 }
+
+void IndicatorEffect::onDisable()
+{
+  indicatorActive = false;
+}

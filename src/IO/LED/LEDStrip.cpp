@@ -359,10 +359,3 @@ uint64_t LEDStrip::getLastFrameTime() const
 {
   return lastUpdateDuration + lastDrawDuration;
 }
-
-void LEDStrip::disableALlEffects()
-{
-  // for(auto e : effects){
-  //   e->setActive(false);
-  // }
-}

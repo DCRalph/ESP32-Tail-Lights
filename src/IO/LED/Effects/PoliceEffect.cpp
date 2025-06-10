@@ -170,3 +170,8 @@ void PoliceEffect::render(LEDStrip *strip, Color *buffer)
     }
   }
 }
+
+void PoliceEffect::onDisable()
+{
+  active = false;
+}

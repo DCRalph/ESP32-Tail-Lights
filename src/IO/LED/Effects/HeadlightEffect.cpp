@@ -626,3 +626,9 @@ Color HeadlightEffect::_getColor(LEDStrip *strip, int i, int size)
   }
   return color;
 }
+
+void HeadlightEffect::onDisable()
+{
+  phase = -1;
+  mode = HeadlightEffectMode::Off;
+}

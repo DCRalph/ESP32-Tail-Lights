@@ -21,6 +21,7 @@ LEDStripManager::LEDStripManager()
 {
   // Store this instance in the static pointer for callbacks to use
   instance = this;
+  drawFPS = 100;
 }
 
 LEDStripManager::~LEDStripManager()
@@ -109,11 +110,15 @@ void LEDStripManager::updateEffects()
       pair.second.strip->updateEffects();
     }
   }
-
 }
 
 void LEDStripManager::draw()
 {
+  if (millis() - lastDrawTime < 1000 / drawFPS)
+    return;
+
+  lastDrawTime = millis();
+
   // Draw all strips
   for (auto &pair : strips)
   {

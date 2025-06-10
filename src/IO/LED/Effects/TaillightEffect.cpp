@@ -9,6 +9,7 @@ TaillightEffect::TaillightEffect(uint8_t priority, bool transparent)
       phase(-1),
       phase_start(0),
       lastUpdate(0),
+      split(false),
       // Startup timing (from TaillightStartupEffect)
       T_startup_dot(0.0f),
       T_startup_dash_out(0.6f),
@@ -122,6 +123,16 @@ void TaillightEffect::setMode(int mode)
 TaillightEffectMode TaillightEffect::getMode()
 {
   return mode;
+}
+
+void TaillightEffect::setSplit(bool split)
+{
+  this->split = split;
+}
+
+bool TaillightEffect::getSplit()
+{
+  return split;
 }
 
 bool TaillightEffect::isAnimating()
@@ -359,7 +370,7 @@ void TaillightEffect::_renderDimEffect(LEDStrip *strip, Color *buffer)
   // Dim red for all LEDs
   for (uint16_t i = 0; i < numLEDs; i++)
   {
-    buffer[i] = Color(80, 0, 0); // Dim red
+    buffer[i] = Color(20, 0, 0); // Dim red
   }
 }
 
@@ -371,4 +382,10 @@ Color TaillightEffect::_getTaillightColor()
 float TaillightEffect::_easeInOut(float t)
 {
   return 3 * t * t - 2 * t * t * t;
+}
+
+void TaillightEffect::onDisable()
+{
+  phase = -1;
+  mode = TaillightEffectMode::Off;
 }

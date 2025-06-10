@@ -138,3 +138,8 @@ void NightRiderEffect::render(LEDStrip *strip, Color *buffer)
     }
   }
 }
+
+void NightRiderEffect::onDisable()
+{
+  active = false;
+}

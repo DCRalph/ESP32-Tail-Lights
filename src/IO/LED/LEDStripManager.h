@@ -67,4 +67,7 @@ public:
 private:
   // Map of LED strip configurations by type
   std::map<LEDStripType, LEDStripConfig> strips;
+
+  uint64_t lastDrawTime;
+  uint32_t drawFPS;
 };

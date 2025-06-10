@@ -107,13 +107,8 @@ void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
 
       for (uint16_t i = 0; i < numLeds; i++)
       {
-        buffer[i].r = 255;
-        buffer[i].g = 0;
-        buffer[i].b = 0;
-
-        buffer[strip->getNumLEDs() - i - 1].r = 255;
-        buffer[strip->getNumLEDs() - i - 1].g = 0;
-        buffer[strip->getNumLEDs() - i - 1].b = 0;
+        buffer[i] = Color(255, 0, 0);
+        buffer[strip->getNumLEDs() - i - 1] = Color(255, 0, 0);
       }
     }
 
@@ -124,9 +119,7 @@ void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
   {
     for (uint16_t i = 0; i < strip->getNumLEDs(); i++)
     {
-      buffer[i].r = 255;
-      buffer[i].g = 0;
-      buffer[i].b = 0;
+      buffer[i] = Color(255, 0, 0);
     }
 
     return;
@@ -166,8 +159,12 @@ void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
     float ledBrightness = overallBrightness * spatialFactor;
 
     uint8_t redVal = static_cast<uint8_t>(255 * ledBrightness);
-    buffer[i].r = redVal;
-    buffer[i].g = 0;
-    buffer[i].b = 0;
+    if (redVal > 10)
+      buffer[i] = Color(redVal, 0, 0);
   }
+}
+
+void BrakeLightEffect::onDisable()
+{
+  brakeActive = false;
 }

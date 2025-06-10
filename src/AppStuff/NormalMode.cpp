@@ -29,22 +29,7 @@ void Application::handleNormalEffects()
     unlockSequence->setActive(true);
 
     // turn off all effects
-    leftIndicatorEffect->setActive(false);
-    rightIndicatorEffect->setActive(false);
-    rgbEffect->setActive(false);
-    nightriderEffect->setActive(false);
-    if (taillightEffect)
-    {
-      taillightEffect->setOff();
-    }
-
-    headlightEffect->setOff();
-    headlightEffect->setSplit(false);
-    headlightEffect->setColor(false, false, false);
-
-    brakeEffect->setActive(false);
-    brakeEffect->setIsReversing(false);
-    reverseLightEffect->setActive(false);
+    LEDEffect::disableAllEffects();
   }
 
   if (isEnabled(accOnInput) && accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)

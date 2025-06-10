@@ -10,6 +10,7 @@ public:
   BrakeLightEffect(uint8_t priority = 0, bool transparent = false);
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void onDisable() override;
 
   // Set whether the brakes are active.
   void setActive(bool active);

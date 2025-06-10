@@ -108,8 +108,14 @@ void ReverseLightEffect::render(LEDStrip *strip, Color *buffer)
     // then it is fully lit (brightness = 1), otherwise off (brightness = 0).
     float brightness = (normalizedDistance <= p) ? 1.0f : 0.0f;
 
-    buffer[i] = Color(255 * brightness,
-                      255 * brightness,
-                      255 * brightness);
+    if (brightness * 255 > 0)
+      buffer[i] = Color(255 * brightness,
+                        255 * brightness,
+                        255 * brightness);
   }
+}
+
+void ReverseLightEffect::onDisable()
+{
+  active = false;
 }

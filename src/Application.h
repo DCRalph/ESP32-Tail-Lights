@@ -48,6 +48,18 @@ enum class ApplicationMode
   OFF
 };
 
+struct AppStats
+{
+  uint32_t loopsPerSecond;
+  uint32_t updateInputTime;
+
+  uint32_t updateModeTime;
+  uint32_t updateSyncTime;
+
+  uint32_t updateEffectsTime;
+  uint32_t drawTime;
+};
+
 class Application
 {
 public:
@@ -121,4 +133,8 @@ private:
   void handleRemoteEffects();
 
   uint64_t lastRemotePing;
+
+  uint64_t lastLoopsTime;
+  uint32_t loopsPerSecond;
+  AppStats stats;
 };

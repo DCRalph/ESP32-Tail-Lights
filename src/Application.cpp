@@ -207,7 +207,9 @@ void Application::updateInputs()
 void Application::loop()
 {
   // Update input states.
+  uint64_t start = micros();
   updateInputs();
+  stats.updateInputTime = micros() - start;
 
   // handle remote dissconnection
   if (lastRemotePing != 0 && millis() - lastRemotePing > 2000)
@@ -216,19 +218,9 @@ void Application::loop()
     {
       lastRemotePing = 0;
       mode = ApplicationMode::NORMAL;
-      // disable all effects
-      leftIndicatorEffect->setActive(false);
-      rightIndicatorEffect->setActive(false);
-      rgbEffect->setActive(false);
-      nightriderEffect->setActive(false);
-      if (taillightEffect)
-      {
-        taillightEffect->setOff();
-      }
 
-      headlightEffect->setOff();
-      headlightEffect->setSplit(false);
-      headlightEffect->setColor(false, false, false);
+      // disable all effects
+      LEDEffect::disableAllEffects();
     }
   }
 
@@ -238,6 +230,7 @@ void Application::loop()
   brakeTapSequence3->loop();
 #endif
 
+  start = micros();
   switch (mode)
   {
   case ApplicationMode::NORMAL:
@@ -258,25 +251,18 @@ void Application::loop()
   case ApplicationMode::OFF:
   {
     // turn off all effects
-    leftIndicatorEffect->setActive(false);
-    rightIndicatorEffect->setActive(false);
-    rgbEffect->setActive(false);
-    nightriderEffect->setActive(false);
-    if (taillightEffect)
-    {
-      taillightEffect->setOff();
-    }
-
-    headlightEffect->setOff();
-    headlightEffect->setSplit(false);
-    headlightEffect->setColor(false, false, false);
+    LEDEffect::disableAllEffects();
   }
   break;
   }
 
+  stats.updateModeTime = micros() - start;
+
   // Update SyncManager
+  start = micros();
   SyncManager *syncMgr = SyncManager::getInstance();
   syncMgr->loop();
+  stats.updateSyncTime = micros() - start;
 
 #ifdef ENABLE_SYNC
   // If in normal mode and we have ACC on, sync our effect states
@@ -297,8 +283,21 @@ void Application::loop()
 #endif
 
   // Update and draw LED effects.
+  start = micros();
   LEDStripManager::getInstance()->updateEffects();
+  stats.updateEffectsTime = micros() - start;
+
+  start = micros();
   LEDStripManager::getInstance()->draw();
+  stats.drawTime = micros() - start;
+
+  loopsPerSecond++;
+  if (millis() - lastLoopsTime >= 1000)
+  {
+    lastLoopsTime = millis();
+    stats.loopsPerSecond = loopsPerSecond;
+    loopsPerSecond = 0;
+  }
 }
 
 void Application::enableNormalMode()
@@ -333,21 +332,7 @@ void Application::enableOffMode()
   preferences.putUInt("mode", static_cast<uint8_t>(mode));
 
   // turn off all effects
-  leftIndicatorEffect->setActive(false);
-  rightIndicatorEffect->setActive(false);
-  rgbEffect->setActive(false);
-  nightriderEffect->setActive(false);
-  if (taillightEffect)
-  {
-    taillightEffect->setOff();
-  }
-
-  headlightEffect->setOff();
-  headlightEffect->setSplit(false);
-  headlightEffect->setColor(false, false, false);
-
-  pulseWaveEffect->setActive(false);
-  auroraEffect->setActive(false);
+  LEDEffect::disableAllEffects();
 }
 
 void Application::handleTestEffects()

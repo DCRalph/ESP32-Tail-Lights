@@ -18,6 +18,7 @@ public:
 
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void onDisable() override;
 
   bool isActive();
 
@@ -30,6 +31,9 @@ public:
   void setMode(int mode);
   TaillightEffectMode getMode();
 
+  void setSplit(bool split);
+  bool getSplit();
+
   // State query methods
   bool isAnimating();
 
@@ -40,6 +44,8 @@ private:
   int phase;                 // Current animation phase
   unsigned long phase_start; // Timestamp when current phase started
   unsigned long lastUpdate;  // Last update timestamp
+
+  bool split;
 
   // Timing parameters (in seconds)
   // Startup effect timing

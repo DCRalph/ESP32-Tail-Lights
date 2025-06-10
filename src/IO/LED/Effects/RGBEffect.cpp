@@ -107,3 +107,8 @@ void RGBEffect::render(LEDStrip *strip, Color *buffer)
     buffer[i] = c;
   }
 }
+
+void RGBEffect::onDisable()
+{
+  active = false;
+}

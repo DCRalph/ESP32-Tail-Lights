@@ -13,10 +13,10 @@ void Application::setupEffects()
   leftIndicatorEffect->setOtherIndicator(rightIndicatorEffect);
   rightIndicatorEffect->setOtherIndicator(leftIndicatorEffect);
 
-  brakeEffect = new BrakeLightEffect(8, false);
-  reverseLightEffect = new ReverseLightEffect(6, false);
-  headlightEffect = new HeadlightEffect(4, false);
+  brakeEffect = new BrakeLightEffect(9, true);
+  reverseLightEffect = new ReverseLightEffect(8, true);
 
+  headlightEffect = new HeadlightEffect(4, false);
   taillightEffect = new TaillightEffect(4, false);
 
   rgbEffect = new RGBEffect(5, false);
@@ -56,6 +56,7 @@ void Application::setupEffects()
     taillightStrip->addEffect(reverseLightEffect);
 
     taillightStrip->addEffect(rgbEffect);
+    taillightStrip->addEffect(nightriderEffect);
     taillightStrip->addEffect(policeEffect);
     taillightStrip->addEffect(pulseWaveEffect);
     taillightStrip->addEffect(auroraEffect);

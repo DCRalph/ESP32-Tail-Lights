@@ -11,6 +11,7 @@ constexpr uint8_t CMD_GET_EFFECTS = 0xe3;
 constexpr uint8_t CAR_CMD_SET_INPUTS = 0xe4;
 constexpr uint8_t CAR_CMD_GET_INPUTS = 0xe5;
 constexpr uint8_t CAR_CMD_TRIGGER_SEQUENCE = 0xe6;
+constexpr uint8_t CAR_CMD_GET_STATS = 0xe7;
 
 // Struct definitions for wireless communication
 struct PingCmd
@@ -169,7 +170,7 @@ void Application::setupWireless()
 
                              // Use new TaillightEffect
                              eCmd.taillightMode = taillightEffect ? static_cast<int>(taillightEffect->getMode()) : 0;
-
+                             eCmd.taillightSplit = taillightEffect->getSplit();
                              // Keep separate brake and reverse effects
                              eCmd.brake = brakeEffect->isActive();
                              eCmd.reverse = reverseLightEffect->isActive();
@@ -206,6 +207,7 @@ void Application::setupWireless()
                              headlightEffect->setColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
 
                              taillightEffect->setMode(eCmd.taillightMode);
+                             taillightEffect->setSplit(eCmd.taillightSplit);
 
                              // Keep separate brake and reverse effects
                              brakeEffect->setActive(eCmd.brake);
@@ -289,6 +291,20 @@ void Application::setupWireless()
                                  nightRiderFlickSequence->trigger();
                                break;
                              }
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_GET_STATS, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             data_packet pTX = {0};
+                             pTX.type = CAR_CMD_GET_STATS;
+
+                             pTX.len = sizeof(AppStats);
+                             memcpy(pTX.data, &stats, sizeof(AppStats));
+
+                             wireless.send(&pTX, fp->mac);
                              //
                            });
 }

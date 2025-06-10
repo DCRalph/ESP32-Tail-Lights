@@ -133,3 +133,8 @@ void PulseWaveEffect::render(LEDStrip *strip, Color *buffer)
     buffer[i] = color;
   }
 }
+
+void PulseWaveEffect::onDisable()
+{
+  active = false;
+}

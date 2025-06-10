@@ -128,8 +128,6 @@ public:
   // Return combined frame duration (update + draw).
   uint64_t getLastFrameTime() const;
 
-  void disableALlEffects();
-
 private:
   friend class LEDStripConfig;
   LEDStripType type;
