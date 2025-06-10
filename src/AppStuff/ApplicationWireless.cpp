@@ -206,6 +206,8 @@ void Application::setupWireless()
                              nightriderEffect->setActive(eCmd.nightrider);
                              taillightStartupEffect->setActive(eCmd.startup);
                              headlightStartupEffect->setMode(eCmd.headlightStartup);
+                             headlightStartupEffect->setSplit(eCmd.headlightSplit);
+                             headlightStartupEffect->setColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
 
                              policeEffect->setActive(eCmd.police);
                              policeEffect->setMode(eCmd.policeMode);
@@ -213,6 +215,8 @@ void Application::setupWireless()
                              headlightEffect->setActive(eCmd.headlight);
                              headlightEffect->setSplit(eCmd.headlightSplit);
                              headlightEffect->setColor(eCmd.headlightR, eCmd.headlightG, eCmd.headlightB);
+
+
 
                              brakeEffect->setActive(eCmd.brake);
                              brakeEffect->setIsReversing(eCmd.reverse);

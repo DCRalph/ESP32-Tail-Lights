@@ -4,7 +4,6 @@
 
 HeadlightStartupEffect::HeadlightStartupEffect(uint8_t priority, bool transparent)
     : LEDEffect(priority, transparent),
-      // active(false),
       mode(HeadlightStartupEffectMode::Off),
       phase(0),
       phase_start(0),
@@ -19,33 +18,22 @@ HeadlightStartupEffect::HeadlightStartupEffect(uint8_t priority, bool transparen
       phase_0_single_led_index(0),
       phase_0_single_led_progress(0.0f),
       phase_1_progress(0.0f),
-      phase_2_progress(0.0f)
+      phase_2_progress(0.0f),
+      phase_10_progress(0.0f),
+      phase_20_progress(0.0f),
+      red(false),
+      blue(false),
+      green(false),
+      split(false),
+      baseHueCenter(1.0f), // Default center hue is red.
+      baseHueEdge(180.0f),
+      hueCenter(0.0f), // Start with red
+      hueEdge(240.0f), // End with blue
+      hueOffset(0.0f),
+      rainbowSpeed(120.0f),
+      lastUpdate(0)
 {
 }
-
-// void HeadlightStartupEffect::setActive(bool a)
-// {
-//   if (active == a)
-//     return;
-
-//   active = a;
-//   if (active)
-//   {
-//     phase = 0;
-//     phase_start = millis(); // Record the starting time (ms)
-//     phase_0_progress = 0.0f;
-//     phase_0_single_led_index = 0;
-//     phase_0_single_led_progress = 0.0f;
-//     phase_0_start_single_led = 0;
-//     phase_1_progress = 0.0f;
-//     phase_2_progress = 0.0f;
-//   }
-//   else
-//   {
-//     phase = 0;
-//     phase_start = 0;
-//   }
-// }
 
 bool HeadlightStartupEffect::isActive()
 {
@@ -127,6 +115,30 @@ HeadlightStartupEffectMode HeadlightStartupEffect::getMode()
   return mode;
 }
 
+void HeadlightStartupEffect::setSplit(bool split)
+{
+  this->split = split;
+}
+
+bool HeadlightStartupEffect::getSplit()
+{
+  return split;
+}
+
+void HeadlightStartupEffect::setColor(bool r, bool g, bool b)
+{
+  red = r;
+  green = g;
+  blue = b;
+}
+
+void HeadlightStartupEffect::getColor(bool &r, bool &g, bool &b)
+{
+  r = red;
+  g = green;
+  b = blue;
+}
+
 void HeadlightStartupEffect::update(LEDStrip *strip)
 {
   // if (!active)
@@ -142,6 +154,10 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
 
   // Convert elapsed time from milliseconds to seconds.
   float elapsed = (now - phase_start) / 1000.0f;
+
+  unsigned long dtMillis = now - lastUpdate;
+  float dtSeconds = dtMillis / 1000.0f;
+  lastUpdate = now;
 
   // #########################################################
   // mode == HeadlightStartupEffectMode::Startup
@@ -204,6 +220,12 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
   // #########################################################
   else if (phase == 10) // Phase 10: filling entire strip to full brightness
   {
+    if (split)
+    {
+      phase = 12;
+      phase_start = now;
+    }
+
     phase_10_progress = std::min(elapsed / T10, 1.0f);
 
     if (elapsed > T10)
@@ -227,6 +249,22 @@ void HeadlightStartupEffect::update(LEDStrip *strip)
       mode = HeadlightStartupEffectMode::Off;
     }
   }
+
+  if (red && green && blue)
+  {
+    hueOffset += rainbowSpeed * dtSeconds;
+    // Wrap hueOffset to the range [0, 360)
+    hueOffset = fmod(hueOffset, 360.0f);
+
+    // Adjust the animated hues based on the offset
+    hueCenter = baseHueCenter + hueOffset;
+    hueEdge = baseHueEdge + hueOffset;
+
+    // Wrap animated hues within the [0,360) range. use modulo operator to wrap the hue within [0,360).
+
+    hueCenter = fmod(hueCenter, 360.0f);
+    hueEdge = fmod(hueEdge, 360.0f);
+  }
 }
 
 void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
@@ -236,9 +274,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     return;
 
   // Define colors
-  Color color = Color(255, 255, 255);
 
-  Color halfBrightness = color * 0.35f; // Half brightness version
+  float halfBrightness = 0.35f; // Half brightness version
 
   uint16_t numLEDs = strip->getNumLEDs();
   uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDs / 2);
@@ -255,8 +292,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     {
       for (int i = 0; i < phase_0_single_led_index; i++)
       {
-        buffer[effective_size - i - 1] = halfBrightness;
-        buffer[numLEDs - 1 - (effective_size - i - 1)] = halfBrightness;
+        buffer[effective_size - i - 1] = _getColor(strip, effective_size - i - 1, effective_size) * halfBrightness;
+        buffer[numLEDs - 1 - (effective_size - i - 1)] = buffer[effective_size - i - 1];
       }
     }
 
@@ -266,8 +303,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
       int ledIndex = single_led_to_light + i;
       if (ledIndex < effective_size)
       {
-        buffer[ledIndex] = halfBrightness;
-        buffer[numLEDs - 1 - ledIndex] = halfBrightness;
+        buffer[ledIndex] = _getColor(strip, ledIndex, effective_size) * halfBrightness;
+        buffer[numLEDs - 1 - ledIndex] = buffer[ledIndex];
       }
     }
   }
@@ -276,8 +313,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     // fill with half brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = halfBrightness;
-      buffer[numLEDs - 1 - i] = halfBrightness;
+      buffer[i] = _getColor(strip, i, effective_size) * halfBrightness;
+      buffer[numLEDs - 1 - i] = buffer[i];
     }
   }
   else if (phase == 2) // Phase 2: Filling from outside at full brightness
@@ -285,8 +322,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     // First, set all LEDs that should be at half brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = halfBrightness;               // Left side
-      buffer[numLEDs - 1 - i] = halfBrightness; // Right side
+      buffer[i] = _getColor(strip, i, effective_size) * halfBrightness; // Left side
+      buffer[numLEDs - 1 - i] = buffer[i];                              // Right side
     }
 
     // Then, set LEDs that should be at full brightness based on progress
@@ -296,13 +333,13 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     // Fill left side from the edge inward with full brightness
     for (int i = 0; i < leftLeds; i++)
     {
-      buffer[i] = color;
+      buffer[i] = _getColor(strip, i, effective_size);
     }
 
     // Fill right side from the edge inward with full brightness
     for (int i = 0; i < rightLeds; i++)
     {
-      buffer[numLEDs - 1 - i] = color;
+      buffer[numLEDs - 1 - i] = _getColor(strip, numLEDs - 1 - i, effective_size);
     }
   }
   else if (phase == 3) // Final phase - all LEDs at full brightness
@@ -310,8 +347,8 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     // Set all headlight LEDs to full brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = color;               // Left side
-      buffer[numLEDs - 1 - i] = color; // Right side
+      buffer[i] = _getColor(strip, i, effective_size); // Left side
+      buffer[numLEDs - 1 - i] = buffer[i];             // Right side
     }
   }
 
@@ -329,19 +366,19 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     for (int i = 0; i < numLEDs; i++)
     {
       if (i < effective_size)
-        buffer[i] = color; // Left side
+        buffer[i] = _getColor(strip, i, effective_size); // Left side
 
       if (i >= numLEDs - effective_size)
-        buffer[i] = color; // Right side
+        buffer[i] = _getColor(strip, i, effective_size); // Right side
 
       if (i > effective_size && i < effective_size + (ledsToAnimateSide * p))
       {
-        buffer[i] = color;
+        buffer[i] = _getColor(strip, i, effective_size);
       }
 
       if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * p))
       {
-        buffer[i] = color;
+        buffer[i] = _getColor(strip, i, effective_size);
       }
     }
   }
@@ -349,7 +386,15 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
   {
     for (int i = 0; i < numLEDs; i++)
     {
-      buffer[i] = color;
+      buffer[i] = _getColor(strip, i, numLEDs);
+    }
+  }
+  else if (phase == 12) // full strip full brightness
+  {
+    for (int i = 0; i < effective_size; i++)
+    {
+      buffer[i] = _getColor(strip, i, effective_size);
+      buffer[numLEDs - 1 - i] = buffer[i];
     }
   }
 
@@ -362,19 +407,64 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
     float p = phase_20_progress;
     p = 3 * p * p - 2 * p * p * p;
 
-    int ledsPerSide = numLEDs / 2;
-    int ledsOffPerSide = ledsPerSide * p;
-
-    for (int i = 0; i < numLEDs; i++)
+    if (split)
     {
-      // If the LED is within the off-section on either side, turn it off.
-      if (i < ledsOffPerSide || i >= numLEDs - ledsOffPerSide)
+      // Only fade the headlight sections (effective_size LEDs from each edge)
+      // Animation goes from inside out when split is true
+      int ledsOffPerSide = effective_size * p;
+
+      for (int i = 0; i < numLEDs; i++)
       {
-        buffer[i] = Color(0, 0, 0);
+        // Left side headlight section
+        if (i < effective_size)
+        {
+          // Turn off LEDs from inside out: start at (effective_size - 1) and work towards 0
+          if (i >= effective_size - ledsOffPerSide)
+          {
+            buffer[i] = Color(0, 0, 0);
+          }
+          else
+          {
+            buffer[i] = _getColor(strip, i, effective_size);
+          }
+        }
+        // Right side headlight section
+        else if (i >= numLEDs - effective_size)
+        {
+          // Turn off LEDs from inside out: start at (numLEDs - effective_size) and work towards end
+          if (i < numLEDs - effective_size + ledsOffPerSide)
+          {
+            buffer[i] = Color(0, 0, 0);
+          }
+          else
+          {
+            buffer[i] = _getColor(strip, i, effective_size);
+          }
+        }
+        // Middle section remains off when split is true
+        else
+        {
+          buffer[i] = Color(0, 0, 0);
+        }
       }
-      else
+    }
+    else
+    {
+      // Original behavior: fade entire strip from edges
+      int ledsPerSide = numLEDs / 2;
+      int ledsOffPerSide = ledsPerSide * p;
+
+      for (int i = 0; i < numLEDs; i++)
       {
-        buffer[i] = color;
+        // If the LED is within the off-section on either side, turn it off.
+        if (i < ledsOffPerSide || i >= numLEDs - ledsOffPerSide)
+        {
+          buffer[i] = Color(0, 0, 0);
+        }
+        else
+        {
+          buffer[i] = _getColor(strip, i, numLEDs);
+        }
       }
     }
   }
@@ -385,4 +475,42 @@ void HeadlightStartupEffect::render(LEDStrip *strip, Color *buffer)
       buffer[i] = Color(0, 0, 0);
     }
   }
+}
+
+Color HeadlightStartupEffect::_getColor(LEDStrip *strip, int i, int size)
+{
+  Color color;
+  color.r = red ? 255 : 0;
+  color.g = green ? 255 : 0;
+  color.b = blue ? 255 : 0;
+
+  bool rainbow = false;
+  if (color == Color(255, 255, 255))
+    rainbow = true;
+
+  if (color == Color(0, 0, 0))
+    color = Color(255, 255, 255);
+
+  uint16_t numLEDs = strip->getNumLEDs();
+
+  if (rainbow)
+  {
+    float normDist = (float)i / size; // 0 at edge, 1 at center
+
+    float diff = hueEdge - hueCenter;
+    if (diff < 0)
+    {
+      diff += 360.0f;
+    }
+    // Linearly interpolate along the positive direction.
+    float hue = hueCenter - diff * normDist;
+
+    // Normalize the hue to the [0, 360) range.
+    hue = fmod(hue, 360.0f);
+    if (hue < 0)
+      hue += 360.0f;
+
+    return Color::hsv2rgb(hue, 1.0f, 1.0f);
+  }
+  return color;
 }

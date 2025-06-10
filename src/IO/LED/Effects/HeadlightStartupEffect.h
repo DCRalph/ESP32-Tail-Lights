@@ -14,14 +14,11 @@ enum class HeadlightStartupEffectMode
 class HeadlightStartupEffect : public LEDEffect
 {
 public:
-  // Constructs the HeadlightStartupEffect.
-  // strip: pointer to the strip.
-  // priority, transparent: passed on to the base class.
   HeadlightStartupEffect(uint8_t priority = 0, bool transparent = false);
 
   virtual void update(LEDStrip *strip) override;
   virtual void render(LEDStrip *strip, Color *buffer) override;
-  // void setActive(bool active);
+
   bool isActive();
 
   void setOff();
@@ -31,6 +28,12 @@ public:
   void setMode(int mode);
   HeadlightStartupEffectMode getMode();
 
+  void setSplit(bool split);
+  bool getSplit();
+
+  void setColor(bool r, bool g, bool b);
+  void getColor(bool &r, bool &g, bool &b);
+
 private:
   // bool active;               // Is the effect active?
   HeadlightStartupEffectMode mode;
@@ -38,6 +41,7 @@ private:
                              // Phase 1: filling from outside at full brightness
                              // Phase 2: final steady state (all LEDs at full brightness)
   unsigned long phase_start; // Timestamp (in ms) when the current phase started
+  unsigned long lastUpdate;
 
   // Duration parameters (in seconds)
   float T0; // half brightness fill duration
@@ -71,4 +75,20 @@ private:
 
   // Phase 20 (fade full white strip to off by starting from the edges and moving inward)
   float phase_20_progress;
+
+  bool red;
+  bool blue;
+  bool green;
+
+  bool split;
+
+  Color _getColor(LEDStrip *strip, int i, int size);
+
+  // Rainbow mode variables
+  float baseHueCenter; // Base hue at center (0-360)
+  float baseHueEdge;   // Base hue at edges (0-360)
+  float hueCenter;     // Current hue at center (0-360)
+  float hueEdge;       // Current hue at edges (0-360)
+  float hueOffset;     // Accumulated hue offset for animation
+  float rainbowSpeed;  // Speed of color cycling in degrees per second
 };
