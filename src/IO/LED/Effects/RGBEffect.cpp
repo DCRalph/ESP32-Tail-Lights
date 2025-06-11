@@ -29,13 +29,32 @@ bool RGBEffect::isActive() const
   return active;
 }
 
+void RGBEffect::setSyncData(RGBSyncData syncData)
+{
+  active = syncData.active;
+  hueCenter = syncData.hueCenter;
+  hueEdge = syncData.hueEdge;
+  speed = syncData.speed;
+  hueOffset = syncData.hueOffset;
+}
+
+RGBSyncData RGBEffect::getSyncData()
+{
+  RGBSyncData syncData = {
+      .hueCenter = hueCenter,
+      .hueEdge = hueEdge,
+      .speed = speed,
+      .hueOffset = hueOffset,
+      .active = active};
+  return syncData;
+}
 void RGBEffect::update(LEDStrip *strip)
 {
   // Return if the effect is not active.
   if (!active)
     return;
 
-  unsigned long currentTime = millis();
+  unsigned long currentTime = SyncManager::syncMillis();
   // Initialize last update if needed.
   if (lastUpdateTime == 0)
   {

@@ -29,20 +29,20 @@
 #include "IO/Inputs.h"
 #include "Sync/SyncManager.h"
 
-static void updateInput(HVInput input)
-{
-  input.update();
-}
+// static void updateInput(HVInput input)
+// {
+//   input.update();
+// }
 
-static bool getInput(HVInput input)
-{
-  return input.get();
-}
+// static bool getInput(HVInput input)
+// {
+//   return input.get();
+// }
 
-static bool isEnabled(HVInput input)
-{
-  return input.isEnabled();
-}
+// static bool isEnabled(HVInput input)
+// {
+//   return input.isEnabled();
+// }
 
 enum class ApplicationMode
 {

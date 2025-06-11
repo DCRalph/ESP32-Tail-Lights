@@ -54,11 +54,6 @@ bool HVInput::isEnabled()
 
 void HVInput::update()
 {
-  if (!_enabled)
-    return;
-
-  if (!_gpio)
-    return;
 
   if (_override)
   {
@@ -71,6 +66,12 @@ void HVInput::update()
     }
     return;
   }
+
+  if (!_enabled)
+    return;
+
+  if (!_gpio)
+    return;
 
   float adcReading = (float)_gpio->analogRead();
   float newVoltage = (adcReading / ADC_MAX) * ADC_REF_VOLTAGE * DIVIDER_FACTOR;

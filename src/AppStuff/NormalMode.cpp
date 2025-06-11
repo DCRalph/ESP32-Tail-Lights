@@ -14,17 +14,17 @@ void Application::handleNormalEffects()
   bool isMaster = false;
 #endif
 
-  unlockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
-  lockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
-  RGBFlickSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
-  nightRiderFlickSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
+  unlockSequence->setInputs(accOnInput.get(), leftIndicatorInput.get(), rightIndicatorInput.get());
+  lockSequence->setInputs(accOnInput.get(), leftIndicatorInput.get(), rightIndicatorInput.get());
+  RGBFlickSequence->setInputs(accOnInput.get(), leftIndicatorInput.get(), rightIndicatorInput.get());
+  nightRiderFlickSequence->setInputs(accOnInput.get(), leftIndicatorInput.get(), rightIndicatorInput.get());
 
   unlockSequence->loop();
   lockSequence->loop();
   RGBFlickSequence->loop();
   nightRiderFlickSequence->loop();
 
-  if (isEnabled(accOnInput) && accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000)
+  if (accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000)
   {
     accOnInput.setLastActiveTime(0);
     unlockSequence->setActive(true);
@@ -33,7 +33,7 @@ void Application::handleNormalEffects()
     LEDEffect::disableAllEffects();
   }
 
-  if (isEnabled(accOnInput) && accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)
+  if (accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)
   {
     if (taillightEffect)
     {
@@ -42,7 +42,12 @@ void Application::handleNormalEffects()
     // headlightStartupEffect->setStartup();
   }
 
-  if (isEnabled(accOnInput) && accOnInput.get() == false)
+  bool debugSync = false;
+#ifdef DEBUG_SYNC
+  debugSync = true;
+#endif
+
+  if (accOnInput.get() == false && !debugSync)
   {
     // Since ACC is off, disable the other effects.
     leftIndicatorEffect->setActive(false);
@@ -61,50 +66,37 @@ void Application::handleNormalEffects()
   }
   else
   {
-    if (taillightEffect)
+    if (!debugSync)
     {
-      // Set to dim mode when car is on (as requested)
       taillightEffect->setDim();
+      headlightEffect->setCarOn();
     }
-    headlightEffect->setCarOn();
 
     // Only apply physical input controls if we're the master
     // or we're not syncing with other devices
     if (!isSyncing || isMaster)
     {
       // And process the other effects normally.
-      leftIndicatorEffect->setActive(getInput(leftIndicatorInput));
-      rightIndicatorEffect->setActive(getInput(rightIndicatorInput));
-
-#ifdef ENABLE_HEADLIGHTS
-      // headlightEffect->setActive(getInput(highBeamInput));
-#endif
+      leftIndicatorEffect->setActive(leftIndicatorInput.get());
+      rightIndicatorEffect->setActive(rightIndicatorInput.get());
 
 #ifdef ENABLE_TAILLIGHTS
       // Keep separate brake and reverse effects
-      brakeEffect->setActive(getInput(brakeInput));
-      brakeEffect->setIsReversing(getInput(reverseInput) || reverseLightEffect->isAnimating());
-      reverseLightEffect->setActive(getInput(reverseInput));
+      brakeEffect->setActive(brakeInput.get());
+      brakeEffect->setIsReversing(reverseInput.get() || reverseLightEffect->isAnimating());
+      reverseLightEffect->setActive(reverseInput.get());
 #endif
 
-      // If we're the master, broadcast effect states to sync with other devices
       if (isMaster && syncMgr->isEffectSyncEnabled())
       {
         EffectSyncState effectState = {};
-        effectState.nightRiderActive = nightriderEffect ? nightriderEffect->isActive() : 0;
-        effectState.rgbActive = rgbEffect ? rgbEffect->isActive() : 0;
-        effectState.policeActive = policeEffect ? policeEffect->isActive() : 0;
 
-        // Set sync time for night rider if it just became active
-        if (effectState.nightRiderActive && syncMgr->isTimeSynced())
-        {
-          effectState.nightRiderSyncTime = syncMgr->getSyncedTime();
-        }
+        effectState.rgbSyncData = rgbEffect->getSyncData();
+        effectState.nightRiderSyncData = nightriderEffect->getSyncData();
+        effectState.policeSyncData = policeEffect->getSyncData();
 
         syncMgr->setEffectSyncState(effectState);
       }
     }
-    // If we're syncing but not the master, effect states will be controlled
-    // by the SyncManager through its callback
   }
 }

@@ -1,5 +1,4 @@
 #include "NightRiderEffect.h"
-#include "Sync/SyncManager.h"
 #include <cmath>
 
 NightRiderEffect::NightRiderEffect(uint8_t priority, bool transparent)
@@ -26,7 +25,7 @@ void NightRiderEffect::setActive(bool _active)
     // Reset the position and direction.
     currentPos = 0.0f;
     forward = true;
-    lastUpdateTime = getCurrentTime();
+    lastUpdateTime = SyncManager::syncMillis();
   }
   else
   {
@@ -38,31 +37,24 @@ bool NightRiderEffect::isActive() const
   return active;
 }
 
-void NightRiderEffect::setSyncEnabled(bool enabled)
+void NightRiderEffect::setSyncData(NightRiderSyncData syncData)
 {
-  syncEnabled = enabled;
+  active = syncData.active;
+  cycleTime = syncData.cycleTime;
+  tailLength = syncData.tailLength;
+  currentPos = syncData.currentPos;
+  forward = syncData.forward;
 }
 
-bool NightRiderEffect::isSyncEnabled() const
+NightRiderSyncData NightRiderEffect::getSyncData()
 {
-  return syncEnabled;
-}
-
-unsigned long NightRiderEffect::getCurrentTime() const
-{
-  if (!syncEnabled)
-    return millis();
-
-  SyncManager *syncMgr = SyncManager::getInstance();
-
-  // Use synced time if we're in a group and time is synced
-  if (syncMgr->isInGroup() && syncMgr->isTimeSynced())
-  {
-    return syncMgr->getSyncedTime();
-  }
-
-  // Fall back to local time
-  return millis();
+  return NightRiderSyncData{
+      .cycleTime = cycleTime,
+      .tailLength = tailLength,
+      .currentPos = currentPos,
+      .forward = forward,
+      .active = active,
+  };
 }
 
 void NightRiderEffect::update(LEDStrip *strip)
@@ -70,7 +62,7 @@ void NightRiderEffect::update(LEDStrip *strip)
   if (!active)
     return;
 
-  unsigned long currentTime = getCurrentTime();
+  unsigned long currentTime = SyncManager::syncMillis();
   if (lastUpdateTime == 0)
   {
     lastUpdateTime = currentTime;

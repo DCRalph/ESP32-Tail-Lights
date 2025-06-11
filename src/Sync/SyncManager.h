@@ -19,15 +19,51 @@ constexpr uint8_t SYNC_TIME_REQUEST = 0x05;
 constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
 constexpr uint8_t SYNC_EFFECT_STATE = 0x07;
 
-struct EffectSyncState
+struct __attribute__((packed)) RGBSyncData
 {
-  uint8_t nightRiderActive : 1;
-  uint8_t rgbActive : 1;
-  uint8_t policeActive : 1;
-  uint8_t reserved : 5;
+  float hueCenter;
+  float hueEdge;
+  float speed;
+  float hueOffset;
+  bool active;
 
-  // Night rider specific sync data
-  uint32_t nightRiderSyncTime; // Synced time when effect was activated
+  String print();
+};
+struct __attribute__((packed)) NightRiderSyncData
+{
+  float cycleTime;
+  float tailLength;
+  float currentPos;
+  bool forward;
+  bool active;
+
+  String print();
+};
+
+enum class PoliceMode
+{
+  SLOW,
+  FAST
+};
+
+struct __attribute__((packed)) PoliceSyncData
+{
+  bool active;
+  PoliceMode mode;
+  float flashProgress;
+  float cycleProgress;
+  uint16_t currentFlash;
+
+  String print();
+};
+
+struct __attribute__((packed)) EffectSyncState
+{
+  RGBSyncData rgbSyncData;
+  NightRiderSyncData nightRiderSyncData;
+  PoliceSyncData policeSyncData;
+
+  void print();
 };
 
 struct DiscoveredDevice
@@ -105,6 +141,8 @@ public:
   bool isTimeSynced() const;
   uint32_t getSyncedTime() const;
   int32_t getTimeOffset() const;
+
+  static uint32_t syncMillis();
 
   // Effect sync
   void setEffectSyncState(const EffectSyncState &state);
@@ -213,5 +251,5 @@ private:
   static constexpr uint32_t GROUP_DISCOVERY_TIMEOUT = 6000;
   static constexpr uint32_t GROUP_INFO_INTERVAL = 2000;
   static constexpr uint32_t TIME_SYNC_INTERVAL = 10000;
-  static constexpr uint32_t EFFECT_SYNC_INTERVAL = 500;
+  static constexpr uint32_t EFFECT_SYNC_INTERVAL = 1000;
 };

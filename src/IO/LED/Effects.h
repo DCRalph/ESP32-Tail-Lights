@@ -2,6 +2,7 @@
 
 #include "LEDStrip.h"
 #include <stdint.h>
+#include "Sync/SyncManager.h"
 
 struct Color;
 class LEDStrip;

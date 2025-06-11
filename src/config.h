@@ -34,8 +34,11 @@ String formatBytes(size_t bytes, bool _short = false);
 #define DEBUG_SYNC
 #define ENABLE_SYNC
 
+
 #ifdef S3_V1
 #define LED_PIN 15
+
+#define ENABLE_HV_INPUTS
 
 #define INPUT_BTN_BOOT_PIN 0
 #define INPUT_BTN_PREV_PIN 21
@@ -62,7 +65,7 @@ String formatBytes(size_t bytes, bool _short = false);
 #endif
 
 #ifdef S3_DEV
-#define LED_PIN 38
+#define LED_PIN 21
 
 // #define ENABLE_HV_INPUTS
 
@@ -93,13 +96,10 @@ String formatBytes(size_t bytes, bool _short = false);
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
-#ifdef S3_DEV
-#define TAILLIGHT_LED_COUNT 24
-#define TAILLIGHT_LED_PIN 16
-#else
+
 #define TAILLIGHT_LED_COUNT 120
-#define TAILLIGHT_LED_PIN 16
-#endif
+#define TAILLIGHT_LED_PIN 9
+
 #endif
 
 #ifdef ENABLE_UNDERGLOW

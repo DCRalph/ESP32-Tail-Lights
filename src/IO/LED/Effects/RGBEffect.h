@@ -17,6 +17,9 @@ public:
   void setActive(bool active);
   bool isActive() const;
 
+  void setSyncData(RGBSyncData syncData);
+  RGBSyncData getSyncData();
+
   // Customizable parameters:
   // Base hue values defining the range, in degrees [0,360).
   float baseHueCenter; // Base hue at the center

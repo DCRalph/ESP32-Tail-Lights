@@ -6,6 +6,26 @@
 #include <stdio.h>
 #include "IO/GPIO.h"
 
+String RGBSyncData::print()
+{
+  return String("Hue Center: " + String(hueCenter) + ", Hue Edge: " + String(hueEdge) + ", Speed: " + String(speed) + ", Hue Offset: " + String(hueOffset) + ", Active: " + String(active));
+}
+
+String NightRiderSyncData::print()
+{
+  return String("Cycle Time: " + String(cycleTime) + ", Tail Length: " + String(tailLength) + ", Current Pos: " + String(currentPos) + ", Forward: " + String(forward) + ", Active: " + String(active));
+}
+
+String PoliceSyncData::print()
+{
+  return String("Mode: " + String((int)mode) + ", Flash Progress: " + String(flashProgress) + ", Cycle Progress: " + String(cycleProgress) + ", Current Flash: " + String(currentFlash) + ", Active: " + String(active));
+}
+
+void EffectSyncState::print()
+{
+  Serial.println("RGB: " + rgbSyncData.print());
+}
+
 SyncManager *SyncManager::getInstance()
 {
   static SyncManager inst;
@@ -67,6 +87,7 @@ void SyncManager::loop()
       }
       if (effectSyncEnabled && now - lastEffectSync >= EFFECT_SYNC_INTERVAL)
       {
+        // currentEffectState.print();
         sendEffectState();
         lastEffectSync = now;
       }
@@ -283,6 +304,16 @@ uint32_t SyncManager::getSyncedTime() const
 int32_t SyncManager::getTimeOffset() const
 {
   return timeOffset;
+}
+
+uint32_t SyncManager::syncMillis()
+{
+  SyncManager *syncMgr = SyncManager::getInstance();
+  if (syncMgr->isTimeSynced())
+  {
+    return syncMgr->getSyncedTime();
+  }
+  return millis();
 }
 
 void SyncManager::setDeviceDiscoveredCallback(
@@ -806,7 +837,7 @@ void SyncManager::sendEffectState()
   pkt.len = 1 + sizeof(currentEffectState);
   wireless.send(&pkt, BROADCAST_MAC);
 
-  Serial.println("[EffectSync] Broadcasting effect state to group");
+  // Serial.println("[EffectSync] Broadcasting effect state to group");
 }
 
 void SyncManager::checkDiscoveryCleanup(uint32_t now)
@@ -869,7 +900,7 @@ void SyncManager::checkAutoJoin(uint32_t now)
     else
     {
       // Reset the timer to keep looking for groups without creating one
-      Serial.println("[AutoJoin] No groups found, continuing search (auto-create disabled)");
+      // Serial.println("[AutoJoin] No groups found, continuing search (auto-create disabled)");
       autoJoinStartTime = now;
     }
   }
@@ -953,10 +984,15 @@ void SyncManager::setEffectSyncState(const EffectSyncState &state)
 {
   currentEffectState = state;
 
+  // if (millis() % 1000 < 10)
+  // {
+  //   currentEffectState.print();
+  // }
+
   // If we're the master and effect sync is enabled, broadcast the state
   if (currentGroup.isMaster && effectSyncEnabled)
   {
-    sendEffectState();
+    // sendEffectState();
   }
 }
 

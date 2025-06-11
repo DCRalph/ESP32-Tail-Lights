@@ -2,6 +2,8 @@
 
 #include "../Effects.h"
 
+
+
 class NightRiderEffect : public LEDEffect
 {
 public:
@@ -19,8 +21,8 @@ public:
   bool isActive() const;
 
   // Sync functionality
-  void setSyncEnabled(bool enabled);
-  bool isSyncEnabled() const;
+  void setSyncData(NightRiderSyncData syncData);
+  NightRiderSyncData getSyncData();
 
   // Customizable parameters:
   float cycleTime;
@@ -37,7 +39,4 @@ private:
 
   // Sync support
   bool syncEnabled;
-
-  // Helper method to get current time (synced or local)
-  unsigned long getCurrentTime() const;
 };

@@ -45,6 +45,25 @@ bool PoliceEffect::isActive() const
   return active;
 }
 
+void PoliceEffect::setSyncData(PoliceSyncData syncData)
+{
+  active = syncData.active;
+  mode = syncData.mode;
+  flashProgress = syncData.flashProgress;
+  cycleProgress = syncData.cycleProgress;
+  currentFlash = syncData.currentFlash;
+}
+
+PoliceSyncData PoliceEffect::getSyncData()
+{
+  return PoliceSyncData{
+      .active = active,
+      .mode = mode,
+      .flashProgress = flashProgress,
+      .cycleProgress = cycleProgress,
+      .currentFlash = currentFlash};
+}
+
 void PoliceEffect::setMode(PoliceMode m)
 {
   mode = m;

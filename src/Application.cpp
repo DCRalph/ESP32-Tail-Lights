@@ -206,7 +206,7 @@ void Application::begin()
 
 void Application::updateInputs()
 {
-#ifdef ENABLE_HV_INPUTS
+  // #ifdef ENABLE_HV_INPUTS
   // Simply call update() on each HVInput instance
   accOnInput.update();
   leftIndicatorInput.update();
@@ -214,7 +214,7 @@ void Application::updateInputs()
   headlightInput.update();
   brakeInput.update();
   reverseInput.update();
-#endif
+  // #endif
 }
 
 /*
@@ -390,45 +390,7 @@ void Application::handleRemoteEffects()
 
 void Application::handleSyncedEffects(const EffectSyncState &effectState)
 {
-  // Apply synchronized effect states
-  // This is called when we receive effect sync data from the master
-
-  if (nightriderEffect)
-  {
-    bool wasActive = nightriderEffect->isActive();
-    nightriderEffect->setActive(effectState.nightRiderActive);
-
-    // If night rider is becoming active and we have sync time, use it for synchronization
-    if (effectState.nightRiderActive && !wasActive && effectState.nightRiderSyncTime != 0)
-    {
-      // The sync time is when the master activated the effect
-      // We need to calculate our position based on the time elapsed since then
-      SyncManager *syncMgr = SyncManager::getInstance();
-      if (syncMgr->isTimeSynced())
-      {
-        uint32_t currentSyncTime = syncMgr->getSyncedTime();
-        uint32_t timeElapsed = currentSyncTime - effectState.nightRiderSyncTime;
-
-        Serial.println("[EffectSync] Synchronizing NightRider - elapsed: " + String(timeElapsed) + "ms");
-
-        // The NightRiderEffect will automatically sync using the getSyncedTime() method
-        // since we modified it to use synchronized timing
-      }
-    }
-  }
-
-  if (rgbEffect)
-  {
-    rgbEffect->setActive(effectState.rgbActive);
-  }
-
-  if (policeEffect)
-  {
-    policeEffect->setActive(effectState.policeActive);
-  }
-
-  Serial.println("[EffectSync] Applied synced effects - NightRider: " +
-                 String(effectState.nightRiderActive ? "ON" : "OFF") +
-                 ", RGB: " + String(effectState.rgbActive ? "ON" : "OFF") +
-                 ", Police: " + String(effectState.policeActive ? "ON" : "OFF"));
+  rgbEffect->setSyncData(effectState.rgbSyncData);
+  nightriderEffect->setSyncData(effectState.nightRiderSyncData);
+  policeEffect->setSyncData(effectState.policeSyncData);
 }

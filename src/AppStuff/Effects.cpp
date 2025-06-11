@@ -21,10 +21,10 @@ void Application::setupEffects()
 
   rgbEffect = new RGBEffect(5, false);
   nightriderEffect = new NightRiderEffect(5, false);
+  pulseWaveEffect = new PulseWaveEffect(5, false);
+  auroraEffect = new AuroraEffect(5, false);
 
-  policeEffect = new PoliceEffect(2, false);
-  pulseWaveEffect = new PulseWaveEffect(2, false);
-  auroraEffect = new AuroraEffect(2, false);
+  policeEffect = new PoliceEffect(4, false);
 
   // Add effects to the LED manager.
 

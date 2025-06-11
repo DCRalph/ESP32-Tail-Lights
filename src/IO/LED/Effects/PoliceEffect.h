@@ -3,13 +3,6 @@
 #include "../Effects.h"
 #include <stdint.h>
 
-// Enum to define different speed modes for the police effect
-enum class PoliceMode
-{
-  SLOW,
-  FAST
-};
-
 class PoliceEffect : public LEDEffect
 {
 public:
@@ -23,6 +16,9 @@ public:
   // Activate or disable the effect
   void setActive(bool active);
   bool isActive() const;
+
+  void setSyncData(PoliceSyncData syncData);
+  PoliceSyncData getSyncData();
 
   // Set the speed mode (SLOW or FAST)
   void setMode(PoliceMode mode);
