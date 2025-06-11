@@ -34,15 +34,17 @@ void printSyncMenu(const Menu &menu)
   if (syncMgr->getGroupId() != 0)
   {
     Serial.println(String(F("  Group: 0x")) + String(syncMgr->getGroupId(), HEX));
-    Serial.println(String(F("  Role: ")) + (syncMgr->isMaster() ? "MASTER" : "SLAVE"));
-    Serial.println(String(F("  Devices: ")) + String(syncMgr->getDeviceCount()));
-    Serial.println(String(F("  Syncing: ")) + (syncMgr->isSyncing() ? "YES" : "NO"));
+    Serial.println(String(F("  Role: ")) + (syncMgr->isGroupMaster() ? "MASTER" : "SLAVE"));
+
+    const GroupInfo &groupInfo = syncMgr->getGroupInfo();
+    Serial.println(String(F("  Devices: ")) + String(groupInfo.members.size()));
     Serial.println(String(F("  Time Synced: ")) + (syncMgr->isTimeSynced() ? "YES" : "NO"));
   }
   else
   {
     Serial.println(F("  No group joined"));
     Serial.println(String(F("  Auto-join: ")) + (syncMgr->isAutoJoinEnabled() ? "ENABLED" : "DISABLED"));
+    Serial.println(String(F("  Auto-create: ")) + (syncMgr->isAutoCreateEnabled() ? "ENABLED" : "DISABLED"));
   }
 
   Serial.println();
@@ -56,8 +58,8 @@ void printSyncMenu(const Menu &menu)
   Serial.println(F("7) Toggle auto-join"));
   Serial.println(F("8) Refresh group list"));
   Serial.println(F("9) Print device info"));
-  Serial.println(F("10) Print network status"));
-  Serial.println(F("11) Print group info"));
+  Serial.println(F("10) Print group info"));
+  Serial.println(F("11) Toggle auto-create"));
   Serial.println(F("b) Back to main menu"));
   Serial.println(F("Press Enter to refresh this menu"));
 }
@@ -151,12 +153,14 @@ bool handleSyncMenuInput(Menu &menu, const String &input)
   }
   else if (input == F("10"))
   {
-    syncMgr->printNetworkStatus();
+    syncMgr->printGroupInfo();
     return true;
   }
   else if (input == F("11"))
   {
-    syncMgr->printGroupInfo();
+    bool currentState = syncMgr->isAutoCreateEnabled();
+    syncMgr->enableAutoCreate(!currentState);
+    Serial.println(String(F("Auto-create ")) + (!currentState ? "ENABLED" : "DISABLED"));
     return true;
   }
   else if (input == F("b"))
@@ -174,32 +178,45 @@ void showSyncStatus()
   Serial.println(F("\n=== DETAILED SYNC STATUS ==="));
 
   SyncManager *syncMgr = SyncManager::getInstance();
-  SyncNetworkInfo info = syncMgr->getNetworkInfo();
+  const GroupInfo &groupInfo = syncMgr->getGroupInfo();
 
   Serial.println(String(F("Device ID: 0x")) + String(syncMgr->getDeviceId(), HEX));
-  Serial.println(String(F("Group ID: ")) + (info.groupId != 0 ? ("0x" + String(info.groupId, HEX)) : "None"));
-  Serial.println(String(F("Role: ")) + (syncMgr->isMaster() ? "MASTER" : "SLAVE"));
-  Serial.println(String(F("Network Devices: ")) + String(info.deviceCount));
-  Serial.println(String(F("Sync Active: ")) + (syncMgr->isSyncing() ? "YES" : "NO"));
-  Serial.println(String(F("Time Synced: ")) + (info.isTimeSynced ? "YES" : "NO"));
+  Serial.println(String(F("Group ID: ")) + (groupInfo.groupId != 0 ? ("0x" + String(groupInfo.groupId, HEX)) : "None"));
+  Serial.println(String(F("Role: ")) + (syncMgr->isGroupMaster() ? "MASTER" : "SLAVE"));
+  Serial.println(String(F("Group Members: ")) + String(groupInfo.members.size()));
+  Serial.println(String(F("Time Synced: ")) + (syncMgr->isTimeSynced() ? "YES" : "NO"));
 
-  if (info.isTimeSynced)
+  if (syncMgr->isTimeSynced())
   {
-    Serial.println(String(F("Synced Time: ")) + String(info.syncedTime));
+    Serial.println(String(F("Synced Time: ")) + String(syncMgr->getSyncedTime()));
     Serial.println(String(F("Time Offset: ")) + String(syncMgr->getTimeOffset()) + "ms");
   }
 
-  if (info.deviceCount > 0)
+  if (groupInfo.groupId != 0)
   {
-    Serial.println(String(F("Master Device: 0x")) + String(info.masterDeviceId, HEX));
+    Serial.println(String(F("Master Device: 0x")) + String(groupInfo.masterDeviceId, HEX));
   }
 
   Serial.println(String(F("Auto-join: ")) + (syncMgr->isAutoJoinEnabled() ? "ENABLED" : "DISABLED"));
 
+  // Show auto-create status (only relevant when auto-join is enabled)
+  if (syncMgr->isAutoJoinEnabled())
+  {
+    Serial.println(String(F("Auto-create: ")) + (syncMgr->isAutoCreateEnabled() ? "ENABLED" : "DISABLED"));
+  }
+
+  // Show discovered devices
+  const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
+  Serial.println(String(F("Discovered Devices: ")) + String(discoveredDevices.size()));
+
+  // Show discovered groups
+  auto discoveredGroups = syncMgr->getDiscoveredGroups();
+  Serial.println(String(F("Discovered Groups: ")) + String(discoveredGroups.size()));
+
   Serial.println(F("===========================\n"));
 
+  // Print detailed information
   syncMgr->printDeviceInfo();
-  syncMgr->printNetworkStatus();
   syncMgr->printGroupInfo();
 }
 
@@ -208,28 +225,12 @@ void showAvailableGroups()
   Serial.println(F("\n=== AVAILABLE GROUPS ==="));
 
   SyncManager *syncMgr = SyncManager::getInstance();
-  std::vector<DeviceInfo> devices = syncMgr->getKnownDevices();
-
-  // Build map of groups and their device counts
-  std::map<uint32_t, int> groupCounts;
-  std::map<uint32_t, bool> groupHasMaster;
-
-  for (const auto &device : devices)
-  {
-    if (device.groupId != 0)
-    {
-      groupCounts[device.groupId]++;
-      if (device.isMaster)
-      {
-        groupHasMaster[device.groupId] = true;
-      }
-    }
-  }
+  std::vector<GroupAdvert> groups = syncMgr->getDiscoveredGroups();
 
   // Clear and rebuild available groups list
   availableGroups.clear();
 
-  if (groupCounts.empty())
+  if (groups.empty())
   {
     Serial.println(F("No groups found."));
     Serial.println(F("Tip: Wait a few seconds for device discovery or create a new group."));
@@ -239,19 +240,14 @@ void showAvailableGroups()
     Serial.println(F("Found groups:"));
     int index = 1;
 
-    for (const auto &group : groupCounts)
+    for (const auto &group : groups)
     {
-      uint32_t groupId = group.first;
-      int deviceCount = group.second;
-      bool hasMaster = groupHasMaster[groupId];
-
-      availableGroups.push_back(groupId);
+      availableGroups.push_back(group.groupId);
 
       Serial.println(String(F("  ")) + String(index) +
-                     String(F(") Group 0x")) + String(groupId, HEX) +
-                     String(F(" - ")) + String(deviceCount) +
-                     String(F(" device")) + (deviceCount > 1 ? "s" : "") +
-                     (hasMaster ? " (has master)" : " (no master)"));
+                     String(F(") Group 0x")) + String(group.groupId, HEX) +
+                     String(F(" - Master: 0x")) + String(group.masterDeviceId, HEX) +
+                     String(F(" (last seen ")) + String(millis() - group.lastSeen) + String(F("ms ago)")));
       index++;
     }
 
@@ -356,7 +352,7 @@ void listKnownDevices()
   Serial.println(F("\n=== KNOWN DEVICES ==="));
 
   SyncManager *syncMgr = SyncManager::getInstance();
-  std::vector<DeviceInfo> devices = syncMgr->getKnownDevices();
+  const auto &devices = syncMgr->getDiscoveredDevices();
 
   if (devices.empty())
   {
@@ -368,16 +364,13 @@ void listKnownDevices()
     Serial.println(String(F("Found ")) + String(devices.size()) + F(" device(s):"));
     Serial.println();
 
-    for (size_t i = 0; i < devices.size(); i++)
+    int index = 1;
+    for (const auto &devicePair : devices)
     {
-      const DeviceInfo &device = devices[i];
+      const DiscoveredDevice &device = devicePair.second;
 
-      Serial.println(String(F("Device ")) + String(i + 1) + F(":"));
+      Serial.println(String(F("Device ")) + String(index) + F(":"));
       Serial.println(String(F("  ID: 0x")) + String(device.deviceId, HEX));
-      Serial.println(String(F("  Group: ")) +
-                     (device.groupId != 0 ? ("0x" + String(device.groupId, HEX)) : "None"));
-      Serial.println(String(F("  Role: ")) + (device.isMaster ? "MASTER" : "slave"));
-      Serial.println(String(F("  Priority: ")) + String(device.priority));
       Serial.println(String(F("  Last Seen: ")) + String(millis() - device.lastSeen) + F("ms ago"));
 
       // Format MAC address
@@ -393,6 +386,7 @@ void listKnownDevices()
       macStr.toUpperCase();
       Serial.println(String(F("  MAC: ")) + macStr);
       Serial.println();
+      index++;
     }
   }
 

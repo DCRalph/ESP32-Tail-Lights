@@ -1,46 +1,53 @@
+// SyncManager.h
 #pragma once
 
 #include <Arduino.h>
 #include <map>
 #include <vector>
 #include <functional>
+#include <string>
 #include "IO/Wireless.h"
 #include "config.h"
 
-// Constants for sync packets
-constexpr uint8_t SYNC_MSG_TYPE = 0xA0;  // main msg type
-constexpr uint8_t SYNC_HEARTBEAT = 0x01; // rest are subtypes
-constexpr uint8_t SYNC_MASTER_ANNOUNCE = 0x02;
-constexpr uint8_t SYNC_TIME_REQUEST = 0x03;
-constexpr uint8_t SYNC_TIME_RESPONSE = 0x04;
-constexpr uint8_t SYNC_GROUP_JOIN = 0x05;
-constexpr uint8_t SYNC_GROUP_ANNOUNCE = 0x06;
-constexpr uint8_t SYNC_DEVICE_INFO = 0x07;
-constexpr uint8_t SYNC_MASTER_REQUEST = 0x08;
+// Message types
+constexpr uint8_t SYNC_MSG_TYPE = 0xA0;
+constexpr uint8_t SYNC_HEARTBEAT = 0x01;
+constexpr uint8_t SYNC_GROUP_ANNOUNCE = 0x02;
+constexpr uint8_t SYNC_GROUP_JOIN = 0x03;
+constexpr uint8_t SYNC_GROUP_INFO = 0x04;
+constexpr uint8_t SYNC_TIME_REQUEST = 0x05;
+constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
 
-// Broadcast MAC address
-const uint8_t BROADCAST_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-struct DeviceInfo
+struct DiscoveredDevice
 {
-  uint32_t deviceId;   // Unique device identifier
-  uint8_t mac[6];      // MAC address
-  uint32_t lastSeen;   // Last time we heard from this device
-  uint32_t priority;   // Higher number = higher priority for master election
-  bool isMaster;       // Is this device currently the master
-  uint32_t syncedTime; // Last synchronized time from this device
-  uint32_t groupId;    // Group ID this device belongs to
-  int8_t timeOffset;   // Time offset from master (in ms)
+  uint32_t deviceId;
+  uint8_t mac[6];
+  uint32_t lastSeen;
 };
 
-struct SyncNetworkInfo
+struct GroupAdvert
 {
-  uint32_t masterDeviceId;
   uint32_t groupId;
-  uint32_t syncedTime;
-  size_t deviceCount;
-  bool isTimeSynced;
-  uint32_t avgTimeOffset;
+  uint32_t masterDeviceId;
+  uint8_t masterMac[6];
+  uint32_t lastSeen;
+};
+
+struct GroupMember
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+};
+
+struct GroupInfo
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  bool isMaster;
+  // keyed by MAC string
+  std::map<std::string, GroupMember> members;
+  bool timeSynced;
+  int32_t timeOffset;
 };
 
 class SyncManager
@@ -51,129 +58,131 @@ public:
   void begin();
   void loop();
 
-  // Group management
-  void createGroup(uint32_t groupId = 0); // 0 = auto-generate
-  void joinGroup(uint32_t groupId);
-  void leaveGroup();
+  // Device discovery
+  const std::map<std::string, DiscoveredDevice> &
+  getDiscoveredDevices() const;
+
+  // Group discovery
+  std::vector<GroupAdvert> getDiscoveredGroups() const;
+
+  // Current group state
+  const GroupInfo &getGroupInfo() const;
+  bool isInGroup() const;
+  bool isGroupMaster() const;
   uint32_t getGroupId() const;
 
-  // Auto-join functionality
+  // Self
+  uint32_t getDeviceId() const;
+
+  // Group operations
+  void createGroup(uint32_t groupId = 0);
+  void joinGroup(uint32_t groupId);
+  void leaveGroup();
+
+  // Auto‐join
   void enableAutoJoin(bool enabled = true);
-  void setAutoJoinTimeout(uint32_t timeoutMs = 10000); // Wait 10s before creating own group
+  void setAutoJoinTimeout(uint32_t ms);
   bool isAutoJoinEnabled() const;
 
-  // Time synchronization
+  // Auto-create (separate from auto-join)
+  void enableAutoCreate(bool enabled = true);
+  bool isAutoCreateEnabled() const;
+
+  // Time sync
   void requestTimeSync();
-  uint32_t getSyncedTime() const;
   bool isTimeSynced() const;
+  uint32_t getSyncedTime() const;
   int32_t getTimeOffset() const;
 
-  // Device management
-  bool isSyncing() const;
-  bool isMaster() const;
-  uint32_t getDeviceId() const;
-  size_t getDeviceCount() const;
-  std::vector<DeviceInfo> getKnownDevices() const;
-
-  // Network information
-  SyncNetworkInfo getNetworkInfo() const;
-
   // Callbacks
-  void setDeviceJoinCallback(std::function<void(const DeviceInfo &)> callback);
-  void setDeviceLeaveCallback(std::function<void(uint32_t deviceId)> callback);
-  void setMasterChangeCallback(std::function<void(uint32_t newMasterDeviceId)> callback);
-  void setTimeSyncCallback(std::function<void(uint32_t syncedTime)> callback);
+  void setDeviceDiscoveredCallback(
+      std::function<void(const DiscoveredDevice &)> cb);
+  void setGroupFoundCallback(
+      std::function<void(const GroupAdvert &)> cb);
+  void setGroupCreatedCallback(
+      std::function<void(const GroupInfo &)> cb);
+  void setGroupJoinedCallback(
+      std::function<void(const GroupInfo &)> cb);
+  void setGroupLeftCallback(std::function<void()> cb);
+  void setTimeSyncCallback(
+      std::function<void(uint32_t syncedTime)> cb);
 
-  // Debug and monitoring
-  void printDeviceInfo();
-  void printNetworkStatus();
-  void printGroupInfo();
+  // Debug/Info functions
+  void printDeviceInfo() const;
+  void printGroupInfo() const;
 
-  // Synchronized LED control
+  // Test LED for sync visualization
   void updateSyncedLED();
 
 private:
   SyncManager();
   ~SyncManager();
 
-#ifdef ENABLE_SYNC
-  // Core sync handlers
+  // packet handlers
   void handleSyncPacket(fullPacket *fp);
   void processHeartbeat(fullPacket *fp);
-  void processMasterAnnounce(fullPacket *fp);
+  void processGroupAnnounce(fullPacket *fp);
+  void processGroupJoin(fullPacket *fp);
+  void processGroupInfo(fullPacket *fp);
   void processTimeRequest(fullPacket *fp);
   void processTimeResponse(fullPacket *fp);
-  void processGroupJoin(fullPacket *fp);
-  void processGroupAnnounce(fullPacket *fp);
-  void processDeviceInfo(fullPacket *fp);
 
-  // Periodic tasks
+  // senders
   void sendHeartbeat();
-  void sendDeviceInfo();
-  void checkMasterStatus();
-  void cleanupOldDevices();
-  void electMaster();
-  void synchronizeTime();
+  void sendGroupAnnounce();
+  void sendGroupInfo();
 
-  // Master operations
-  void becomeMaster();
-  void resignMaster();
-  void broadcastGroupInfo();
-  void respondToTimeRequest(const uint8_t *requestorMac);
+  // periodic tasks
+  void checkDiscoveryCleanup(uint32_t now);
+  void checkGroupCleanup(uint32_t now);
+  void checkAutoJoin(uint32_t now);
 
-  // Utility functions
-  bool macEqual(const uint8_t *mac1, const uint8_t *mac2);
-  const uint8_t *getOurMac();
-  std::string macToString(const uint8_t *mac);
+  // utilities
   uint32_t generateDeviceId();
   uint32_t generateGroupId();
-  void updateDeviceFromPacket(const std::string &macStr, fullPacket *fp);
+  std::string macToString(const uint8_t *mac) const;
+  const uint8_t *getOurMac();
 
-  // Auto-join functionality
-  void checkAutoJoin();
-  void attemptAutoJoin();
-  uint32_t findBestGroupToJoin();
-
-  // Device state
-  std::map<std::string, DeviceInfo> knownDevices;
+  // state
+  std::map<std::string, DiscoveredDevice> discoveredDevices;
+  std::map<uint32_t, GroupAdvert> discoveredGroups;
+  GroupInfo currentGroup;
   uint32_t ourDeviceId;
-  uint32_t ourPriority;
-  uint32_t currentGroupId;
 
-  // Auto-join configuration
-  bool autoJoinEnabled;
-  uint32_t autoJoinTimeout;
-  uint32_t autoJoinStartTime;
+  // auto‐join
+  bool autoJoinEnabled = false;
+  uint32_t autoJoinTimeout = 10000;
+  uint32_t autoJoinStartTime = 0;
 
-  // Master and sync state
-  bool isMasterDevice;
-  bool syncActive;
-  bool timeIsSynced;
-  uint32_t masterSyncTime;
-  int32_t ourTimeOffset;
-  uint32_t lastTimeSyncRequest;
+  // auto-create
+  bool autoCreateEnabled = false;
 
-  // Timing
-  uint32_t lastHeartbeat;
-  uint32_t lastDeviceInfo;
-  uint32_t lastMasterCheck;
-  uint32_t lastCleanup;
-  uint32_t lastTimeSync;
-  uint64_t lastPrintTime;
+  // time‐sync
+  bool timeSynced = false;
+  int32_t timeOffset = 0;
+  uint32_t lastTimeSync = 0;
+  uint32_t lastTimeReq = 0;
 
-  // Intervals (in ms)
+  // timers
+  uint32_t lastHeartbeat = 0;
+  uint32_t lastGrpAnnounce = 0;
+  uint32_t lastGrpInfo = 0;
+  uint32_t lastDiscCleanup = 0;
+  uint32_t lastGrpCleanup = 0;
+
+  // callbacks
+  std::function<void(const DiscoveredDevice &)> onDeviceDiscovered;
+  std::function<void(const GroupAdvert &)> onGroupFound;
+  std::function<void(const GroupInfo &)> onGroupCreated;
+  std::function<void(const GroupInfo &)> onGroupJoined;
+  std::function<void()> onGroupLeft;
+  std::function<void(uint32_t)> onTimeSynced;
+
+  // intervals/timeouts (ms)
   static constexpr uint32_t HEARTBEAT_INTERVAL = 1000;
-  static constexpr uint32_t DEVICE_INFO_INTERVAL = 2000;
-  static constexpr uint32_t MASTER_CHECK_INTERVAL = 3000;
-  static constexpr uint32_t CLEANUP_INTERVAL = 5000;
+  static constexpr uint32_t DISCOVERY_TIMEOUT = 6000;
+  static constexpr uint32_t GROUP_ANNOUNCE_INTERVAL = 2000;
+  static constexpr uint32_t GROUP_DISCOVERY_TIMEOUT = 6000;
+  static constexpr uint32_t GROUP_INFO_INTERVAL = 2000;
   static constexpr uint32_t TIME_SYNC_INTERVAL = 10000;
-  static constexpr uint32_t DEVICE_TIMEOUT = 6000;
-  static constexpr uint32_t TIME_SYNC_TIMEOUT = 2000;
-
-  // Callbacks
-  std::function<void(const DeviceInfo &)> deviceJoinCallback;
-  std::function<void(uint32_t)> deviceLeaveCallback;
-  std::function<void(uint32_t)> masterChangeCallback;
-  std::function<void(uint32_t)> timeSyncCallback;
-#endif // ENABLE_SYNC
 };

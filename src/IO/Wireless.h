@@ -4,28 +4,34 @@
 #include <functional>
 #include <map>
 
-struct __attribute__((packed)) data_packet {
+struct __attribute__((packed)) data_packet
+{
   uint8_t type;
   uint8_t len;
   uint8_t data[200];
 };
 
-enum class PacketDirection {
+enum class PacketDirection
+{
   SEND,
   RECV
 };
 
-struct fullPacket {
+struct fullPacket
+{
   uint8_t mac[6];
   PacketDirection direction;
   data_packet p;
 };
 
-class Wireless {
+extern uint8_t BROADCAST_MAC[6];
+
+class Wireless
+{
 private:
   bool setupDone = false;
 
-  // Generic callback for packets that don’t have a type-specific callback.
+  // Generic callback for packets that don't have a type-specific callback.
   std::function<void(fullPacket *fp)> onReceiveOtherCb;
   // Map for type-specific callbacks: key = packet type, value = callback function.
   std::map<uint8_t, std::function<void(fullPacket *fp)>> onReceiveForCallbacks;

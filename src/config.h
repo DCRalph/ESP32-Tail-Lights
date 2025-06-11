@@ -62,7 +62,7 @@ String formatBytes(size_t bytes, bool _short = false);
 #endif
 
 #ifdef S3_DEV
-#define LED_PIN 21
+#define LED_PIN 38
 
 // #define ENABLE_HV_INPUTS
 

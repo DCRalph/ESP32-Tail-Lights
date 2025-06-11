@@ -1,17 +1,18 @@
 #include "Application.h"
+#include "Sync/SyncManager.h"
 
 void Application::handleNormalEffects()
 {
   unsigned long currentTime = millis();
 
-// #ifdef ENABLE_SYNC
-//   SyncManager *syncMgr = SyncManager::getInstance();
-//   bool isSyncing = syncMgr->isSyncing();
-//   bool isMaster = syncMgr->isMaster();
-// #else
+#ifdef ENABLE_SYNC
+  SyncManager *syncMgr = SyncManager::getInstance();
+  bool isSyncing = syncMgr->isInGroup() && syncMgr->getGroupInfo().members.size() > 1;
+  bool isMaster = syncMgr->isGroupMaster();
+#else
   bool isSyncing = false;
   bool isMaster = false;
-// #endif
+#endif
 
   unlockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));
   lockSequence->setInputs(getInput(accOnInput), getInput(leftIndicatorInput), getInput(rightIndicatorInput));

@@ -160,20 +160,20 @@ void Application::begin()
 
 #ifdef ENABLE_SYNC
   // Set up callbacks for sync events
-  syncMgr->setDeviceJoinCallback([this](const DeviceInfo &device)
-                                 {
-                                   Serial.println("Application: Device joined sync network - ID: 0x" + String(device.deviceId, HEX));
-                                   // TODO: Implement effect sync handshake here
-                                 });
+  syncMgr->setDeviceDiscoveredCallback([this](const DiscoveredDevice &device)
+                                       { Serial.println("Application: Device discovered - ID: 0x" + String(device.deviceId, HEX)); });
 
-  syncMgr->setDeviceLeaveCallback([this](uint32_t deviceId)
-                                  { Serial.println("Application: Device left sync network - ID: 0x" + String(deviceId, HEX)); });
+  syncMgr->setGroupFoundCallback([this](const GroupAdvert &advert)
+                                 { Serial.println("Application: Group found - ID: 0x" + String(advert.groupId, HEX)); });
 
-  syncMgr->setMasterChangeCallback([this](uint32_t newMasterDeviceId)
-                                   {
-                                     Serial.println("Application: Master changed to device ID: 0x" + String(newMasterDeviceId, HEX));
-                                     // TODO: Implement master-specific effect sync logic here
-                                   });
+  syncMgr->setGroupCreatedCallback([this](const GroupInfo &group)
+                                   { Serial.println("Application: Group created - ID: 0x" + String(group.groupId, HEX)); });
+
+  syncMgr->setGroupJoinedCallback([this](const GroupInfo &group)
+                                  { Serial.println("Application: Joined group - ID: 0x" + String(group.groupId, HEX)); });
+
+  syncMgr->setGroupLeftCallback([this]()
+                                { Serial.println("Application: Left group"); });
 
   syncMgr->setTimeSyncCallback([this](uint32_t syncedTime)
                                {
@@ -182,7 +182,8 @@ void Application::begin()
                                });
 
   // Enable auto-join functionality
-  // syncMgr->enableAutoJoin(true);
+  syncMgr->enableAutoJoin(true);
+  syncMgr->enableAutoCreate(false);
   // syncMgr->setAutoJoinTimeout(8000); // Wait 8 seconds before creating own group
 
   Serial.println("Application: Auto-join enabled - devices will automatically pair");
@@ -288,18 +289,23 @@ void Application::loop()
   // 4. Use synchronized time for coordinated effects
 
   // Example of how to check sync status:
-  if (syncMgr->isSyncing())
+  if (syncMgr->isInGroup())
   {
-    // We have other devices in the network
-    if (syncMgr->isMaster())
+    // We have a group - check if we're syncing with others
+    const GroupInfo &groupInfo = syncMgr->getGroupInfo();
+    if (groupInfo.members.size() > 1)
     {
-      // We're the master - we can broadcast effect states
-      // TODO: Implement master effect broadcasting
-    }
-    else
-    {
-      // We're a slave - we should listen for effect states
-      // TODO: Implement slave effect listening
+      // We have other devices in the network
+      if (syncMgr->isGroupMaster())
+      {
+        // We're the master - we can broadcast effect states
+        // TODO: Implement master effect broadcasting
+      }
+      else
+      {
+        // We're a slave - we should listen for effect states
+        // TODO: Implement slave effect listening
+      }
     }
   }
 #endif
