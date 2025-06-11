@@ -86,6 +86,23 @@ void Application::handleNormalEffects()
       brakeEffect->setIsReversing(getInput(reverseInput) || reverseLightEffect->isAnimating());
       reverseLightEffect->setActive(getInput(reverseInput));
 #endif
+
+      // If we're the master, broadcast effect states to sync with other devices
+      if (isMaster && syncMgr->isEffectSyncEnabled())
+      {
+        EffectSyncState effectState = {};
+        effectState.nightRiderActive = nightriderEffect ? nightriderEffect->isActive() : 0;
+        effectState.rgbActive = rgbEffect ? rgbEffect->isActive() : 0;
+        effectState.policeActive = policeEffect ? policeEffect->isActive() : 0;
+
+        // Set sync time for night rider if it just became active
+        if (effectState.nightRiderActive && syncMgr->isTimeSynced())
+        {
+          effectState.nightRiderSyncTime = syncMgr->getSyncedTime();
+        }
+
+        syncMgr->setEffectSyncState(effectState);
+      }
     }
     // If we're syncing but not the master, effect states will be controlled
     // by the SyncManager through its callback

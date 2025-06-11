@@ -25,6 +25,10 @@
 #include "IO/Inputs.h"
 #include "IO/Wireless.h"
 
+#include "SerialMenu.h"
+#include "IO/Inputs.h"
+#include "Sync/SyncManager.h"
+
 static void updateInput(HVInput input)
 {
   input.update();
@@ -131,6 +135,7 @@ private:
   void handleNormalEffects();
   void handleTestEffects();
   void handleRemoteEffects();
+  void handleSyncedEffects(const EffectSyncState &effectState);
 
   uint64_t lastRemotePing;
 

@@ -17,6 +17,18 @@ constexpr uint8_t SYNC_GROUP_JOIN = 0x03;
 constexpr uint8_t SYNC_GROUP_INFO = 0x04;
 constexpr uint8_t SYNC_TIME_REQUEST = 0x05;
 constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
+constexpr uint8_t SYNC_EFFECT_STATE = 0x07;
+
+struct EffectSyncState
+{
+  uint8_t nightRiderActive : 1;
+  uint8_t rgbActive : 1;
+  uint8_t policeActive : 1;
+  uint8_t reserved : 5;
+
+  // Night rider specific sync data
+  uint32_t nightRiderSyncTime; // Synced time when effect was activated
+};
 
 struct DiscoveredDevice
 {
@@ -94,6 +106,12 @@ public:
   uint32_t getSyncedTime() const;
   int32_t getTimeOffset() const;
 
+  // Effect sync
+  void setEffectSyncState(const EffectSyncState &state);
+  const EffectSyncState &getEffectSyncState() const;
+  void enableEffectSync(bool enabled = true);
+  bool isEffectSyncEnabled() const;
+
   // Callbacks
   void setDeviceDiscoveredCallback(
       std::function<void(const DiscoveredDevice &)> cb);
@@ -106,6 +124,8 @@ public:
   void setGroupLeftCallback(std::function<void()> cb);
   void setTimeSyncCallback(
       std::function<void(uint32_t syncedTime)> cb);
+  void setEffectSyncCallback(
+      std::function<void(const EffectSyncState &)> cb);
 
   // Debug/Info functions
   void printDeviceInfo() const;
@@ -126,11 +146,13 @@ private:
   void processGroupInfo(fullPacket *fp);
   void processTimeRequest(fullPacket *fp);
   void processTimeResponse(fullPacket *fp);
+  void processEffectState(fullPacket *fp);
 
   // senders
   void sendHeartbeat();
   void sendGroupAnnounce();
   void sendGroupInfo();
+  void sendEffectState();
 
   // periodic tasks
   void checkDiscoveryCleanup(uint32_t now);
@@ -163,6 +185,11 @@ private:
   uint32_t lastTimeSync = 0;
   uint32_t lastTimeReq = 0;
 
+  // effect sync
+  bool effectSyncEnabled = true;
+  EffectSyncState currentEffectState = {};
+  uint32_t lastEffectSync = 0;
+
   // timers
   uint32_t lastHeartbeat = 0;
   uint32_t lastGrpAnnounce = 0;
@@ -177,6 +204,7 @@ private:
   std::function<void(const GroupInfo &)> onGroupJoined;
   std::function<void()> onGroupLeft;
   std::function<void(uint32_t)> onTimeSynced;
+  std::function<void(const EffectSyncState &)> onEffectSync;
 
   // intervals/timeouts (ms)
   static constexpr uint32_t HEARTBEAT_INTERVAL = 1000;
@@ -185,4 +213,5 @@ private:
   static constexpr uint32_t GROUP_DISCOVERY_TIMEOUT = 6000;
   static constexpr uint32_t GROUP_INFO_INTERVAL = 2000;
   static constexpr uint32_t TIME_SYNC_INTERVAL = 10000;
+  static constexpr uint32_t EFFECT_SYNC_INTERVAL = 500;
 };

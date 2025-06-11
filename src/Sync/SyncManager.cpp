@@ -65,6 +65,11 @@ void SyncManager::loop()
         sendGroupInfo();
         lastGrpInfo = now;
       }
+      if (effectSyncEnabled && now - lastEffectSync >= EFFECT_SYNC_INTERVAL)
+      {
+        sendEffectState();
+        lastEffectSync = now;
+      }
     }
     else
     {
@@ -299,6 +304,9 @@ void SyncManager::setGroupLeftCallback(std::function<void()> cb)
 
 void SyncManager::setTimeSyncCallback(
     std::function<void(uint32_t)> cb) { onTimeSynced = cb; }
+
+void SyncManager::setEffectSyncCallback(
+    std::function<void(const EffectSyncState &)> cb) { onEffectSync = cb; }
 
 void SyncManager::printDeviceInfo() const
 {
@@ -552,6 +560,9 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   case SYNC_TIME_RESPONSE:
     processTimeResponse(fp);
     break;
+  case SYNC_EFFECT_STATE:
+    processEffectState(fp);
+    break;
   default:
     break;
   }
@@ -711,6 +722,30 @@ void SyncManager::processTimeResponse(fullPacket *fp)
     onTimeSynced(getSyncedTime());
 }
 
+void SyncManager::processEffectState(fullPacket *fp)
+{
+  // Only slaves should process effect state from master
+  if (currentGroup.isMaster || currentGroup.groupId == 0)
+    return;
+
+  if (fp->p.len < 1 + sizeof(EffectSyncState))
+    return;
+
+  EffectSyncState newState;
+  memcpy(&newState, &fp->p.data[1], sizeof(newState));
+
+  // Update our local state
+  currentEffectState = newState;
+
+  // Notify the application
+  if (onEffectSync)
+  {
+    onEffectSync(currentEffectState);
+  }
+
+  Serial.println("[EffectSync] Received effect state from master");
+}
+
 void SyncManager::sendHeartbeat()
 {
   data_packet pkt;
@@ -757,6 +792,21 @@ void SyncManager::sendGroupInfo()
   }
   pkt.len = off;
   wireless.send(&pkt, BROADCAST_MAC);
+}
+
+void SyncManager::sendEffectState()
+{
+  if (!currentGroup.isMaster || !effectSyncEnabled)
+    return;
+
+  data_packet pkt;
+  pkt.type = SYNC_MSG_TYPE;
+  pkt.data[0] = SYNC_EFFECT_STATE;
+  memcpy(&pkt.data[1], &currentEffectState, sizeof(currentEffectState));
+  pkt.len = 1 + sizeof(currentEffectState);
+  wireless.send(&pkt, BROADCAST_MAC);
+
+  Serial.println("[EffectSync] Broadcasting effect state to group");
 }
 
 void SyncManager::checkDiscoveryCleanup(uint32_t now)
@@ -896,4 +946,31 @@ const uint8_t *SyncManager::getOurMac()
     inited = true;
   }
   return our;
+}
+
+// Effect sync methods
+void SyncManager::setEffectSyncState(const EffectSyncState &state)
+{
+  currentEffectState = state;
+
+  // If we're the master and effect sync is enabled, broadcast the state
+  if (currentGroup.isMaster && effectSyncEnabled)
+  {
+    sendEffectState();
+  }
+}
+
+const EffectSyncState &SyncManager::getEffectSyncState() const
+{
+  return currentEffectState;
+}
+
+void SyncManager::enableEffectSync(bool enabled)
+{
+  effectSyncEnabled = enabled;
+}
+
+bool SyncManager::isEffectSyncEnabled() const
+{
+  return effectSyncEnabled;
 }

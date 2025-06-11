@@ -18,6 +18,10 @@ public:
   void setActive(bool active);
   bool isActive() const;
 
+  // Sync functionality
+  void setSyncEnabled(bool enabled);
+  bool isSyncEnabled() const;
+
   // Customizable parameters:
   float cycleTime;
   float tailLength; // Length of the fading tail in LED units.
@@ -30,4 +34,10 @@ private:
   bool forward;
   // Last update time (in milliseconds).
   unsigned long lastUpdateTime;
+
+  // Sync support
+  bool syncEnabled;
+
+  // Helper method to get current time (synced or local)
+  unsigned long getCurrentTime() const;
 };
