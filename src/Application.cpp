@@ -187,7 +187,7 @@ void Application::begin()
                                   handleSyncedEffects(effectState); });
 
   // Enable auto-join functionality
-  syncMgr->enableAutoJoin(true);
+  syncMgr->enableAutoJoin(false);
   syncMgr->enableAutoCreate(false);
   // syncMgr->setAutoJoinTimeout(8000); // Wait 8 seconds before creating own group
 

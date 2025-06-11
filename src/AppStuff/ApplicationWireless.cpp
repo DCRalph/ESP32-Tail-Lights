@@ -2,6 +2,7 @@
 #include "IO/Wireless.h"
 #include "IO/LED/Effects.h"
 #include "IO/LED/LEDStripManager.h"
+#include "Sync/SyncManager.h"
 
 // Command constants
 constexpr uint8_t CMD_PING = 0xe0;
@@ -12,6 +13,19 @@ constexpr uint8_t CAR_CMD_SET_INPUTS = 0xe4;
 constexpr uint8_t CAR_CMD_GET_INPUTS = 0xe5;
 constexpr uint8_t CAR_CMD_TRIGGER_SEQUENCE = 0xe6;
 constexpr uint8_t CAR_CMD_GET_STATS = 0xe7;
+
+// Sync management commands
+constexpr uint8_t CMD_SYNC_GET_DEVICES = 0xe8;
+constexpr uint8_t CMD_SYNC_GET_GROUPS = 0xe9;
+constexpr uint8_t CMD_SYNC_GET_GROUP_INFO = 0xea;
+constexpr uint8_t CMD_SYNC_JOIN_GROUP = 0xeb;
+constexpr uint8_t CMD_SYNC_LEAVE_GROUP = 0xec;
+constexpr uint8_t CMD_SYNC_CREATE_GROUP = 0xed;
+constexpr uint8_t CMD_SYNC_GET_STATUS = 0xee;
+constexpr uint8_t CMD_SYNC_SET_AUTO_JOIN = 0xef;
+constexpr uint8_t CMD_SYNC_GET_AUTO_JOIN = 0xf0;
+constexpr uint8_t CMD_SYNC_SET_AUTO_CREATE = 0xf1;
+constexpr uint8_t CMD_SYNC_GET_AUTO_CREATE = 0xf2;
 
 // Struct definitions for wireless communication
 struct PingCmd
@@ -66,6 +80,102 @@ struct InputsCmd
 struct TriggerSequenceCmd
 {
   uint8_t sequence;
+};
+
+// Sync management structs
+struct SyncDeviceInfo
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+  uint32_t lastSeen;
+  uint32_t timeSinceLastSeen; // Calculated field in milliseconds
+  bool inCurrentGroup;
+  bool isGroupMaster;
+  bool isThisDevice;
+};
+
+struct SyncDevicesResponse
+{
+  uint8_t deviceCount;
+  uint32_t currentTime;      // Reference time for lastSeen calculations
+  SyncDeviceInfo devices[8]; // Reduced to 8 to accommodate larger struct
+};
+
+struct SyncGroupInfo
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  uint8_t masterMac[6];
+  uint32_t lastSeen;
+  uint32_t timeSinceLastSeen; // Calculated field in milliseconds
+  bool isCurrentGroup;
+  bool canJoin; // True if we're not in a group or this is not our current group
+};
+
+struct SyncGroupsResponse
+{
+  uint8_t groupCount;
+  uint32_t currentTime;    // Reference time for lastSeen calculations
+  uint32_t ourGroupId;     // Our current group ID (0 if none)
+  SyncGroupInfo groups[4]; // Reduced to 4 to accommodate larger struct
+};
+
+struct SyncGroupMemberInfo
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+  bool isGroupMaster;
+  bool isThisDevice;
+  uint32_t lastHeartbeat; // 0 if unknown, otherwise time since last heartbeat
+};
+
+struct SyncCurrentGroupInfo
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  bool isMaster;
+  bool timeSynced;
+  int32_t timeOffset;
+  uint32_t syncedTime;
+  uint8_t memberCount;
+  uint32_t currentTime;           // Reference time
+  SyncGroupMemberInfo members[6]; // Limit to 6 members to fit in packet
+};
+
+struct SyncJoinGroupCmd
+{
+  uint32_t groupId;
+};
+
+struct SyncCreateGroupCmd
+{
+  uint32_t groupId; // 0 = auto-generate, otherwise use specified ID
+};
+
+struct SyncDetailedStatus
+{
+  uint32_t deviceId;
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  bool isMaster;
+  bool timeSynced;
+  int32_t timeOffset;
+  uint32_t syncedTime;
+  uint8_t memberCount;
+  uint8_t discoveredDeviceCount;
+  uint8_t discoveredGroupCount;
+  bool autoJoinEnabled;
+  bool autoCreateEnabled;
+};
+
+struct SyncAutoJoinCmd
+{
+  bool enabled;
+};
+
+struct SyncAutoCreateCmd
+{
+  bool enabled;
 };
 
 // Setup wireless communication handlers
@@ -303,6 +413,345 @@ void Application::setupWireless()
 
                              pTX.len = sizeof(AppStats);
                              memcpy(pTX.data, &stats, sizeof(AppStats));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Sync management commands
+
+  // Get discovered devices (0xe8)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_DEVICES, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+                             uint32_t ourDeviceId = syncMgr->getDeviceId();
+                             uint32_t now = millis();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_DEVICES;
+
+                             SyncDevicesResponse response = {0};
+                             response.deviceCount = std::min((size_t)8, discoveredDevices.size());
+                             response.currentTime = now;
+
+                             int i = 0;
+                             for (const auto &devicePair : discoveredDevices)
+                             {
+                               if (i >= 8)
+                                 break;
+                               const auto &device = devicePair.second;
+
+                               response.devices[i].deviceId = device.deviceId;
+                               memcpy(response.devices[i].mac, device.mac, 6);
+                               response.devices[i].lastSeen = device.lastSeen;
+                               response.devices[i].timeSinceLastSeen = now - device.lastSeen;
+                               response.devices[i].isThisDevice = (device.deviceId == ourDeviceId);
+
+                               // Check if device is in our current group
+                               response.devices[i].inCurrentGroup = false;
+                               response.devices[i].isGroupMaster = false;
+
+                               if (groupInfo.groupId != 0)
+                               {
+                                 auto memberIt = groupInfo.members.find(devicePair.first);
+                                 if (memberIt != groupInfo.members.end())
+                                 {
+                                   response.devices[i].inCurrentGroup = true;
+                                   response.devices[i].isGroupMaster = (device.deviceId == groupInfo.masterDeviceId);
+                                 }
+                               }
+
+                               i++;
+                             }
+
+                             pTX.len = sizeof(response);
+                             memcpy(pTX.data, &response, sizeof(response));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Get discovered groups (0xe9)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_GROUPS, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             const auto discoveredGroups = syncMgr->getDiscoveredGroups();
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+                             uint32_t ourGroupId = groupInfo.groupId;
+                             uint32_t now = millis();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_GROUPS;
+
+                             SyncGroupsResponse response = {0};
+                             response.groupCount = std::min((size_t)4, discoveredGroups.size());
+                             response.currentTime = now;
+                             response.ourGroupId = ourGroupId;
+
+                             for (int i = 0; i < response.groupCount; i++)
+                             {
+                               const auto &group = discoveredGroups[i];
+                               response.groups[i].groupId = group.groupId;
+                               response.groups[i].masterDeviceId = group.masterDeviceId;
+                               memcpy(response.groups[i].masterMac, group.masterMac, 6);
+                               response.groups[i].lastSeen = group.lastSeen;
+                               response.groups[i].timeSinceLastSeen = now - group.lastSeen;
+                               response.groups[i].isCurrentGroup = (group.groupId == ourGroupId);
+                               response.groups[i].canJoin = (ourGroupId == 0 || group.groupId != ourGroupId);
+                             }
+
+                             pTX.len = sizeof(response);
+                             memcpy(pTX.data, &response, sizeof(response));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Get current group info (0xea)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_GROUP_INFO, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+                             const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
+                             uint32_t ourDeviceId = syncMgr->getDeviceId();
+                             uint32_t now = millis();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_GROUP_INFO;
+
+                             SyncCurrentGroupInfo response = {0};
+                             response.groupId = groupInfo.groupId;
+                             response.masterDeviceId = groupInfo.masterDeviceId;
+                             response.isMaster = groupInfo.isMaster;
+                             response.timeSynced = syncMgr->isTimeSynced();
+                             response.timeOffset = syncMgr->getTimeOffset();
+                             response.syncedTime = syncMgr->getSyncedTime();
+                             response.memberCount = std::min((size_t)6, groupInfo.members.size());
+                             response.currentTime = now;
+
+                             // Fill member details
+                             int i = 0;
+                             for (const auto &memberPair : groupInfo.members)
+                             {
+                               if (i >= 6)
+                                 break;
+
+                               const auto &member = memberPair.second;
+                               response.members[i].deviceId = member.deviceId;
+                               memcpy(response.members[i].mac, member.mac, 6);
+                               response.members[i].isGroupMaster = (member.deviceId == groupInfo.masterDeviceId);
+                               response.members[i].isThisDevice = (member.deviceId == ourDeviceId);
+
+                               // Try to find heartbeat info from discovered devices
+                               auto discoveredIt = discoveredDevices.find(memberPair.first);
+                               if (discoveredIt != discoveredDevices.end())
+                               {
+                                 response.members[i].lastHeartbeat = now - discoveredIt->second.lastSeen;
+                               }
+                               else
+                               {
+                                 response.members[i].lastHeartbeat = 0; // Unknown
+                               }
+
+                               i++;
+                             }
+
+                             pTX.len = sizeof(response);
+                             memcpy(pTX.data, &response, sizeof(response));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Join group (0xeb)
+  wireless.addOnReceiveFor(CMD_SYNC_JOIN_GROUP, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncJoinGroupCmd cmd = {0};
+                             memcpy(&cmd, fp->p.data, sizeof(cmd));
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             syncMgr->joinGroup(cmd.groupId);
+
+                             // Send back current group info as confirmation
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_JOIN_GROUP;
+                             pTX.len = sizeof(uint32_t);
+                             memcpy(pTX.data, &groupInfo.groupId, sizeof(uint32_t));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Leave group (0xec)
+  wireless.addOnReceiveFor(CMD_SYNC_LEAVE_GROUP, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             syncMgr->leaveGroup();
+
+                             // Send back confirmation (group ID should be 0 now)
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_LEAVE_GROUP;
+                             pTX.len = sizeof(uint32_t);
+                             uint32_t groupId = 0;
+                             memcpy(pTX.data, &groupId, sizeof(uint32_t));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Create group (0xed)
+  wireless.addOnReceiveFor(CMD_SYNC_CREATE_GROUP, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncCreateGroupCmd cmd = {0};
+                             memcpy(&cmd, fp->p.data, sizeof(cmd));
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             syncMgr->createGroup(cmd.groupId); // 0 = auto-generate
+
+                             // Send back created group info as confirmation
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_CREATE_GROUP;
+
+                             SyncCurrentGroupInfo response = {0};
+                             response.groupId = groupInfo.groupId;
+                             response.masterDeviceId = groupInfo.masterDeviceId;
+                             response.isMaster = groupInfo.isMaster;
+                             response.timeSynced = syncMgr->isTimeSynced();
+                             response.timeOffset = syncMgr->getTimeOffset();
+                             response.memberCount = groupInfo.members.size();
+
+                             pTX.len = sizeof(response);
+                             memcpy(pTX.data, &response, sizeof(response));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Get comprehensive status (0xee)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_STATUS, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             const auto &groupInfo = syncMgr->getGroupInfo();
+                             const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
+                             const auto discoveredGroups = syncMgr->getDiscoveredGroups();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_STATUS;
+
+                             SyncDetailedStatus response = {0};
+                             response.deviceId = syncMgr->getDeviceId();
+                             response.groupId = groupInfo.groupId;
+                             response.masterDeviceId = groupInfo.masterDeviceId;
+                             response.isMaster = groupInfo.isMaster;
+                             response.timeSynced = syncMgr->isTimeSynced();
+                             response.timeOffset = syncMgr->getTimeOffset();
+                             response.syncedTime = syncMgr->getSyncedTime();
+                             response.memberCount = groupInfo.members.size();
+                             response.discoveredDeviceCount = std::min((size_t)255, discoveredDevices.size());
+                             response.discoveredGroupCount = std::min((size_t)255, discoveredGroups.size());
+                             response.autoJoinEnabled = syncMgr->isAutoJoinEnabled();
+                             response.autoCreateEnabled = syncMgr->isAutoCreateEnabled();
+
+                             pTX.len = sizeof(response);
+                             memcpy(pTX.data, &response, sizeof(response));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Set auto-join (0xef)
+  wireless.addOnReceiveFor(CMD_SYNC_SET_AUTO_JOIN, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncAutoJoinCmd cmd = {0};
+                             memcpy(&cmd, fp->p.data, sizeof(cmd));
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             syncMgr->enableAutoJoin(cmd.enabled);
+
+                             // Send back confirmation
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_SET_AUTO_JOIN;
+                             pTX.len = sizeof(bool);
+                             bool currentState = syncMgr->isAutoJoinEnabled();
+                             memcpy(pTX.data, &currentState, sizeof(currentState));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Get auto-join status (0xf0)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_AUTO_JOIN, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_AUTO_JOIN;
+                             pTX.len = sizeof(bool);
+                             bool enabled = syncMgr->isAutoJoinEnabled();
+                             memcpy(pTX.data, &enabled, sizeof(enabled));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Set auto-create (0xf1)
+  wireless.addOnReceiveFor(CMD_SYNC_SET_AUTO_CREATE, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncAutoCreateCmd cmd = {0};
+                             memcpy(&cmd, fp->p.data, sizeof(cmd));
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+                             syncMgr->enableAutoCreate(cmd.enabled);
+
+                             // Send back confirmation
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_SET_AUTO_CREATE;
+                             pTX.len = sizeof(bool);
+                             bool currentState = syncMgr->isAutoCreateEnabled();
+                             memcpy(pTX.data, &currentState, sizeof(currentState));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  // Get auto-create status (0xf2)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_AUTO_CREATE, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+
+                             data_packet pTX = {0};
+                             pTX.type = CMD_SYNC_GET_AUTO_CREATE;
+                             pTX.len = sizeof(bool);
+                             bool enabled = syncMgr->isAutoCreateEnabled();
+                             memcpy(pTX.data, &enabled, sizeof(enabled));
 
                              wireless.send(&pTX, fp->mac);
                              //

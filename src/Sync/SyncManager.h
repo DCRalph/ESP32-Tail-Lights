@@ -9,6 +9,8 @@
 #include "IO/Wireless.h"
 #include "config.h"
 
+#include "IO/LED/Types.h"
+
 // Message types
 constexpr uint8_t SYNC_MSG_TYPE = 0xA0;
 constexpr uint8_t SYNC_HEARTBEAT = 0x01;
@@ -18,53 +20,6 @@ constexpr uint8_t SYNC_GROUP_INFO = 0x04;
 constexpr uint8_t SYNC_TIME_REQUEST = 0x05;
 constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
 constexpr uint8_t SYNC_EFFECT_STATE = 0x07;
-
-struct __attribute__((packed)) RGBSyncData
-{
-  float hueCenter;
-  float hueEdge;
-  float speed;
-  float hueOffset;
-  bool active;
-
-  String print();
-};
-struct __attribute__((packed)) NightRiderSyncData
-{
-  float cycleTime;
-  float tailLength;
-  float currentPos;
-  bool forward;
-  bool active;
-
-  String print();
-};
-
-enum class PoliceMode
-{
-  SLOW,
-  FAST
-};
-
-struct __attribute__((packed)) PoliceSyncData
-{
-  bool active;
-  PoliceMode mode;
-  float flashProgress;
-  float cycleProgress;
-  uint16_t currentFlash;
-
-  String print();
-};
-
-struct __attribute__((packed)) EffectSyncState
-{
-  RGBSyncData rgbSyncData;
-  NightRiderSyncData nightRiderSyncData;
-  PoliceSyncData policeSyncData;
-
-  void print();
-};
 
 struct DiscoveredDevice
 {
