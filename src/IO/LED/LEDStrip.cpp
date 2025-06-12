@@ -102,7 +102,8 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
       fps(100),
       lastUpdateTime(0),
       lastUpdateDuration(0),
-      lastDrawDuration(0)
+      lastDrawDuration(0),
+      brightness(255)
 {
 
   leds = new CRGB[numLEDs];
@@ -112,67 +113,67 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
   switch (ledPin)
   {
   case 1:
-    FastLED.addLeds<WS2812, 1, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 1, GRB>(leds, numLEDs);
     break;
   case 2:
-    FastLED.addLeds<WS2812, 2, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 2, GRB>(leds, numLEDs);
     break;
   case 3:
-    FastLED.addLeds<WS2812, 3, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 3, GRB>(leds, numLEDs);
     break;
   case 4:
-    FastLED.addLeds<WS2812, 4, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 4, GRB>(leds, numLEDs);
     break;
   case 5:
-    FastLED.addLeds<WS2812, 5, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 5, GRB>(leds, numLEDs);
     break;
   case 6:
-    FastLED.addLeds<WS2812, 6, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 6, GRB>(leds, numLEDs);
     break;
   case 7:
-    FastLED.addLeds<WS2812, 7, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 7, GRB>(leds, numLEDs);
     break;
   case 8:
-    FastLED.addLeds<WS2812, 8, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 8, GRB>(leds, numLEDs);
     break;
   case 9:
-    FastLED.addLeds<WS2812, 9, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 9, GRB>(leds, numLEDs);
     break;
   case 10:
-    FastLED.addLeds<WS2812, 10, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 10, GRB>(leds, numLEDs);
     break;
   case 11:
-    FastLED.addLeds<WS2812, 11, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 11, GRB>(leds, numLEDs);
     break;
   case 12:
-    FastLED.addLeds<WS2812, 12, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 12, GRB>(leds, numLEDs);
     break;
   case 13:
-    FastLED.addLeds<WS2812, 13, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 13, GRB>(leds, numLEDs);
     break;
   case 14:
-    FastLED.addLeds<WS2812, 14, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 14, GRB>(leds, numLEDs);
     break;
   case 15:
-    FastLED.addLeds<WS2812, 15, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 15, GRB>(leds, numLEDs);
     break;
   case 16:
-    FastLED.addLeds<WS2812, 16, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 16, GRB>(leds, numLEDs);
     break;
   case 17:
-    FastLED.addLeds<WS2812, 17, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 17, GRB>(leds, numLEDs);
     break;
   case 18:
-    FastLED.addLeds<WS2812, 18, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 18, GRB>(leds, numLEDs);
     break;
   case 19:
-    FastLED.addLeds<WS2812, 19, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 19, GRB>(leds, numLEDs);
     break;
   case 20:
-    FastLED.addLeds<WS2812, 20, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 20, GRB>(leds, numLEDs);
     break;
   case 21:
-    FastLED.addLeds<WS2812, 21, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812, 21, GRB>(leds, numLEDs);
     break;
   }
 }
@@ -305,10 +306,10 @@ void LEDStrip::draw()
   }
 }
 
-// void LEDStrip::show()
-// {
-//   FastLED.show();
-// }
+void LEDStrip::show()
+{
+  controller->showLeds(brightness);
+}
 
 CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
 
@@ -341,14 +342,12 @@ bool LEDStrip::getFliped() { return fliped; };
 
 void LEDStrip::setBrightness(uint8_t brightness)
 {
-  // strip->setBrightness(brightness);
-  // FastLED.setBrightness(brightness);
+  this->brightness = brightness;
 }
 
 uint8_t LEDStrip::getBrightness() const
 {
-  // return strip->getBrightness();
-  return 0;
+  return brightness;
 }
 
 uint64_t LEDStrip::getLastUpdateDuration() const { return lastUpdateDuration; }

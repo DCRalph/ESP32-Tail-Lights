@@ -124,7 +124,7 @@ void LEDStripManager::draw()
   {
     if (pair.second.strip)
       pair.second.strip->draw();
+      pair.second.strip->show();
   }
 
-  FastLED.show();
 }

@@ -7,6 +7,7 @@
 #include "IO/Wireless.h"
 #include "Application.h"
 #include "SerialMenu.h"
+#include "IO/StatusLed.h"
 
 Application *app;
 
@@ -19,6 +20,7 @@ void setup()
   WiFi.mode(WIFI_AP_STA);
 
   GpIO::initIO();
+  statusLed.begin();
 
   preferences.begin("esp", false);
 
@@ -39,7 +41,6 @@ void setup()
   }
 
   app->begin();
-  // app->enableTestMode();
 
   xTaskCreatePinnedToCore(
       [](void *pvParameters)
@@ -47,6 +48,13 @@ void setup()
         led.On();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         led.Off();
+
+        statusLed.setColor(255, 0, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        statusLed.setColor(0, 255, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        statusLed.setColor(0, 0, 255);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         vTaskDelete(NULL);
       },

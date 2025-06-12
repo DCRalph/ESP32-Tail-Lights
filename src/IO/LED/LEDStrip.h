@@ -93,7 +93,7 @@ public:
 
   // draw the LED buffer to the physical LED strip
   void draw();
-  // void show();
+  void show();
 
   // Access the internal FastLED buffer.
   CRGB *getFastLEDBuffer();
@@ -140,6 +140,8 @@ private:
 
   uint8_t ledPin;
   CRGB *leds;
+  CLEDController *controller;
+  uint8_t brightness;
 
   std::vector<LEDEffect *> effects;
 
