@@ -130,6 +130,7 @@ private:
 
   // Application Mode
   ApplicationMode mode;
+  ApplicationMode prevMode;
 
   // Internal method to handle effect selection based on inputs.
   void handleNormalEffects();

@@ -14,17 +14,16 @@ enum class RGB_MODE
   Blink
 };
 
+// Forward declaration
+class StatusLeds;
+
 class StatusLed
 {
 public:
   StatusLed();
   ~StatusLed();
 
-  void begin();
-  void show();
-
-  void setLED(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
-  void setAllLEDs(uint8_t r, uint8_t g, uint8_t b);
+  void begin(StatusLeds *controller, CRGB *ledPtr);
 
   // Mode-based functionality
   void setMode(RGB_MODE mode);
@@ -42,6 +41,8 @@ public:
   void setColor(uint32_t color);
   void setColor565(uint16_t color);
 
+  void setPrevColor(uint8_t r, uint8_t g, uint8_t b);
+
   // Animation controls
   void setPulsingColor(uint32_t color);
   void blink(uint32_t color, uint8_t speed, uint8_t count);
@@ -51,11 +52,9 @@ public:
   void setPulsingSpeed(uint8_t speed) { _pulsingSpeed = speed; }
 
 private:
-  // uint8_t _pin;
   bool _initialized;
-  CRGB _leds[STATUS_LED_COUNT];
-  CLEDController *_controller;
-  uint8_t _brightness = 255;
+  CRGB *_ledPtr;
+  StatusLeds *_controller;
 
   // Mode management
   RGB_MODE _mode = RGB_MODE::Manual;
@@ -81,6 +80,7 @@ private:
   void _setColor(uint32_t color);
   void _updateModeHistory(RGB_MODE oldMode);
   void _setMode(RGB_MODE newMode);
+  void _show();
 
   // Animation methods
   void _startRainbow();
@@ -101,4 +101,25 @@ private:
   static void _blinkTask(void *pvParameters);
 };
 
-extern StatusLed statusLed;
+class StatusLeds
+{
+public:
+  StatusLeds();
+  ~StatusLeds();
+
+  void begin();
+  void show();
+  CRGB *getLedPtr(uint8_t index);
+  void setBrightness(uint8_t brightness);
+  uint8_t getBrightness() const;
+
+private:
+  bool _initialized;
+  CRGB _leds[STATUS_LED_COUNT];
+  CLEDController *_controller;
+  uint8_t _brightness = 255;
+};
+
+extern StatusLeds statusLeds;
+extern StatusLed statusLed1;
+extern StatusLed statusLed2;

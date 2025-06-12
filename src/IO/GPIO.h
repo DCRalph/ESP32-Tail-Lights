@@ -3,8 +3,14 @@
 
 class GpIO;
 
-extern GpIO io0;
 extern GpIO led;
+
+extern GpIO btnBoot;
+extern GpIO btnPrev;
+extern GpIO btnSel;
+extern GpIO btnNext;
+
+extern GpIO voltage;
 
 extern GpIO input1;
 extern GpIO input2;

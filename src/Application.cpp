@@ -5,6 +5,7 @@
 #include "IO/Wireless.h"
 #include "IO/LED/LEDStripManager.h"
 #include "Sync/SyncManager.h"
+#include "IO/StatusLed.h"
 
 //----------------------------------------------------------------------------
 
@@ -103,6 +104,7 @@ void Application::begin()
 {
 
   mode = static_cast<ApplicationMode>(preferences.getUInt("mode", 0));
+  prevMode = mode == ApplicationMode::NORMAL ? ApplicationMode::OFF : mode;
 
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
@@ -271,6 +273,30 @@ void Application::loop()
     LEDEffect::disableAllEffects();
   }
   break;
+  }
+
+  if (mode != prevMode)
+  {
+    prevMode = mode;
+    switch (mode)
+    {
+    case ApplicationMode::NORMAL:
+      statusLed1.setColor(0, 255, 0);
+      statusLeds.show();
+      break;
+    case ApplicationMode::TEST:
+      statusLed1.setColor(255, 0, 255);
+      statusLeds.show();
+      break;
+    case ApplicationMode::REMOTE:
+      statusLed1.setColor(0, 0, 255);
+      statusLeds.show();
+      break;
+    case ApplicationMode::OFF:
+      statusLed1.setColor(255, 0, 0);
+      statusLeds.show();
+      break;
+    }
   }
 
   stats.updateModeTime = micros() - start;

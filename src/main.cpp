@@ -20,7 +20,10 @@ void setup()
   WiFi.mode(WIFI_AP_STA);
 
   GpIO::initIO();
-  statusLed.begin();
+  statusLeds.begin();
+  statusLeds.setBrightness(255);
+  statusLed1.begin(&statusLeds, statusLeds.getLedPtr(0));
+  statusLed2.begin(&statusLeds, statusLeds.getLedPtr(1));
 
   preferences.begin("esp", false);
 
@@ -45,16 +48,17 @@ void setup()
   xTaskCreatePinnedToCore(
       [](void *pvParameters)
       {
+        statusLed1.setMode(RGB_MODE::Rainbow);
+        statusLed2.setMode(RGB_MODE::Rainbow);
+
         led.On();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         led.Off();
 
-        statusLed.setColor(255, 0, 0);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        statusLed.setColor(0, 255, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        statusLed.setColor(0, 0, 255);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        statusLed1.goBackSteps(1);
+        statusLed2.goBackSteps(1);
 
         vTaskDelete(NULL);
       },

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "IO/GPIO.h"
+#include "IO/StatusLed.h"
 
 SyncManager *SyncManager::getInstance()
 {
@@ -532,17 +533,19 @@ void SyncManager::updateSyncedLED()
 
     if (ledState)
     {
-      led.On();
+      statusLed2.setColor(0, 0, 255);
     }
     else
     {
-      led.Off();
+      statusLed2.setColor(0, 0, 0);
     }
+    statusLeds.show();
   }
   else
   {
     // If not synced or not in group, turn LED off
-    led.Off();
+    statusLed2.off();
+    statusLeds.show();
   }
 }
 

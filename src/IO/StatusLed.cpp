@@ -3,9 +3,87 @@
 
 static const char *TAG = "StatusLed";
 
-// StatusLed implementation
-StatusLed::StatusLed() : _initialized(false)
+// ================================
+// StatusLeds implementation (plural - manages FastLED controller)
+// ================================
+
+StatusLeds::StatusLeds()
 {
+  _initialized = false;
+  _brightness = 255;
+}
+
+StatusLeds::~StatusLeds()
+{
+  // Nothing to clean up for now
+}
+
+void StatusLeds::begin()
+{
+#ifdef OUTPUT_STATUS_LED_PIN
+  if (!_initialized)
+  {
+    // Initialize FastLED - you may need to adjust the LED type and pin
+    _controller = &FastLED.addLeds<WS2812B, OUTPUT_STATUS_LED_PIN, GRB>(_leds, STATUS_LED_COUNT);
+    memset(_leds, 0, sizeof(_leds));
+    _initialized = true;
+
+    show();
+    ESP_LOGI(TAG, "StatusLeds initialized on pin %d with %d LEDs", OUTPUT_STATUS_LED_PIN, STATUS_LED_COUNT);
+  }
+#endif
+}
+
+void StatusLeds::show()
+{
+  if (_initialized)
+  {
+    _controller->showLeds(_brightness);
+  }
+  else
+  {
+    ESP_LOGE(TAG, "StatusLeds::show() called but not initialized");
+  }
+}
+
+CRGB *StatusLeds::getLedPtr(uint8_t index)
+{
+  if (!_initialized)
+  {
+    ESP_LOGE(TAG, "StatusLeds::getLedPtr() called but not initialized");
+    return nullptr;
+  }
+
+  if (index >= STATUS_LED_COUNT)
+  {
+    ESP_LOGE(TAG, "StatusLeds::getLedPtr() index %d out of range (max: %d)", index, STATUS_LED_COUNT - 1);
+    return nullptr;
+  }
+
+  return &_leds[index];
+}
+
+void StatusLeds::setBrightness(uint8_t brightness)
+{
+  _brightness = brightness;
+}
+
+uint8_t StatusLeds::getBrightness() const
+{
+  return _brightness;
+}
+
+// ================================
+// StatusLed implementation (singular - individual LED control)
+// ================================
+
+StatusLed::StatusLed()
+{
+  _initialized = false;
+  _mode = RGB_MODE::Manual;
+  _maxModeHistory = 10;
+  _ledPtr = nullptr;
+  _controller = nullptr;
 }
 
 StatusLed::~StatusLed()
@@ -16,46 +94,19 @@ StatusLed::~StatusLed()
   _stopBlink();
 }
 
-void StatusLed::begin()
+void StatusLed::begin(StatusLeds *controller, CRGB *ledPtr)
 {
-#ifdef OUTPUT_STATUS_LED_PIN
-  if (!_initialized)
+  if (controller && ledPtr)
   {
-    // Initialize FastLED - you may need to adjust the LED type and pin
-    _controller = &FastLED.addLeds<WS2812B, OUTPUT_STATUS_LED_PIN, GRB>(_leds, STATUS_LED_COUNT);
-    memset(_leds, 0, sizeof(_leds));
-    show();
+    _controller = controller;
+    _ledPtr = ledPtr;
     _initialized = true;
 
-    ESP_LOGI(TAG, "StatusLed initialized on pin %d", OUTPUT_STATUS_LED_PIN);
-  }
-#endif
-}
+    // Initialize LED to off
+    *_ledPtr = CRGB(0, 0, 0);
+    _show();
 
-void StatusLed::show()
-{
-  if (_initialized)
-  {
-    _controller->showLeds(_brightness);
-  }
-}
-
-void StatusLed::setLED(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
-{
-  if (index < STATUS_LED_COUNT && _initialized)
-  {
-    _leds[index] = CRGB(r, g, b);
-  }
-}
-
-void StatusLed::setAllLEDs(uint8_t r, uint8_t g, uint8_t b)
-{
-  if (_initialized)
-  {
-    for (uint8_t i = 0; i < STATUS_LED_COUNT; i++)
-    {
-      _leds[i] = CRGB(r, g, b);
-    }
+    ESP_LOGI(TAG, "StatusLed initialized with controller");
   }
 }
 
@@ -65,20 +116,38 @@ void StatusLed::setAllLEDs(uint8_t r, uint8_t g, uint8_t b)
 
 void StatusLed::_setColor(uint8_t r, uint8_t g, uint8_t b)
 {
-  if (_initialized)
+  if (!_initialized)
   {
-    for (uint8_t i = 0; i < STATUS_LED_COUNT; i++)
-    {
-      _leds[i] = CRGB(r, g, b);
-    }
-    show();
-    ESP_LOGD(TAG, "Color set to %d %d %d", r, g, b);
+    ESP_LOGE(TAG, "StatusLed::_setColor() called but not initialized");
+    return;
   }
+
+  if (!_ledPtr)
+  {
+    ESP_LOGE(TAG, "StatusLed::_setColor() called but LED pointer is null");
+    return;
+  }
+
+  *_ledPtr = CRGB(r, g, b);
+  // _show();
+  ESP_LOGD(TAG, "Color set to %d %d %d", r, g, b);
 }
 
 void StatusLed::_setColor(uint32_t color)
 {
   _setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+}
+
+void StatusLed::_show()
+{
+  if (_controller)
+  {
+    _controller->show();
+  }
+  else
+  {
+    ESP_LOGE(TAG, "StatusLed::_show() called but controller is null");
+  }
 }
 
 void StatusLed::_updateModeHistory(RGB_MODE oldMode)
@@ -113,6 +182,7 @@ void StatusLed::_setMode(RGB_MODE newMode)
     break;
   case RGB_MODE::Manual:
     _setColor(_prevManualColor);
+    _show();
     break;
   }
 }
@@ -162,6 +232,7 @@ void StatusLed::_rainbow()
       _setColor(i, 0, 255 - i);
       vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed));
     }
+    _show();
   }
 }
 
@@ -223,6 +294,7 @@ void StatusLed::_pulsing()
       _setColor(red, green, blue);
       vTaskDelay(pdMS_TO_TICKS(_pulsingSpeed));
     }
+    _show();
   }
 }
 
@@ -262,9 +334,11 @@ void StatusLed::_blink()
   for (uint8_t i = 0; i < _blinkCount; i++)
   {
     _setColor(_blinkColor);
+    _show();
     vTaskDelay(pdMS_TO_TICKS(_blinkSpeed * 100)); // Convert to ms
 
     _setColor(0, 0, 0);
+    _show();
     vTaskDelay(pdMS_TO_TICKS(_blinkSpeed * 100));
   }
 
@@ -286,6 +360,12 @@ void StatusLed::_blinkTask(void *pvParameters)
 
 void StatusLed::setMode(RGB_MODE mode)
 {
+  if (!_initialized)
+  {
+    ESP_LOGE(TAG, "StatusLed::setMode() called but not initialized");
+    return;
+  }
+
   if (_mode == mode)
   {
     ESP_LOGI(TAG, "SetMode() called with the same mode");
@@ -348,6 +428,7 @@ void StatusLed::goBackSteps(uint8_t steps)
   }
 
   _setMode(targetMode);
+  _show();
 }
 
 void StatusLed::clearHistory()
@@ -395,13 +476,20 @@ RGB_MODE StatusLed::getMode()
 
 void StatusLed::setColor(uint8_t r, uint8_t g, uint8_t b)
 {
+  if (!_initialized)
+  {
+    ESP_LOGE(TAG, "StatusLed::setColor() called but not initialized");
+    return;
+  }
+
+  _prevManualColor = (r << 16) | (g << 8) | b;
+
   if (_mode != RGB_MODE::Manual)
   {
     ESP_LOGI(TAG, "SetColor() called while not in Manual mode");
     return;
   }
 
-  _prevManualColor = (r << 16) | (g << 8) | b;
   ESP_LOGI(TAG, "Color set to %d %d %d", r, g, b);
   _setColor(r, g, b);
 }
@@ -416,15 +504,27 @@ void StatusLed::setColor565(uint16_t color)
   setColor((color >> 8) & 0xF8, (color >> 3) & 0xFC, (color << 3) & 0xF8);
 }
 
+void StatusLed::setPrevColor(uint8_t r, uint8_t g, uint8_t b)
+{
+  _prevManualColor = (r << 16) | (g << 8) | b;
+}
+
 void StatusLed::off()
 {
+  if (!_initialized)
+  {
+    ESP_LOGE(TAG, "StatusLed::off() called but not initialized");
+    return;
+  }
+
+  _prevManualColor = 0;
+
   if (_mode != RGB_MODE::Manual)
   {
     ESP_LOGI(TAG, "Off() called while not in Manual mode");
     return;
   }
 
-  _prevManualColor = 0;
   _setColor(0, 0, 0);
 }
 
@@ -439,6 +539,12 @@ void StatusLed::setPulsingColor(uint32_t color)
 
 void StatusLed::blink(uint32_t color, uint8_t speed, uint8_t count)
 {
+  if (!_initialized)
+  {
+    ESP_LOGE(TAG, "StatusLed::blink() called but not initialized");
+    return;
+  }
+
   if (_mode == RGB_MODE::Blink)
   {
     ESP_LOGI(TAG, "Blink() called while already in Blink mode");
@@ -453,4 +559,10 @@ void StatusLed::blink(uint32_t color, uint8_t speed, uint8_t count)
   _setMode(RGB_MODE::Blink);
 }
 
-StatusLed statusLed;
+// ================================
+// Global instances
+// ================================
+
+StatusLeds statusLeds;
+StatusLed statusLed1;
+StatusLed statusLed2;

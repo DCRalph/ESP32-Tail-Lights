@@ -1,7 +1,15 @@
 #include "GPIO.h"
 
-GpIO io0(0, InputPullup, LOW);
 GpIO led(LED_PIN, Output, HIGH);
+
+#ifdef S3_V1
+GpIO btnBoot(INPUT_BTN_BOOT_PIN, InputPullup, LOW);
+GpIO btnPrev(INPUT_BTN_PREV_PIN, InputPullup, LOW);
+GpIO btnSel(INPUT_BTN_SEL_PIN, InputPullup, LOW);
+GpIO btnNext(INPUT_BTN_NEXT_PIN, InputPullup, LOW);
+
+GpIO voltage(INPUT_VOLTAGE_PIN, Input);
+#endif
 
 #ifdef ENABLE_HV_INPUTS
 GpIO input1(INPUT_1_PIN, Input);
@@ -10,8 +18,8 @@ GpIO input3(INPUT_3_PIN, Input);
 GpIO input4(INPUT_4_PIN, Input);
 GpIO input5(INPUT_5_PIN, Input);
 GpIO input6(INPUT_6_PIN, Input);
-GpIO input7(0, Input);
-GpIO input8(0, Input);
+GpIO input7(INPUT_7_PIN, Input);
+GpIO input8(INPUT_8_PIN, Input);
 #endif
 
 String GpIO::PinModeString(PinMode mode)
@@ -174,9 +182,20 @@ void GpIO::initIO()
 {
   Serial.println("\t[INFO] [IO] Configuring pins...");
 
-  io0.init();
-  io0.enableDebounce(50);
   led.init();
+
+#ifdef S3_V1
+  btnBoot.init();
+  btnBoot.enableDebounce(50);
+  btnPrev.init();
+  btnPrev.enableDebounce(50);
+  btnSel.init();
+  btnSel.enableDebounce(50);
+  btnNext.init();
+  btnNext.enableDebounce(50);
+
+  voltage.init();
+#endif
 
 #ifdef ENABLE_HV_INPUTS
   input1.init();
