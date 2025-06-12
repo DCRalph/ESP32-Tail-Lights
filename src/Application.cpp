@@ -120,6 +120,12 @@ void Application::begin()
 #endif
   ledManager->addLEDStrip(headlights);
 
+  headlights.strip->getBuffer()[0] = Color(255, 0, 0);
+  headlights.strip->show();
+  delay(500);
+  headlights.strip->getBuffer()[0] = Color(0, 0, 0);
+  headlights.strip->show();
+
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
@@ -130,10 +136,10 @@ void Application::begin()
   ledManager->addLEDStrip(taillights);
 
   taillights.strip->getBuffer()[0] = Color(255, 0, 0);
-  FastLED.show();
+  taillights.strip->show();
   delay(500);
   taillights.strip->getBuffer()[0] = Color(0, 0, 0);
-  FastLED.show();
+  taillights.strip->show();
 #endif
 
 #ifdef ENABLE_UNDERGLOW
@@ -142,6 +148,12 @@ void Application::begin()
       new LEDStrip(UNDERGLOW_LED_COUNT, UNDERGLOW_LED_PIN),
       "Underglow");
   ledManager->addLEDStrip(underglow);
+
+  underglow.strip->getBuffer()[0] = Color(255, 0, 0);
+  underglow.strip->show();
+  delay(500);
+  underglow.strip->getBuffer()[0] = Color(0, 0, 0);
+  underglow.strip->show();
 #endif
 
 #ifdef ENABLE_INTERIOR
@@ -150,6 +162,12 @@ void Application::begin()
       new LEDStrip(INTERIOR_LED_COUNT, INTERIOR_LED_PIN),
       "Interior");
   ledManager->addLEDStrip(interior);
+
+  interior.strip->getBuffer()[0] = Color(255, 0, 0);
+  interior.strip->show();
+  delay(500);
+  interior.strip->getBuffer()[0] = Color(0, 0, 0);
+  interior.strip->show();
 #endif
 
   setupEffects();
@@ -189,8 +207,8 @@ void Application::begin()
                                   handleSyncedEffects(effectState); });
 
   // Enable auto-join functionality
-  syncMgr->enableAutoJoin(false);
-  syncMgr->enableAutoCreate(false);
+  // syncMgr->enableAutoJoin(false);
+  // syncMgr->enableAutoCreate(false);
   // syncMgr->setAutoJoinTimeout(8000); // Wait 8 seconds before creating own group
 
   Serial.println("Application: Auto-join enabled - devices will automatically pair");
@@ -307,7 +325,12 @@ void Application::loop()
   syncMgr->loop();
 
   // Update synchronized LED blinking
-  syncMgr->updateSyncedLED();
+  static uint32_t lastSyncedUpdate = 0;
+  if (millis() - lastSyncedUpdate > 20)
+  {
+    lastSyncedUpdate = millis();
+    syncMgr->updateSyncedLED();
+  }
 
   stats.updateSyncTime = micros() - start;
 
@@ -419,4 +442,5 @@ void Application::handleSyncedEffects(const EffectSyncState &effectState)
   rgbEffect->setSyncData(effectState.rgbSyncData);
   nightriderEffect->setSyncData(effectState.nightRiderSyncData);
   policeEffect->setSyncData(effectState.policeSyncData);
+  solidColorEffect->setSyncData(effectState.solidColorSyncData);
 }

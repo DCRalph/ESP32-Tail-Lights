@@ -1,4 +1,5 @@
 #include "Types.h"
+#include "Effects/SolidColorEffect.h"
 
 String RGBSyncData::print()
 {
@@ -15,9 +16,15 @@ String PoliceSyncData::print()
   return String("Mode: " + String((int)mode) + ", Flash Progress: " + String(flashProgress) + ", Cycle Progress: " + String(cycleProgress) + ", Current Flash: " + String(currentFlash) + ", Active: " + String(active));
 }
 
+String SolidColorSyncData::print()
+{
+  return String("Color Preset: " + String((int)colorPreset) + ", RGB: (" + String(customR) + "," + String(customG) + "," + String(customB) + "), Active: " + String(active));
+}
+
 void EffectSyncState::print()
 {
   Serial.println("RGB: " + rgbSyncData.print());
   Serial.println("Night Rider: " + nightRiderSyncData.print());
   Serial.println("Police: " + policeSyncData.print());
+  Serial.println("Solid Color: " + solidColorSyncData.print());
 }

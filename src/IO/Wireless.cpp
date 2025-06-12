@@ -6,7 +6,6 @@ uint8_t BROADCAST_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 Wireless::Wireless()
 {
-  // Constructor (if any further initialization is needed, add it here)
 }
 
 void Wireless::setup()

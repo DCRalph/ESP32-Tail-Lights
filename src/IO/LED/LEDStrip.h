@@ -11,8 +11,6 @@
 //  #define USE_2_BUFFERS
 // ####################################
 
-// A simple structure representing an RGB color.
-
 // Enum to identify different LED strip types
 enum class LEDStripType
 {

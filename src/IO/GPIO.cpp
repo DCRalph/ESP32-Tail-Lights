@@ -78,7 +78,6 @@ void GpIO::init()
   if (mode == Output)
     digitalWrite(pin, !activeState);
 
-  // Serial.println("\t[GPIO] Initialized");
 }
 
 void GpIO::SetMode(PinMode _mode)

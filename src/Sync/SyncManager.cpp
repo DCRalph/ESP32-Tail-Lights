@@ -15,20 +15,11 @@ SyncManager *SyncManager::getInstance()
 
 SyncManager::SyncManager()
 {
-  // Initialize random seed with multiple entropy sources
-  uint64_t macVal = ESP.getEfuseMac();
-  uint32_t millisVal = millis();
-  uint32_t microsVal = micros();
-
-  // Combine entropy sources for initial seed
-  uint32_t initialSeed = (uint32_t)(macVal ^ (macVal >> 32)) ^ millisVal ^ microsVal;
-  randomSeed(initialSeed);
-
-  Serial.println(String("[SyncManager] Initialized with seed: 0x") + String(initialSeed, HEX));
-
   ourDeviceId = generateDeviceId();
   // clear initial group
   currentGroup = {};
+
+  // Load saved preferences
 }
 
 SyncManager::~SyncManager() {}
@@ -39,6 +30,8 @@ void SyncManager::begin()
       SYNC_MSG_TYPE,
       [this](fullPacket *fp)
       { handleSyncPacket(fp); });
+
+  loadPreferences();
 }
 
 void SyncManager::loop()
@@ -51,6 +44,7 @@ void SyncManager::loop()
   }
   checkDiscoveryCleanup(now);
   checkGroupCleanup(now);
+  checkMemberTimeout(now);
 
   if (currentGroup.groupId != 0)
   {
@@ -82,9 +76,17 @@ void SyncManager::loop()
       }
     }
   }
-  else if (autoJoinEnabled)
+  else
   {
-    checkAutoJoin(now);
+    // Check auto join and auto create when not in a group
+    if (autoJoinEnabled)
+    {
+      checkAutoJoin(now);
+    }
+    else if (autoCreateEnabled)
+    {
+      checkAutoCreate(now);
+    }
   }
 }
 
@@ -187,9 +189,13 @@ void SyncManager::joinGroup(uint32_t groupId)
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_GROUP_JOIN;
-  memcpy(&pkt.data[1], &groupId, sizeof(groupId));
-  memcpy(&pkt.data[5], &ourDeviceId, sizeof(ourDeviceId));
-  pkt.len = 1 + sizeof(groupId) + sizeof(ourDeviceId);
+
+  GroupJoinCmd joinCmd;
+  joinCmd.groupId = groupId;
+  joinCmd.deviceId = ourDeviceId;
+
+  memcpy(&pkt.data[1], &joinCmd, sizeof(joinCmd));
+  pkt.len = 1 + sizeof(joinCmd);
   wireless.send(&pkt, adv.masterMac);
 
   // Request immediate time sync after joining
@@ -205,6 +211,26 @@ void SyncManager::leaveGroup()
   if (currentGroup.groupId == 0)
     return;
 
+  // If we're not the master, notify the master that we're leaving
+  if (!currentGroup.isMaster && discoveredGroups.find(currentGroup.groupId) != discoveredGroups.end())
+  {
+    const auto &groupAdv = discoveredGroups[currentGroup.groupId];
+
+    data_packet pkt;
+    pkt.type = SYNC_MSG_TYPE;
+    pkt.data[0] = SYNC_GROUP_LEAVE;
+
+    GroupLeaveCmd leaveCmd;
+    leaveCmd.groupId = currentGroup.groupId;
+    leaveCmd.deviceId = ourDeviceId;
+
+    memcpy(&pkt.data[1], &leaveCmd, sizeof(leaveCmd));
+    pkt.len = 1 + sizeof(leaveCmd);
+    wireless.send(&pkt, (uint8_t *)groupAdv.masterMac);
+
+    Serial.println("[GroupLeave] Notified master of group departure");
+  }
+
   // Clear sync state
   timeSynced = false;
   timeOffset = 0;
@@ -216,22 +242,28 @@ void SyncManager::leaveGroup()
     onGroupLeft();
 }
 
-void SyncManager::enableAutoJoin(bool en)
+// Auto Join Settings
+void SyncManager::enableAutoJoin(bool enabled)
 {
-  autoJoinEnabled = en;
-  if (en)
+  autoJoinEnabled = enabled;
+  if (enabled)
   {
     autoJoinStartTime = millis();
+    Serial.println("[AutoJoin] Auto-join ENABLED");
   }
   else
   {
     autoJoinStartTime = 0;
+    Serial.println("[AutoJoin] Auto-join DISABLED");
   }
+  saveAutoJoinPreferences();
 }
 
 void SyncManager::setAutoJoinTimeout(uint32_t ms)
 {
   autoJoinTimeout = ms;
+  Serial.println(String("[AutoJoin] Timeout set to ") + String(ms) + "ms");
+  saveAutoJoinPreferences();
 }
 
 bool SyncManager::isAutoJoinEnabled() const
@@ -239,15 +271,43 @@ bool SyncManager::isAutoJoinEnabled() const
   return autoJoinEnabled;
 }
 
-void SyncManager::enableAutoCreate(bool en)
+uint32_t SyncManager::getAutoJoinTimeout() const
 {
-  autoCreateEnabled = en;
-  Serial.println(String("[AutoJoin] Auto-create ") + (en ? "ENABLED" : "DISABLED"));
+  return autoJoinTimeout;
+}
+
+// Auto Create Settings (separate from auto-join)
+void SyncManager::enableAutoCreate(bool enabled)
+{
+  autoCreateEnabled = enabled;
+  if (enabled)
+  {
+    autoCreateStartTime = millis();
+    Serial.println("[AutoCreate] Auto-create ENABLED");
+  }
+  else
+  {
+    autoCreateStartTime = 0;
+    Serial.println("[AutoCreate] Auto-create DISABLED");
+  }
+  saveAutoCreatePreferences();
+}
+
+void SyncManager::setAutoCreateTimeout(uint32_t ms)
+{
+  autoCreateTimeout = ms;
+  Serial.println(String("[AutoCreate] Timeout set to ") + String(ms) + "ms");
+  saveAutoCreatePreferences();
 }
 
 bool SyncManager::isAutoCreateEnabled() const
 {
   return autoCreateEnabled;
+}
+
+uint32_t SyncManager::getAutoCreateTimeout() const
+{
+  return autoCreateTimeout;
 }
 
 void SyncManager::requestTimeSync()
@@ -262,8 +322,12 @@ void SyncManager::requestTimeSync()
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_TIME_REQUEST;
-  memcpy(&pkt.data[1], &reqTs, sizeof(reqTs));
-  pkt.len = 1 + sizeof(reqTs);
+
+  TimeRequestCmd requestCmd;
+  requestCmd.requestTimestamp = reqTs;
+
+  memcpy(&pkt.data[1], &requestCmd, sizeof(requestCmd));
+  pkt.len = 1 + sizeof(requestCmd);
   auto &adv = discoveredGroups[currentGroup.groupId];
   wireless.send(&pkt, adv.masterMac);
 }
@@ -531,9 +595,16 @@ void SyncManager::updateSyncedLED()
     // This creates a 1Hz blink with 50% duty cycle
     bool ledState = (syncTime % 1000) < 500;
 
-    if (ledState)
+    if (currentGroup.isMaster && currentGroup.members.size() < 2)
     {
-      statusLed2.setColor(0, 0, 255);
+      statusLed2.setColor(255, 0, 255);
+    }
+    else if (ledState)
+    {
+      if (currentGroup.isMaster)
+        statusLed2.setColor(255, 0, 255);
+      else
+        statusLed2.setColor(0, 0, 255);
     }
     else
     {
@@ -568,6 +639,9 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   case SYNC_GROUP_INFO:
     processGroupInfo(fp);
     break;
+  case SYNC_GROUP_LEAVE:
+    processGroupLeave(fp);
+    break;
   case SYNC_TIME_REQUEST:
     processTimeRequest(fp);
     break;
@@ -584,15 +658,17 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
 
 void SyncManager::processHeartbeat(fullPacket *fp)
 {
-  if (fp->p.len < 1 + sizeof(uint32_t))
+  if (fp->p.len < 1 + sizeof(HeartbeatCmd))
     return;
   if (memcmp(fp->mac, getOurMac(), 6) == 0)
     return;
-  uint32_t devId;
-  memcpy(&devId, &fp->p.data[1], sizeof(devId));
+
+  HeartbeatCmd heartbeatCmd;
+  memcpy(&heartbeatCmd, &fp->p.data[1], sizeof(heartbeatCmd));
+
   std::string ms = macToString(fp->mac);
   bool isNew = (discoveredDevices.find(ms) == discoveredDevices.end());
-  DiscoveredDevice d{devId, {}, millis()};
+  DiscoveredDevice d{heartbeatCmd.deviceId, {}, millis()};
   memcpy(d.mac, fp->mac, 6);
   discoveredDevices[ms] = d;
   if (isNew && onDeviceDiscovered)
@@ -601,21 +677,22 @@ void SyncManager::processHeartbeat(fullPacket *fp)
 
 void SyncManager::processGroupAnnounce(fullPacket *fp)
 {
-  if (fp->p.len < 1 + 4 + 4)
+  if (fp->p.len < 1 + sizeof(GroupAnnounceCmd))
     return;
   if (memcmp(fp->mac, getOurMac(), 6) == 0)
     return;
-  uint32_t gid, mid;
-  memcpy(&gid, &fp->p.data[1], 4);
-  memcpy(&mid, &fp->p.data[5], 4);
+
+  GroupAnnounceCmd announceCmd;
+  memcpy(&announceCmd, &fp->p.data[1], sizeof(announceCmd));
+
   std::string ms = macToString(fp->mac);
-  bool isNew = (discoveredGroups.find(gid) == discoveredGroups.end());
+  bool isNew = (discoveredGroups.find(announceCmd.groupId) == discoveredGroups.end());
   GroupAdvert adv;
-  adv.groupId = gid;
-  adv.masterDeviceId = mid;
+  adv.groupId = announceCmd.groupId;
+  adv.masterDeviceId = announceCmd.masterDeviceId;
   memcpy(adv.masterMac, fp->mac, 6);
   adv.lastSeen = millis();
-  discoveredGroups[gid] = adv;
+  discoveredGroups[announceCmd.groupId] = adv;
   if (isNew && onGroupFound)
     onGroupFound(adv);
 }
@@ -624,16 +701,18 @@ void SyncManager::processGroupJoin(fullPacket *fp)
 {
   if (!currentGroup.isMaster)
     return;
-  if (fp->p.len < 1 + 4 + 4)
+  if (fp->p.len < 1 + sizeof(GroupJoinCmd))
     return;
-  uint32_t gid, did;
-  memcpy(&gid, &fp->p.data[1], 4);
-  memcpy(&did, &fp->p.data[5], 4);
-  if (gid != currentGroup.groupId)
+
+  GroupJoinCmd joinCmd;
+  memcpy(&joinCmd, &fp->p.data[1], sizeof(joinCmd));
+
+  if (joinCmd.groupId != currentGroup.groupId)
     return;
+
   std::string ms = macToString(fp->mac);
   GroupMember gm{
-      did,
+      joinCmd.deviceId,
       {0},
   };
   memcpy(gm.mac, fp->mac, 6);
@@ -645,37 +724,70 @@ void SyncManager::processGroupInfo(fullPacket *fp)
 {
   if (currentGroup.isMaster)
     return;
-  if (fp->p.len < 1 + 4 + 4 + 1)
+  if (fp->p.len < 1 + sizeof(GroupInfoCmd))
     return;
-  uint32_t gid, mid;
-  memcpy(&gid, &fp->p.data[1], 4);
-  memcpy(&mid, &fp->p.data[5], 4);
-  if (gid != currentGroup.groupId)
+
+  GroupInfoCmd infoCmd;
+  memcpy(&infoCmd, &fp->p.data[1], sizeof(infoCmd));
+
+  if (infoCmd.groupId != currentGroup.groupId)
     return;
-  uint8_t cnt = fp->p.data[9];
-  size_t off = 10;
-  currentGroup.masterDeviceId = mid;
+
+  currentGroup.masterDeviceId = infoCmd.masterDeviceId;
   currentGroup.members.clear();
-  for (uint8_t i = 0; i < cnt; i++)
+
+  size_t off = 1 + sizeof(infoCmd);
+  for (uint8_t i = 0; i < infoCmd.memberCount; i++)
   {
-    if (off + 10 > fp->p.len)
+    if (off + sizeof(GroupInfoMember) > fp->p.len)
       break;
-    uint32_t did;
-    memcpy(&did, &fp->p.data[off], 4);
+
+    GroupInfoMember member;
+    memcpy(&member, &fp->p.data[off], sizeof(member));
+    off += sizeof(member);
+
     std::string ms;
     char buf[3];
-    off += 4;
     for (int b = 0; b < 6; b++)
     {
-      sprintf(buf, "%02X", fp->p.data[off++]);
+      sprintf(buf, "%02X", member.mac[b]);
       ms += buf;
     }
+
     GroupMember gm{
-        did,
+        member.deviceId,
         {0},
     };
-    memcpy(gm.mac, &fp->p.data[off - 6], 6);
+    memcpy(gm.mac, member.mac, 6);
     currentGroup.members[ms] = gm;
+  }
+}
+
+void SyncManager::processGroupLeave(fullPacket *fp)
+{
+  // Only masters should process leave messages
+  if (!currentGroup.isMaster)
+    return;
+  if (fp->p.len < 1 + sizeof(GroupLeaveCmd))
+    return;
+
+  GroupLeaveCmd leaveCmd;
+  memcpy(&leaveCmd, &fp->p.data[1], sizeof(leaveCmd));
+
+  // Verify it's for our group
+  if (leaveCmd.groupId != currentGroup.groupId)
+    return;
+
+  // Find and remove the leaving member
+  std::string macStr = macToString(fp->mac);
+  auto memberIt = currentGroup.members.find(macStr);
+  if (memberIt != currentGroup.members.end())
+  {
+    Serial.println("[GroupLeave] Device 0x" + String(leaveCmd.deviceId, HEX) + " left the group");
+    currentGroup.members.erase(memberIt);
+
+    // Broadcast updated group info to remaining members
+    sendGroupInfo();
   }
 }
 
@@ -683,10 +795,12 @@ void SyncManager::processTimeRequest(fullPacket *fp)
 {
   if (!currentGroup.isMaster)
     return;
-  if (fp->p.len < 1 + 4)
+  if (fp->p.len < 1 + sizeof(TimeRequestCmd))
     return;
-  uint32_t reqTs;
-  memcpy(&reqTs, &fp->p.data[1], 4);
+
+  TimeRequestCmd requestCmd;
+  memcpy(&requestCmd, &fp->p.data[1], sizeof(requestCmd));
+
   uint32_t now = millis();
 
   Serial.println("[TimeSync] Master processing time request, responding with time: " + String(now));
@@ -694,9 +808,13 @@ void SyncManager::processTimeRequest(fullPacket *fp)
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_TIME_RESPONSE;
-  memcpy(&pkt.data[1], &reqTs, 4);
-  memcpy(&pkt.data[5], &now, 4);
-  pkt.len = 1 + 4 + 4;
+
+  TimeResponseCmd responseCmd;
+  responseCmd.requestTimestamp = requestCmd.requestTimestamp;
+  responseCmd.masterTimestamp = now;
+
+  memcpy(&pkt.data[1], &responseCmd, sizeof(responseCmd));
+  pkt.len = 1 + sizeof(responseCmd);
   wireless.send(&pkt, fp->mac);
 }
 
@@ -704,14 +822,15 @@ void SyncManager::processTimeResponse(fullPacket *fp)
 {
   if (currentGroup.isMaster || currentGroup.groupId == 0)
     return;
-  if (fp->p.len < 1 + 4 + 4)
+  if (fp->p.len < 1 + sizeof(TimeResponseCmd))
     return;
-  uint32_t reqTs, masterTs;
-  memcpy(&reqTs, &fp->p.data[1], 4);
-  memcpy(&masterTs, &fp->p.data[5], 4);
+
+  TimeResponseCmd responseCmd;
+  memcpy(&responseCmd, &fp->p.data[1], sizeof(responseCmd));
+
   uint32_t now = millis();
-  uint32_t rtt = now - reqTs;
-  int32_t newOff = (int32_t)masterTs + (int32_t)(rtt / 2) - (int32_t)now;
+  uint32_t rtt = now - responseCmd.requestTimestamp;
+  int32_t newOff = (int32_t)responseCmd.masterTimestamp + (int32_t)(rtt / 2) - (int32_t)now;
 
   Serial.println("[TimeSync] Received time response - RTT: " + String(rtt) + "ms, New offset: " + String(newOff) + "ms");
 
@@ -765,8 +884,12 @@ void SyncManager::sendHeartbeat()
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_HEARTBEAT;
-  memcpy(&pkt.data[1], &ourDeviceId, sizeof(ourDeviceId));
-  pkt.len = 1 + sizeof(ourDeviceId);
+
+  HeartbeatCmd heartbeatCmd;
+  heartbeatCmd.deviceId = ourDeviceId;
+
+  memcpy(&pkt.data[1], &heartbeatCmd, sizeof(heartbeatCmd));
+  pkt.len = 1 + sizeof(heartbeatCmd);
   wireless.send(&pkt, BROADCAST_MAC);
 }
 
@@ -777,9 +900,13 @@ void SyncManager::sendGroupAnnounce()
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_GROUP_ANNOUNCE;
-  memcpy(&pkt.data[1], &currentGroup.groupId, 4);
-  memcpy(&pkt.data[5], &currentGroup.masterDeviceId, 4);
-  pkt.len = 1 + 4 + 4;
+
+  GroupAnnounceCmd announceCmd;
+  announceCmd.groupId = currentGroup.groupId;
+  announceCmd.masterDeviceId = currentGroup.masterDeviceId;
+
+  memcpy(&pkt.data[1], &announceCmd, sizeof(announceCmd));
+  pkt.len = 1 + sizeof(announceCmd);
   wireless.send(&pkt, BROADCAST_MAC);
 }
 
@@ -790,19 +917,26 @@ void SyncManager::sendGroupInfo()
   data_packet pkt;
   pkt.type = SYNC_MSG_TYPE;
   pkt.data[0] = SYNC_GROUP_INFO;
-  uint8_t cnt = currentGroup.members.size();
-  memcpy(&pkt.data[1], &currentGroup.groupId, 4);
-  memcpy(&pkt.data[5], &currentGroup.masterDeviceId, 4);
-  pkt.data[9] = cnt;
-  size_t off = 10;
+
+  GroupInfoCmd infoCmd;
+  infoCmd.groupId = currentGroup.groupId;
+  infoCmd.masterDeviceId = currentGroup.masterDeviceId;
+  infoCmd.memberCount = currentGroup.members.size();
+
+  memcpy(&pkt.data[1], &infoCmd, sizeof(infoCmd));
+  size_t off = 1 + sizeof(infoCmd);
+
   for (auto &kv : currentGroup.members)
   {
-    if (off + 10 > sizeof(pkt.data))
+    if (off + sizeof(GroupInfoMember) > sizeof(pkt.data))
       break;
-    memcpy(&pkt.data[off], &kv.second.deviceId, 4);
-    off += 4;
-    memcpy(&pkt.data[off], kv.second.mac, 6);
-    off += 6;
+
+    GroupInfoMember member;
+    member.deviceId = kv.second.deviceId;
+    memcpy(member.mac, kv.second.mac, 6);
+
+    memcpy(&pkt.data[off], &member, sizeof(member));
+    off += sizeof(member);
   }
   pkt.len = off;
   wireless.send(&pkt, BROADCAST_MAC);
@@ -858,34 +992,96 @@ void SyncManager::checkGroupCleanup(uint32_t now)
   }
 }
 
+void SyncManager::checkMemberTimeout(uint32_t now)
+{
+  // Only check member timeouts if we're in a group
+  if (currentGroup.groupId == 0)
+    return;
+
+  std::vector<std::string> membersToRemove;
+
+  // Check each group member for timeout
+  for (const auto &memberPair : currentGroup.members)
+  {
+    const std::string &macStr = memberPair.first;
+    const GroupMember &member = memberPair.second;
+
+    // Skip checking our own device
+    if (member.deviceId == ourDeviceId)
+      continue;
+
+    // Check if this member is still in discovered devices and hasn't timed out
+    auto discoveredIt = discoveredDevices.find(macStr);
+    if (discoveredIt == discoveredDevices.end() ||
+        (now - discoveredIt->second.lastSeen > GROUP_MEMBER_TIMEOUT))
+    {
+      // Member has timed out - mark for removal
+      membersToRemove.push_back(macStr);
+      Serial.println("[MemberTimeout] Removing timed out member: Device 0x" +
+                     String(member.deviceId, HEX) + " (MAC: " + String(macStr.c_str()) + ")");
+    }
+  }
+
+  // Remove timed out members
+  bool membersWereRemoved = false;
+  for (const std::string &macStr : membersToRemove)
+  {
+    currentGroup.members.erase(macStr);
+    membersWereRemoved = true;
+  }
+
+  // If we're the master and members were removed, broadcast updated group info
+  if (currentGroup.isMaster && membersWereRemoved)
+  {
+    Serial.println("[MemberTimeout] " + String(membersToRemove.size()) +
+                   " member(s) removed. Current group size: " + String(currentGroup.members.size()));
+    sendGroupInfo();
+  }
+}
+
 void SyncManager::checkAutoJoin(uint32_t now)
 {
   if (currentGroup.groupId != 0)
     return;
+
   if (autoJoinStartTime == 0)
   {
     autoJoinStartTime = now;
     return;
   }
+
+  // Check if we found any groups to join
   if (!discoveredGroups.empty())
   {
+    Serial.println("[AutoJoin] Found group, joining...");
     joinGroup(discoveredGroups.begin()->first);
     autoJoinStartTime = 0;
   }
   else if (now - autoJoinStartTime >= autoJoinTimeout)
   {
-    if (autoCreateEnabled)
-    {
-      Serial.println("[AutoJoin] No groups found, creating new group (auto-create enabled)");
-      createGroup();
-      autoJoinStartTime = 0;
-    }
-    else
-    {
-      // Reset the timer to keep looking for groups without creating one
-      // Serial.println("[AutoJoin] No groups found, continuing search (auto-create disabled)");
-      autoJoinStartTime = now;
-    }
+    // Auto-join timeout reached, no groups found
+    Serial.println("[AutoJoin] Timeout reached, no groups found");
+    autoJoinStartTime = now; // Reset timer to keep searching
+  }
+}
+
+void SyncManager::checkAutoCreate(uint32_t now)
+{
+  if (currentGroup.groupId != 0)
+    return;
+
+  if (autoCreateStartTime == 0)
+  {
+    autoCreateStartTime = now;
+    return;
+  }
+
+  // Check if timeout reached for creating a new group
+  if (now - autoCreateStartTime >= autoCreateTimeout)
+  {
+    Serial.println("[AutoCreate] Timeout reached, creating new group");
+    createGroup();
+    autoCreateStartTime = 0;
   }
 }
 
@@ -992,4 +1188,59 @@ void SyncManager::enableEffectSync(bool enabled)
 bool SyncManager::isEffectSyncEnabled() const
 {
   return effectSyncEnabled;
+}
+
+// Preferences Management
+void SyncManager::loadPreferences()
+{
+  // Load auto-join preferences
+  autoJoinEnabled = preferences.getBool("sync_aj_en", false);
+  autoJoinTimeout = preferences.getUInt("sync_aj_to", 10000);
+
+  // Load auto-create preferences
+  autoCreateEnabled = preferences.getBool("sync_ac_en", false);
+  autoCreateTimeout = preferences.getUInt("sync_ac_to", 30000);
+
+  Serial.println("[SyncManager] Loaded preferences:");
+  Serial.println(String("  Auto-join: ") + (autoJoinEnabled ? "ENABLED" : "DISABLED") + " (timeout: " + String(autoJoinTimeout) + "ms)");
+  Serial.println(String("  Auto-create: ") + (autoCreateEnabled ? "ENABLED" : "DISABLED") + " (timeout: " + String(autoCreateTimeout) + "ms)");
+}
+
+void SyncManager::saveAutoJoinPreferences()
+{
+  preferences.putBool("sync_aj_en", autoJoinEnabled);
+  preferences.putUInt("sync_aj_to", autoJoinTimeout);
+  Serial.println("[SyncManager] Auto-join preferences saved");
+}
+
+void SyncManager::saveAutoCreatePreferences()
+{
+  preferences.putBool("sync_ac_en", autoCreateEnabled);
+  preferences.putUInt("sync_ac_to", autoCreateTimeout);
+  Serial.println("[SyncManager] Auto-create preferences saved");
+}
+
+void SyncManager::printAutoSettings() const
+{
+  Serial.println(F("\n=== AUTO SETTINGS ==="));
+
+  Serial.println(F("Auto-Join:"));
+  Serial.println(String(F("  Enabled: ")) + (autoJoinEnabled ? "YES" : "NO"));
+  Serial.println(String(F("  Timeout: ")) + String(autoJoinTimeout) + F("ms"));
+  if (autoJoinEnabled && autoJoinStartTime > 0)
+  {
+    uint32_t elapsed = millis() - autoJoinStartTime;
+    Serial.println(String(F("  Running for: ")) + String(elapsed) + F("ms"));
+  }
+
+  Serial.println(F("\nAuto-Create:"));
+  Serial.println(String(F("  Enabled: ")) + (autoCreateEnabled ? "YES" : "NO"));
+  Serial.println(String(F("  Timeout: ")) + String(autoCreateTimeout) + F("ms"));
+  if (autoCreateEnabled && autoCreateStartTime > 0)
+  {
+    uint32_t elapsed = millis() - autoCreateStartTime;
+    Serial.println(String(F("  Running for: ")) + String(elapsed) + F("ms"));
+  }
+
+  Serial.println(F("======================"));
 }

@@ -29,7 +29,6 @@ void Application::handleNormalEffects()
     accOnInput.setLastActiveTime(0);
     unlockSequence->setActive(true);
 
-    // turn off all effects
     LEDEffect::disableAllEffects();
   }
 
@@ -94,6 +93,7 @@ void Application::handleNormalEffects()
         effectState.rgbSyncData = rgbEffect->getSyncData();
         effectState.nightRiderSyncData = nightriderEffect->getSyncData();
         effectState.policeSyncData = policeEffect->getSyncData();
+        effectState.solidColorSyncData = solidColorEffect->getSyncData();
 
         syncMgr->setEffectSyncState(effectState);
       }

@@ -20,6 +20,7 @@ constexpr uint8_t SYNC_GROUP_INFO = 0x04;
 constexpr uint8_t SYNC_TIME_REQUEST = 0x05;
 constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
 constexpr uint8_t SYNC_EFFECT_STATE = 0x07;
+constexpr uint8_t SYNC_GROUP_LEAVE = 0x08;
 
 struct DiscoveredDevice
 {
@@ -42,6 +43,12 @@ struct GroupMember
   uint8_t mac[6];
 };
 
+struct GroupLeaveCmd
+{
+  uint32_t groupId;
+  uint32_t deviceId;
+};
+
 struct GroupInfo
 {
   uint32_t groupId;
@@ -51,6 +58,49 @@ struct GroupInfo
   std::map<std::string, GroupMember> members;
   bool timeSynced;
   int32_t timeOffset;
+};
+
+// Sync command structs for maintainability
+struct HeartbeatCmd
+{
+  uint32_t deviceId;
+};
+
+struct GroupAnnounceCmd
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+};
+
+struct GroupJoinCmd
+{
+  uint32_t groupId;
+  uint32_t deviceId;
+};
+
+struct GroupInfoCmd
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  uint8_t memberCount;
+  // Members follow as GroupInfoMember array
+};
+
+struct GroupInfoMember
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+};
+
+struct TimeRequestCmd
+{
+  uint32_t requestTimestamp;
+};
+
+struct TimeResponseCmd
+{
+  uint32_t requestTimestamp;
+  uint32_t masterTimestamp;
 };
 
 class SyncManager
@@ -82,14 +132,17 @@ public:
   void joinGroup(uint32_t groupId);
   void leaveGroup();
 
-  // Auto‐join
+  // Auto‐join settings
   void enableAutoJoin(bool enabled = true);
   void setAutoJoinTimeout(uint32_t ms);
   bool isAutoJoinEnabled() const;
+  uint32_t getAutoJoinTimeout() const;
 
-  // Auto-create (separate from auto-join)
+  // Auto-create settings (separate from auto-join)
   void enableAutoCreate(bool enabled = true);
+  void setAutoCreateTimeout(uint32_t ms);
   bool isAutoCreateEnabled() const;
+  uint32_t getAutoCreateTimeout() const;
 
   // Time sync
   void requestTimeSync();
@@ -123,6 +176,13 @@ public:
   // Debug/Info functions
   void printDeviceInfo() const;
   void printGroupInfo() const;
+  void printAutoSettings() const;
+
+  // senders
+  void sendHeartbeat();
+  void sendGroupAnnounce();
+  void sendGroupInfo();
+  void sendEffectState();
 
   // Test LED for sync visualization
   void updateSyncedLED();
@@ -137,20 +197,22 @@ private:
   void processGroupAnnounce(fullPacket *fp);
   void processGroupJoin(fullPacket *fp);
   void processGroupInfo(fullPacket *fp);
+  void processGroupLeave(fullPacket *fp);
   void processTimeRequest(fullPacket *fp);
   void processTimeResponse(fullPacket *fp);
   void processEffectState(fullPacket *fp);
 
-  // senders
-  void sendHeartbeat();
-  void sendGroupAnnounce();
-  void sendGroupInfo();
-  void sendEffectState();
-
   // periodic tasks
   void checkDiscoveryCleanup(uint32_t now);
   void checkGroupCleanup(uint32_t now);
+  void checkMemberTimeout(uint32_t now);
   void checkAutoJoin(uint32_t now);
+  void checkAutoCreate(uint32_t now);
+
+  // preferences management
+  void loadPreferences();
+  void saveAutoJoinPreferences();
+  void saveAutoCreatePreferences();
 
   // utilities
   uint32_t generateDeviceId();
@@ -164,13 +226,15 @@ private:
   GroupInfo currentGroup;
   uint32_t ourDeviceId;
 
-  // auto‐join
+  // auto‐join settings
   bool autoJoinEnabled = false;
   uint32_t autoJoinTimeout = 10000;
   uint32_t autoJoinStartTime = 0;
 
-  // auto-create
+  // auto-create settings (separate from auto-join)
   bool autoCreateEnabled = false;
+  uint32_t autoCreateTimeout = 30000; // Wait longer before creating a group
+  uint32_t autoCreateStartTime = 0;
 
   // time‐sync
   bool timeSynced = false;
@@ -207,4 +271,5 @@ private:
   static constexpr uint32_t GROUP_INFO_INTERVAL = 2000;
   static constexpr uint32_t TIME_SYNC_INTERVAL = 10000;
   static constexpr uint32_t EFFECT_SYNC_INTERVAL = 1000;
+  static constexpr uint32_t GROUP_MEMBER_TIMEOUT = 8000; // Time after which a member is considered inactive
 };

@@ -13,7 +13,7 @@
 
 /****************************************************
  * Menu struct
- * 
+ *
  * - name: The displayed name of the menu
  * - parent: The parent menu (used for breadcrumbs)
  * - printMenu: pointer to a function that prints the menu
@@ -21,9 +21,10 @@
  *                user input. Returns `true` if the
  *                command is recognized, else `false`.
  ****************************************************/
-struct Menu {
+struct Menu
+{
     String name;
-    Menu* parent;
+    Menu *parent;
     void (*printMenu)(const Menu &menu);
     bool (*handleInput)(Menu &menu, const String &input);
 };
@@ -41,13 +42,22 @@ void initSerialMenu();
  * - Changes the currently active menu and immediately
  *   calls printMenu() for the new menu.
  ****************************************************/
-void setMenu(Menu* newMenu);
+void setMenu(Menu *newMenu);
 
 /****************************************************
  * getMenu()
  * - Returns the pointer to the currently active menu.
  ****************************************************/
-Menu* getMenu();
+Menu *getMenu();
+
+/****************************************************
+ * promptUserInput()
+ * - Reusable function that prompts user for input with ">"
+ * - Returns the complete input string when Enter is pressed
+ * - Handles character echo and backspace
+ * - Times out after specified milliseconds (0 = no timeout)
+ ****************************************************/
+String promptUserInput(const String &prompt = "", unsigned long timeoutMs = 0);
 
 /****************************************************
  * processMenuInput()
@@ -71,5 +81,4 @@ bool handleSpecialCommand(const String &input);
  * - Recursively builds a string for the breadcrumb
  *   like "Main > System" or "Main".
  ****************************************************/
-String buildBreadcrumbString(const Menu* menu);
-
+String buildBreadcrumbString(const Menu *menu);

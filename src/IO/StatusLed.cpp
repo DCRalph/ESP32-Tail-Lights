@@ -3,9 +3,6 @@
 
 static const char *TAG = "StatusLed";
 
-// ================================
-// StatusLeds implementation (plural - manages FastLED controller)
-// ================================
 
 StatusLeds::StatusLeds()
 {
@@ -73,9 +70,6 @@ uint8_t StatusLeds::getBrightness() const
   return _brightness;
 }
 
-// ================================
-// StatusLed implementation (singular - individual LED control)
-// ================================
 
 StatusLed::StatusLed()
 {
@@ -281,6 +275,7 @@ void StatusLed::_pulsing()
       uint8_t blue = b - (b * i / 255);
 
       _setColor(red, green, blue);
+      _show();
       vTaskDelay(pdMS_TO_TICKS(_pulsingSpeed));
     }
 
@@ -292,9 +287,9 @@ void StatusLed::_pulsing()
       uint8_t blue = (b * i / 255);
 
       _setColor(red, green, blue);
+      _show();
       vTaskDelay(pdMS_TO_TICKS(_pulsingSpeed));
     }
-    _show();
   }
 }
 
@@ -486,11 +481,11 @@ void StatusLed::setColor(uint8_t r, uint8_t g, uint8_t b)
 
   if (_mode != RGB_MODE::Manual)
   {
-    ESP_LOGI(TAG, "SetColor() called while not in Manual mode");
+    ESP_LOGD(TAG, "SetColor() called while not in Manual mode");
     return;
   }
 
-  ESP_LOGI(TAG, "Color set to %d %d %d", r, g, b);
+  ESP_LOGD(TAG, "Color set to %d %d %d", r, g, b);
   _setColor(r, g, b);
 }
 
@@ -521,7 +516,7 @@ void StatusLed::off()
 
   if (_mode != RGB_MODE::Manual)
   {
-    ESP_LOGI(TAG, "Off() called while not in Manual mode");
+    ESP_LOGD(TAG, "Off() called while not in Manual mode");
     return;
   }
 
@@ -535,6 +530,11 @@ void StatusLed::off()
 void StatusLed::setPulsingColor(uint32_t color)
 {
   _pulsingColor = color;
+}
+
+void StatusLed::setPulsingColor(uint8_t _r, uint8_t _g, uint8_t _b)
+{
+  _pulsingColor = (_r << 16) | (_g << 8) | _b;
 }
 
 void StatusLed::blink(uint32_t color, uint8_t speed, uint8_t count)

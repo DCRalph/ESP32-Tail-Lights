@@ -58,6 +58,9 @@ void Application::setupSequences()
                                    // diable all special effects
                                    rgbEffect->setActive(false);
                                    nightriderEffect->setActive(false);
+                                   policeEffect->setActive(false);
+                                   pulseWaveEffect->setActive(false);
+                                   auroraEffect->setActive(false);
 
                                    enableNormalMode();
                                    //

@@ -15,6 +15,7 @@
 #include "IO/LED/Effects/PoliceEffect.h"
 #include "IO/LED/Effects/PulseWaveEffect.h"
 #include "IO/LED/Effects/AuroraEffect.h"
+#include "IO/LED/Effects/SolidColorEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -117,6 +118,7 @@ private:
   // New effects
   PulseWaveEffect *pulseWaveEffect;
   AuroraEffect *auroraEffect;
+  SolidColorEffect *solidColorEffect;
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;

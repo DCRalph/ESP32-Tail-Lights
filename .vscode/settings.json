@@ -29,7 +29,8 @@
     "thread": "cpp",
     "tuple": "cpp",
     "type_traits": "cpp",
-    "typeinfo": "cpp"
+    "typeinfo": "cpp",
+    "iosfwd": "cpp"
   },
   "idf.pythonInstallPath": "/usr/local/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/bin/python3"
 }

@@ -14,7 +14,6 @@ enum class RGB_MODE
   Blink
 };
 
-// Forward declaration
 class StatusLeds;
 
 class StatusLed
@@ -45,6 +44,7 @@ public:
 
   // Animation controls
   void setPulsingColor(uint32_t color);
+  void setPulsingColor(uint8_t _r, uint8_t _g, uint8_t _b);
   void blink(uint32_t color, uint8_t speed, uint8_t count);
 
   // Speed controls

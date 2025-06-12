@@ -15,10 +15,29 @@
 #define toggleBit(x, y) (x ^= (1 << y)) // Toggle a bit (0 -> 1, 1 -> 0) and return the new value
 #define checkBit(x, y) ((x >> y) & 1)   // Check a bit and return 1 or 0
 
+struct DeviceInfo
+{
+  bool provisioned = false;
+  bool debugEnabled = false;
+
+  uint8_t macAddress[6];
+  uint32_t serialNumber;
+  uint16_t hardwareVersion;
+
+  DeviceInfo();
+  void print();
+};
+
 extern Preferences preferences;
+
+extern DeviceInfo deviceInfo;
 
 void restart();
 String formatBytes(size_t bytes, bool _short = false);
+
+void saveDeviceInfo();
+void loadDeviceInfo();
+bool isDeviceProvisioned();
 
 // #define S3_V1
 #define S3_DEV
@@ -33,7 +52,6 @@ String formatBytes(size_t bytes, bool _short = false);
 
 #define DEBUG_SYNC
 #define ENABLE_SYNC
-
 
 #ifdef S3_V1
 #define LED_PIN 15
@@ -67,7 +85,6 @@ String formatBytes(size_t bytes, bool _short = false);
 #ifdef S3_DEV
 #define LED_PIN 21
 #define OUTPUT_STATUS_LED_PIN 16
-
 
 // #define ENABLE_HV_INPUTS
 

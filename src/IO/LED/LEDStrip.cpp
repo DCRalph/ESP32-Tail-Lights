@@ -281,15 +281,6 @@ void LEDStrip::updateEffects()
 
   // Measure update duration.
   lastUpdateDuration = micros() - frameStart;
-
-  // Optionally, print the measured timings.
-  // Serial.print("Update time: ");
-  // Serial.print(lastUpdateDuration);
-  // Serial.print(" us, Draw time: ");
-  // Serial.print(lastDrawDuration);
-  // Serial.print(" us, Total frame: ");
-  // Serial.print(totalFrameTime);
-  // Serial.println(" us");
 }
 
 void LEDStrip::draw()

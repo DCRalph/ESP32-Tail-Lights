@@ -31,9 +31,7 @@ class Wireless
 private:
   bool setupDone = false;
 
-  // Generic callback for packets that don't have a type-specific callback.
   std::function<void(fullPacket *fp)> onReceiveOtherCb;
-  // Map for type-specific callbacks: key = packet type, value = callback function.
   std::map<uint8_t, std::function<void(fullPacket *fp)>> onReceiveForCallbacks;
 
 public:

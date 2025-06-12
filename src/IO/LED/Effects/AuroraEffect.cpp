@@ -8,18 +8,15 @@ AuroraEffect::AuroraEffect(uint8_t priority, bool transparent)
       active(false),
       lastUpdateTime(0),
       time(0.0f),
-      movementSpeed(0.2f), // Slow, gentle movement
-      waveIntensity(0.6f), // Moderate wave intensity
-      intensity(0.85f),    // 85% max brightness
-      minHue(140.0f),      // Green-blue (teal)
-      maxHue(270.0f),      // Purple
-      saturationMin(0.7f), // Moderately saturated
-      saturationMax(1.0f)  // Fully saturated
+      movementSpeed(0.2f),
+      waveIntensity(0.6f),
+      intensity(0.85f),
+      minHue(140.0f),
+      maxHue(270.0f),
+      saturationMin(0.7f),
+      saturationMax(1.0f)
 {
-  // Initialize multiple wave components with slightly different parameters
-  // to create a natural, organic movement like real aurora
 
-  // First wave - main aurora movement
   phaseOffsets[0] = 0.0f;
   amplitudes[0] = 1.0f;
   frequencies[0] = 1.5f;

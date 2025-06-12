@@ -65,6 +65,11 @@ struct EffectsCmd
   PoliceMode policeMode;
   bool testEffect1;
   bool testEffect2;
+  bool solidColor;
+  SolidColorPreset solidColorPreset;
+  uint8_t solidColorR;
+  uint8_t solidColorG;
+  uint8_t solidColorB;
 };
 
 struct InputsCmd
@@ -88,7 +93,7 @@ struct SyncDeviceInfo
   uint32_t deviceId;
   uint8_t mac[6];
   uint32_t lastSeen;
-  uint32_t timeSinceLastSeen; // Calculated field in milliseconds
+  uint32_t timeSinceLastSeen;
   bool inCurrentGroup;
   bool isGroupMaster;
   bool isThisDevice;
@@ -97,8 +102,8 @@ struct SyncDeviceInfo
 struct SyncDevicesResponse
 {
   uint8_t deviceCount;
-  uint32_t currentTime;      // Reference time for lastSeen calculations
-  SyncDeviceInfo devices[8]; // Reduced to 8 to accommodate larger struct
+  uint32_t currentTime;
+  SyncDeviceInfo devices[8];
 };
 
 struct SyncGroupInfo
@@ -107,17 +112,17 @@ struct SyncGroupInfo
   uint32_t masterDeviceId;
   uint8_t masterMac[6];
   uint32_t lastSeen;
-  uint32_t timeSinceLastSeen; // Calculated field in milliseconds
+  uint32_t timeSinceLastSeen;
   bool isCurrentGroup;
-  bool canJoin; // True if we're not in a group or this is not our current group
+  bool canJoin;
 };
 
 struct SyncGroupsResponse
 {
   uint8_t groupCount;
-  uint32_t currentTime;    // Reference time for lastSeen calculations
-  uint32_t ourGroupId;     // Our current group ID (0 if none)
-  SyncGroupInfo groups[4]; // Reduced to 4 to accommodate larger struct
+  uint32_t currentTime;
+  uint32_t ourGroupId;
+  SyncGroupInfo groups[4];
 };
 
 struct SyncGroupMemberInfo
@@ -126,7 +131,7 @@ struct SyncGroupMemberInfo
   uint8_t mac[6];
   bool isGroupMaster;
   bool isThisDevice;
-  uint32_t lastHeartbeat; // 0 if unknown, otherwise time since last heartbeat
+  uint32_t lastHeartbeat;
 };
 
 struct SyncCurrentGroupInfo
@@ -138,8 +143,8 @@ struct SyncCurrentGroupInfo
   int32_t timeOffset;
   uint32_t syncedTime;
   uint8_t memberCount;
-  uint32_t currentTime;           // Reference time
-  SyncGroupMemberInfo members[6]; // Limit to 6 members to fit in packet
+  uint32_t currentTime;
+  SyncGroupMemberInfo members[6];
 };
 
 struct SyncJoinGroupCmd
@@ -149,7 +154,7 @@ struct SyncJoinGroupCmd
 
 struct SyncCreateGroupCmd
 {
-  uint32_t groupId; // 0 = auto-generate, otherwise use specified ID
+  uint32_t groupId;
 };
 
 struct SyncDetailedStatus
@@ -291,6 +296,9 @@ void Application::setupWireless()
                              eCmd.policeMode = policeEffect->getMode();
                              eCmd.testEffect1 = pulseWaveEffect->isActive();
                              eCmd.testEffect2 = auroraEffect->isActive();
+                             eCmd.solidColor = solidColorEffect->isActive();
+                             eCmd.solidColorPreset = solidColorEffect->getColorPreset();
+                             solidColorEffect->getCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
 
                              pTX.len = sizeof(eCmd);
                              memcpy(pTX.data, &eCmd, sizeof(eCmd));
@@ -330,6 +338,24 @@ void Application::setupWireless()
                              policeEffect->setMode(eCmd.policeMode);
                              pulseWaveEffect->setActive(eCmd.testEffect1);
                              auroraEffect->setActive(eCmd.testEffect2);
+                             solidColorEffect->setActive(eCmd.solidColor);
+                             solidColorEffect->setColorPreset(eCmd.solidColorPreset);
+                             solidColorEffect->setCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
+
+                             SyncManager *syncMgr = SyncManager::getInstance();
+
+                             if (syncMgr->isGroupMaster() && syncMgr->isEffectSyncEnabled())
+                             {
+                               EffectSyncState effectState = {};
+
+                               effectState.rgbSyncData = rgbEffect->getSyncData();
+                               effectState.nightRiderSyncData = nightriderEffect->getSyncData();
+                               effectState.policeSyncData = policeEffect->getSyncData();
+                               effectState.solidColorSyncData = solidColorEffect->getSyncData();
+
+                               syncMgr->setEffectSyncState(effectState);
+                               syncMgr->sendEffectState();
+                             }
 
                              //
                            });
