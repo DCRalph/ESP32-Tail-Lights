@@ -615,7 +615,7 @@ void SyncManager::updateSyncedLED()
   else
   {
     // If not synced or not in group, turn LED off
-    statusLed2.off();
+    statusLed2.setColor(0, 0, 0);
     statusLeds.show();
   }
 }
@@ -1087,6 +1087,15 @@ void SyncManager::checkAutoCreate(uint32_t now)
 
 uint32_t SyncManager::generateDeviceId()
 {
+
+  if (ourDeviceId != 0)
+    return ourDeviceId;
+
+  if (deviceInfo.serialNumber != 0)
+  {
+    return deviceInfo.serialNumber;
+  }
+
   // Use multiple entropy sources for better randomization
   uint64_t macVal = ESP.getEfuseMac();
   uint32_t mac32Val = (uint32_t)(macVal & 0xFFFFFFFF);

@@ -62,6 +62,11 @@ private:
   std::vector<RGB_MODE> _modeHistory;
   uint32_t _prevManualColor = 0;
 
+  // Task names
+  char _rainbowTaskName[32];
+  char _pulsingTaskName[32];
+  char _blinkTaskName[32];
+
   // Animation task handles
   TaskHandle_t _rainbowHandle = NULL;
   uint8_t _rainbowSpeed = 5;

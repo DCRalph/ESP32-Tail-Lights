@@ -3,7 +3,6 @@
 
 static const char *TAG = "StatusLed";
 
-
 StatusLeds::StatusLeds()
 {
   _initialized = false;
@@ -70,7 +69,6 @@ uint8_t StatusLeds::getBrightness() const
   return _brightness;
 }
 
-
 StatusLed::StatusLed()
 {
   _initialized = false;
@@ -95,6 +93,12 @@ void StatusLed::begin(StatusLeds *controller, CRGB *ledPtr)
     _controller = controller;
     _ledPtr = ledPtr;
     _initialized = true;
+
+    // Initialize task names
+    uint8_t ledIndex = _ledPtr - _controller->getLedPtr(0) + 1;
+    snprintf(_rainbowTaskName, sizeof(_rainbowTaskName), "Rainbow_%d", ledIndex);
+    snprintf(_pulsingTaskName, sizeof(_pulsingTaskName), "Pulsing_%d", ledIndex);
+    snprintf(_blinkTaskName, sizeof(_blinkTaskName), "Blink_%d", ledIndex);
 
     // Initialize LED to off
     *_ledPtr = CRGB(0, 0, 0);
@@ -189,7 +193,7 @@ void StatusLed::_startRainbow()
 {
   if (_rainbowHandle == NULL)
   {
-    xTaskCreate(_rainbowTask, "Rainbow", 4096, this, 1, &_rainbowHandle);
+    xTaskCreate(_rainbowTask, _rainbowTaskName, 4096, this, 1, &_rainbowHandle);
   }
 }
 
@@ -246,7 +250,7 @@ void StatusLed::_startPulsing()
 {
   if (_pulsingHandle == NULL)
   {
-    xTaskCreate(_pulsingTask, "Pulsing", 4096, this, 1, &_pulsingHandle);
+    xTaskCreate(_pulsingTask, _pulsingTaskName, 4096, this, 1, &_pulsingHandle);
   }
 }
 
@@ -309,7 +313,7 @@ void StatusLed::_startBlink()
 {
   if (_blinkHandle == NULL)
   {
-    xTaskCreate(_blinkTask, "Blink", 4096, this, 1, &_blinkHandle);
+    xTaskCreate(_blinkTask, _blinkTaskName, 4096, this, 1, &_blinkHandle);
   }
 }
 

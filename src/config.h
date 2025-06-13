@@ -39,8 +39,8 @@ void saveDeviceInfo();
 void loadDeviceInfo();
 bool isDeviceProvisioned();
 
-// #define S3_V1
-#define S3_DEV
+#define S3_V1
+// #define S3_DEV
 // #define S2_CAR
 
 // WiFi
@@ -54,7 +54,7 @@ bool isDeviceProvisioned();
 #define ENABLE_SYNC
 
 #ifdef S3_V1
-#define LED_PIN 15
+#define LED_PIN 40 // make optinal
 
 #define ENABLE_HV_INPUTS
 
@@ -103,22 +103,20 @@ bool isDeviceProvisioned();
 #define INPUT_6_PIN 6
 #endif
 
-// #define ENABLE_HEADLIGHTS
+#define ENABLE_HEADLIGHTS
 #define ENABLE_TAILLIGHTS
 // #define ENABLE_UNDERGLOW
 // #define ENABLE_INTERIOR
 
 #ifdef ENABLE_HEADLIGHTS
 #define HEADLIGHT_LED_COUNT 120
-#define HEADLIGHT_LED_PIN 16
+#define HEADLIGHT_LED_PIN OUTPUT_LED_1_PIN
 // #define HEADLIGHT_FLIPED
 #endif
 
 #ifdef ENABLE_TAILLIGHTS
-
 #define TAILLIGHT_LED_COUNT 120
-#define TAILLIGHT_LED_PIN 9
-
+#define TAILLIGHT_LED_PIN OUTPUT_LED_2_PIN
 #endif
 
 #ifdef ENABLE_UNDERGLOW
