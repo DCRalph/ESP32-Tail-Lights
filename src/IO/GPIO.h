@@ -1,5 +1,6 @@
 #pragma once
 #include "config.h"
+#include "ClickButton.h"
 
 class GpIO;
 
@@ -20,6 +21,11 @@ extern GpIO input5;
 extern GpIO input6;
 extern GpIO input7;
 extern GpIO input8;
+
+extern ClickButton BtnBoot;
+extern ClickButton BtnPrev;
+extern ClickButton BtnSel;
+extern ClickButton BtnNext;
 
 enum PinMode
 {

@@ -10,11 +10,11 @@
 #include "SerialMenu.h"
 
 // Declare the syncMenu object
-extern Menu syncMenu;
+extern SerialMenu syncMenu;
 
 // Function prototypes
-void printSyncMenu(const Menu &menu);
-bool handleSyncMenuInput(Menu &menu, const String &input);
+void printSyncMenu(const SerialMenu &menu);
+bool handleSyncMenuInput(SerialMenu &menu, const String &input);
 
 // Helper functions for sync management
 void showSyncStatus();

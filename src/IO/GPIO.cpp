@@ -22,6 +22,11 @@ GpIO input7(INPUT_7_PIN, Input);
 GpIO input8(INPUT_8_PIN, Input);
 #endif
 
+ClickButton BtnBoot(INPUT_BTN_BOOT_PIN, LOW);
+ClickButton BtnPrev(INPUT_BTN_PREV_PIN, LOW);
+ClickButton BtnSel(INPUT_BTN_SEL_PIN, LOW);
+ClickButton BtnNext(INPUT_BTN_NEXT_PIN, LOW);
+
 String GpIO::PinModeString(PinMode mode)
 {
   switch (mode)
@@ -77,7 +82,6 @@ void GpIO::init()
 
   if (mode == Output)
     digitalWrite(pin, !activeState);
-
 }
 
 void GpIO::SetMode(PinMode _mode)
@@ -192,6 +196,16 @@ void GpIO::initIO()
   btnSel.enableDebounce(50);
   btnNext.init();
   btnNext.enableDebounce(50);
+
+  BtnBoot.debounceTime = 20;
+  BtnBoot.multiclickTime = 200;
+  BtnBoot.longClickTime = 300;
+  BtnPrev.debounceTime = 20;
+  BtnPrev.multiclickTime = 200;
+  BtnPrev.longClickTime = 300;
+  BtnSel.debounceTime = 20;
+  BtnSel.multiclickTime = 200;
+  BtnSel.longClickTime = 300;
 
   voltage.init();
 #endif

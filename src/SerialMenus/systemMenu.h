@@ -8,8 +8,8 @@
 
 #include "SerialMenu.h"
 
-extern Menu systemMenu;
+extern SerialMenu systemMenu;
 
-void printSystemMenu(const Menu &menu);
-bool handleSystemMenuInput(Menu &menu, const String &input);
+void printSystemMenu(const SerialMenu &menu);
+bool handleSystemMenuInput(SerialMenu &menu, const String &input);
 

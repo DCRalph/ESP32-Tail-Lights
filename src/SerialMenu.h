@@ -12,7 +12,7 @@
 #include "config.h"
 
 /****************************************************
- * Menu struct
+ * SerialMenu struct
  *
  * - name: The displayed name of the menu
  * - parent: The parent menu (used for breadcrumbs)
@@ -21,12 +21,12 @@
  *                user input. Returns `true` if the
  *                command is recognized, else `false`.
  ****************************************************/
-struct Menu
+struct SerialMenu
 {
     String name;
-    Menu *parent;
-    void (*printMenu)(const Menu &menu);
-    bool (*handleInput)(Menu &menu, const String &input);
+    SerialMenu *parent;
+    void (*printMenu)(const SerialMenu &menu);
+    bool (*handleInput)(SerialMenu &menu, const String &input);
 };
 
 /****************************************************
@@ -42,13 +42,13 @@ void initSerialMenu();
  * - Changes the currently active menu and immediately
  *   calls printMenu() for the new menu.
  ****************************************************/
-void setMenu(Menu *newMenu);
+void setMenu(SerialMenu *newMenu);
 
 /****************************************************
  * getMenu()
  * - Returns the pointer to the currently active menu.
  ****************************************************/
-Menu *getMenu();
+SerialMenu *getMenu();
 
 /****************************************************
  * promptUserInput()
@@ -81,4 +81,4 @@ bool handleSpecialCommand(const String &input);
  * - Recursively builds a string for the breadcrumb
  *   like "Main > System" or "Main".
  ****************************************************/
-String buildBreadcrumbString(const Menu *menu);
+String buildBreadcrumbString(const SerialMenu *menu);

@@ -8,6 +8,20 @@
 #include "Application.h"
 #include "SerialMenu.h"
 #include "IO/StatusLed.h"
+#include "IO/Display.h"
+#include "IO/ScreenManager.h"
+
+#include "Screens/Screens.h"
+
+StartUpScreen startUpScreen("Start Up");
+HomeScreen homeScreen("Home");
+ShutdownScreen shutdownScreen("Shutdown");
+ApplicationScreen applicationScreen("Application");
+SyncScreen syncScreen("Sync");
+SettingsScreen settingsScreen("Settings");
+DebugScreen debugScreen("Debug");
+IOTestScreen ioTestScreen("IO Test");
+BatteryScreen batteryScreen("Battery");
 
 Application *app;
 
@@ -28,6 +42,22 @@ void setup()
   preferences.begin("esp", false);
   loadDeviceInfo();
 
+  display.init();
+  screenManager.init();
+
+  screenManager.addScreen(&startUpScreen);
+  screenManager.addScreen(&homeScreen);
+  screenManager.addScreen(&shutdownScreen);
+  screenManager.addScreen(&applicationScreen);
+  screenManager.addScreen(&syncScreen);
+  screenManager.addScreen(&settingsScreen);
+  screenManager.addScreen(&debugScreen);
+  screenManager.addScreen(&ioTestScreen);
+  screenManager.addScreen(&batteryScreen);
+
+  screenManager.setScreen("Start Up");
+  display.display();
+
   WiFi.mode(WIFI_AP_STA);
 
   GpIO::initIO();
@@ -35,7 +65,6 @@ void setup()
   statusLeds.setBrightness(100);
   statusLed1.begin(&statusLeds, statusLeds.getLedPtr(0));
   statusLed2.begin(&statusLeds, statusLeds.getLedPtr(1));
-
 
   long bootCount = preferences.getLong("bootCount", 0);
   bootCount++;
@@ -58,6 +87,8 @@ void setup()
     }
 
     app->begin();
+
+    screenManager.setScreen("Home");
 
     xTaskCreatePinnedToCore(
         [](void *pvParameters)
@@ -91,6 +122,9 @@ void setup()
   initSerialMenu();
 }
 
+unsigned long batteryLoopMs = 0;
+unsigned long lastDraw = 0;
+
 void loop()
 {
   unsigned long currentTime = millis();
@@ -99,6 +133,24 @@ void loop()
   if (isDeviceProvisioned())
   {
     app->loop();
+  }
+
+  if (millis() - batteryLoopMs > 500)
+  {
+    batteryLoopMs = millis();
+    batteryUpdate();
+  }
+
+  if (millis() - lastDraw > 25)
+  {
+    lastDraw = millis();
+
+    BtnBoot.Update();
+    BtnPrev.Update();
+    BtnSel.Update();
+    BtnNext.Update();
+
+    display.display();
   }
 
   try

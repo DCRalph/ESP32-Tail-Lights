@@ -10,9 +10,9 @@
 #include "SerialMenu.h" // needed for struct Menu
 
 // Declare the mainMenu instance
-extern Menu mainMenu;
+extern SerialMenu mainMenu;
 
 // Declare function prototypes for the main menu
-void printMainMenu(const Menu &menu);
-bool handleMainMenuInput(Menu &menu, const String &input);
+void printMainMenu(const SerialMenu &menu);
+bool handleMainMenuInput(SerialMenu &menu, const String &input);
 

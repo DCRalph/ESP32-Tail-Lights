@@ -14,13 +14,13 @@
 
 #include <WiFi.h> // If you're using WiFi.localIP, etc.
 
-Menu systemMenu = {
+SerialMenu systemMenu = {
     F("System"),
     &mainMenu, // parent is mainMenu
     printSystemMenu,
     handleSystemMenuInput};
 
-void printSystemMenu(const Menu &menu)
+void printSystemMenu(const SerialMenu &menu)
 {
     Serial.println(String(F("\nBreadcrumb: ")) + buildBreadcrumbString(&menu));
     Serial.println(F("=== SYSTEM MENU ==="));
@@ -33,7 +33,7 @@ void printSystemMenu(const Menu &menu)
     Serial.println(F("Press Enter to re-print this menu"));
 }
 
-bool handleSystemMenuInput(Menu &menu, const String &input)
+bool handleSystemMenuInput(SerialMenu &menu, const String &input)
 {
     if (input == F("1"))
     {
@@ -79,7 +79,6 @@ bool handleSystemMenuInput(Menu &menu, const String &input)
     else if (input == F("b"))
     {
         // go back to main menu
-        extern Menu mainMenu;
         setMenu(&mainMenu);
         return true;
     }

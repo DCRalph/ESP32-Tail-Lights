@@ -24,13 +24,13 @@
  * - printMenu: printMainMenu
  * - handleInput: handleMainMenuInput
  ****************************************************/
-Menu mainMenu = {
+SerialMenu mainMenu = {
     "Main",
     nullptr,
     printMainMenu,
     handleMainMenuInput};
 
-void printMainMenu(const Menu &menu)
+void printMainMenu(const SerialMenu &menu)
 {
     String breadcrumb = buildBreadcrumbString(&menu);
     Serial.println(String(F("\nBreadcrumb: ")) + breadcrumb);
@@ -42,7 +42,7 @@ void printMainMenu(const Menu &menu)
     Serial.println(F("Press Enter to re-print this menu"));
 }
 
-bool handleMainMenuInput(Menu &menu, const String &input)
+bool handleMainMenuInput(SerialMenu &menu, const String &input)
 {
     if (input == F("1"))
     {

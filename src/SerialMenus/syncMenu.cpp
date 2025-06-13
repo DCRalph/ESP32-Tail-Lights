@@ -16,13 +16,13 @@
 // Store available groups for numbered selection
 static std::vector<uint32_t> availableGroups;
 
-Menu syncMenu = {
+SerialMenu syncMenu = {
     "Sync Manager",
     &mainMenu,
     printSyncMenu,
     handleSyncMenuInput};
 
-void printSyncMenu(const Menu &menu)
+void printSyncMenu(const SerialMenu &menu)
 {
   Serial.println(String(F("\nBreadcrumb: ")) + buildBreadcrumbString(&menu));
   Serial.println(F("=== SYNC MANAGER ==="));
@@ -64,7 +64,7 @@ void printSyncMenu(const Menu &menu)
   Serial.println(F("Press Enter to refresh this menu"));
 }
 
-bool handleSyncMenuInput(Menu &menu, const String &input)
+bool handleSyncMenuInput(SerialMenu &menu, const String &input)
 {
   SyncManager *syncMgr = SyncManager::getInstance();
 
@@ -165,7 +165,6 @@ bool handleSyncMenuInput(Menu &menu, const String &input)
   }
   else if (input == F("b"))
   {
-    extern Menu mainMenu;
     setMenu(&mainMenu);
     return true;
   }

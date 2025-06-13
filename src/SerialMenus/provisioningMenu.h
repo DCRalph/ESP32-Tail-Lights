@@ -9,10 +9,10 @@
 #pragma once
 #include "SerialMenu.h"
 
-extern Menu provisioningMenu;
+extern SerialMenu provisioningMenu;
 
-void printProvisioningMenu(const Menu &menu);
-bool handleProvisioningMenuInput(Menu &menu, const String &input);
+void printProvisioningMenu(const SerialMenu &menu);
+bool handleProvisioningMenuInput(SerialMenu &menu, const String &input);
 
 // Provisioning functions
 void startProvisioning();

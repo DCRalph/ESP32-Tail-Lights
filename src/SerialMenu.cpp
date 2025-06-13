@@ -16,7 +16,7 @@
 //------------------------------------------
 // Global pointer to the currently active menu
 //------------------------------------------
-static Menu *currentMenu = nullptr;
+static SerialMenu *currentMenu = nullptr;
 
 /****************************************************
  * initSerialMenu()
@@ -46,7 +46,7 @@ void initSerialMenu()
 /****************************************************
  * setMenu()
  ****************************************************/
-void setMenu(Menu *newMenu)
+void setMenu(SerialMenu *newMenu)
 {
     if (newMenu != nullptr)
     {
@@ -61,7 +61,7 @@ void setMenu(Menu *newMenu)
 /****************************************************
  * getMenu()
  ****************************************************/
-Menu *getMenu()
+SerialMenu *getMenu()
 {
     return currentMenu;
 }
@@ -243,7 +243,7 @@ bool handleSpecialCommand(const String &input)
  * buildBreadcrumbString()
  * - Builds "Parent > Current" recursively
  ****************************************************/
-String buildBreadcrumbString(const Menu *menu)
+String buildBreadcrumbString(const SerialMenu *menu)
 {
     if (!menu)
         return "";

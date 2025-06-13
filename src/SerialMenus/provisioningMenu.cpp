@@ -15,7 +15,7 @@
 /****************************************************
  * provisioningMenu object
  ****************************************************/
-Menu provisioningMenu = {
+SerialMenu provisioningMenu = {
     "Provisioning",
     nullptr,
     printProvisioningMenu,
@@ -24,7 +24,7 @@ Menu provisioningMenu = {
 /****************************************************
  * printProvisioningMenu()
  ****************************************************/
-void printProvisioningMenu(const Menu &menu)
+void printProvisioningMenu(const SerialMenu &menu)
 {
   Serial.println();
   Serial.println(F("╔══════════════════════════════════════════════════════════════╗"));
@@ -75,7 +75,7 @@ void printProvisioningMenu(const Menu &menu)
 /****************************************************
  * handleProvisioningMenuInput()
  ****************************************************/
-bool handleProvisioningMenuInput(Menu &menu, const String &input)
+bool handleProvisioningMenuInput(SerialMenu &menu, const String &input)
 {
   if (input == F("1"))
   {
