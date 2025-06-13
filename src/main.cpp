@@ -83,7 +83,9 @@ void setup()
     Serial.println("[INFO] [CONFIG] Device not provisioned, limiting functionality");
 
     statusLed1.setPulsingColor(0xFF0000); // Red to indicate provisioning mode
+    statusLed2.setPulsingColor(0xFF0000); // Red to indicate provisioning mode
     statusLed1.setMode(RGB_MODE::Pulsing);
+    statusLed2.setMode(RGB_MODE::Pulsing);
   }
 
   initSerialMenu();
