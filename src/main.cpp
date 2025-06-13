@@ -19,6 +19,7 @@ ShutdownScreen shutdownScreen("Shutdown");
 ApplicationScreen applicationScreen("Application");
 SyncScreen syncScreen("Sync");
 SettingsScreen settingsScreen("Settings");
+ProvisioningRequiredScreen provisioningRequiredScreen("Provisioning Required");
 DebugScreen debugScreen("Debug");
 IOTestScreen ioTestScreen("IO Test");
 BatteryScreen batteryScreen("Battery");
@@ -29,6 +30,19 @@ void setup()
 {
   Serial.begin(115200);
   Serial.setTimeout(10);
+
+  GpIO::initIO();
+  statusLeds.begin();
+  statusLeds.setBrightness(50);
+  statusLed1.begin(&statusLeds, statusLeds.getLedPtr(0));
+  statusLed2.begin(&statusLeds, statusLeds.getLedPtr(1));
+  statusLeds.startShowTask();
+
+  statusLed1.setMode(RGB_MODE::Overide);
+  statusLed2.setMode(RGB_MODE::Overide);
+
+  statusLed1.setOverideColor(255, 0, 0);
+  statusLed2.setOverideColor(255, 0, 0);
 
   // Initialize random seed with multiple entropy sources
   uint64_t macVal = ESP.getEfuseMac();
@@ -51,26 +65,27 @@ void setup()
   screenManager.addScreen(&applicationScreen);
   screenManager.addScreen(&syncScreen);
   screenManager.addScreen(&settingsScreen);
+  screenManager.addScreen(&provisioningRequiredScreen);
   screenManager.addScreen(&debugScreen);
   screenManager.addScreen(&ioTestScreen);
   screenManager.addScreen(&batteryScreen);
 
   screenManager.setScreen("Start Up");
+  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(1);
   display.display();
 
   WiFi.mode(WIFI_AP_STA);
 
-  GpIO::initIO();
-  statusLeds.begin();
-  statusLeds.setBrightness(100);
-  statusLed1.begin(&statusLeds, statusLeds.getLedPtr(0));
-  statusLed2.begin(&statusLeds, statusLeds.getLedPtr(1));
+  statusLed1.setOverideColor(0, 255, 0);
+  statusLed2.setOverideColor(0, 255, 0);
 
   long bootCount = preferences.getLong("bootCount", 0);
   bootCount++;
   preferences.putLong("bootCount", bootCount);
 
   Serial.println("[INFO] [CONFIG] Boot count: " + String(bootCount));
+
+  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(2);
 
   if (isDeviceProvisioned())
   {
@@ -88,26 +103,39 @@ void setup()
 
     app->begin();
 
-    screenManager.setScreen("Home");
+    // xTaskCreatePinnedToCore(
+    //     [](void *pvParameters)
+    //     {
+    //       // statusLed1.setMode(RGB_MODE::Rainbow);
+    //       // statusLed2.setMode(RGB_MODE::Rainbow);
 
-    xTaskCreatePinnedToCore(
-        [](void *pvParameters)
-        {
-          statusLed1.setMode(RGB_MODE::Rainbow);
-          statusLed2.setMode(RGB_MODE::Rainbow);
+    //       statusLed1.setMode(RGB_MODE::Overide);
+    //       statusLed2.setMode(RGB_MODE::Overide);
 
-          led.On();
-          vTaskDelay(1000 / portTICK_PERIOD_MS);
-          led.Off();
+    //       statusLed1.setOverideColor(255, 0, 0);
+    //       statusLed2.setOverideColor(255, 0, 0);
 
-          vTaskDelay(1000 / portTICK_PERIOD_MS);
+    //       vTaskDelay(300 / portTICK_PERIOD_MS);
 
-          statusLed1.goBackSteps(1);
-          statusLed2.goBackSteps(1);
+    //       statusLed1.setOverideColor(0, 255, 0);
+    //       statusLed2.setOverideColor(0, 255, 0);
 
-          vTaskDelete(NULL);
-        },
-        "startup_blink", 10000, NULL, 1, NULL, 1);
+    //       vTaskDelay(300 / portTICK_PERIOD_MS);
+
+    //       statusLed1.setOverideColor(0, 0, 255);
+    //       statusLed2.setOverideColor(0, 0, 255);
+
+    //       vTaskDelay(300 / portTICK_PERIOD_MS);
+
+    //       statusLed1.setOverideColor(0, 0, 0);
+    //       statusLed2.setOverideColor(0, 0, 0);
+
+    //       statusLed1.goBackSteps(1);
+    //       statusLed2.goBackSteps(1);
+
+    //       vTaskDelete(NULL);
+    //     },
+    //     "startup_blink", 10000, NULL, 1, NULL, 1);
   }
   else
   {
@@ -117,6 +145,26 @@ void setup()
     statusLed2.setPulsingColor(0xFF0000); // Red to indicate provisioning mode
     statusLed1.setMode(RGB_MODE::Pulsing);
     statusLed2.setMode(RGB_MODE::Pulsing);
+  }
+
+  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(3);
+
+  if (isDeviceProvisioned())
+  {
+    statusLed1.setOverideColor(0, 0, 255);
+    statusLed2.setOverideColor(0, 0, 255);
+
+    vTaskDelay(300 / portTICK_PERIOD_MS);
+
+    statusLed1.goBackSteps(1);
+    statusLed2.goBackSteps(1);
+
+    screenManager.setScreen("Home");
+  }
+  else
+  {
+    // Show provisioning required screen and keep red status LEDs
+    screenManager.setScreen("Provisioning Required");
   }
 
   initSerialMenu();

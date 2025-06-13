@@ -31,6 +31,8 @@ void Application::setupEffects()
 
   auto headlightStrip = ledManager->getStrip(LEDStripType::HEADLIGHT);
   auto taillightStrip = ledManager->getStrip(LEDStripType::TAILLIGHT);
+  auto underglowStrip = ledManager->getStrip(LEDStripType::UNDERGLOW);
+  auto interiorStrip = ledManager->getStrip(LEDStripType::INTERIOR);
 
   if (headlightStrip)
   {
@@ -57,6 +59,16 @@ void Application::setupEffects()
     taillightStrip->addEffect(brakeEffect);
     taillightStrip->addEffect(reverseLightEffect);
 
+    taillightStrip->addEffect(rgbEffect);
+    taillightStrip->addEffect(nightriderEffect);
+    taillightStrip->addEffect(policeEffect);
+    taillightStrip->addEffect(pulseWaveEffect);
+    taillightStrip->addEffect(auroraEffect);
+    taillightStrip->addEffect(solidColorEffect);
+  }
+
+  if (underglowStrip)
+  {
     taillightStrip->addEffect(rgbEffect);
     taillightStrip->addEffect(nightriderEffect);
     taillightStrip->addEffect(policeEffect);

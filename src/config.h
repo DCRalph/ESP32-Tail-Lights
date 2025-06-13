@@ -105,7 +105,7 @@ bool isDeviceProvisioned();
 
 #define ENABLE_HEADLIGHTS
 #define ENABLE_TAILLIGHTS
-// #define ENABLE_UNDERGLOW
+#define ENABLE_UNDERGLOW
 // #define ENABLE_INTERIOR
 
 #ifdef ENABLE_HEADLIGHTS
@@ -121,7 +121,7 @@ bool isDeviceProvisioned();
 
 #ifdef ENABLE_UNDERGLOW
 #define UNDERGLOW_LED_COUNT 120
-#define UNDERGLOW_LED_PIN 17
+#define UNDERGLOW_LED_PIN OUTPUT_LED_3_PIN
 #endif
 
 #ifdef ENABLE_INTERIOR

@@ -531,6 +531,23 @@ void Menu::update()
     return;
   }
 
+  if (BtnBoot.clicks == -1)
+  {
+    // check if the current menu has a back item and if it does, run it
+    for (auto item : items)
+    {
+      if (item->getType() == MenuItemType::Back)
+      {
+        if (item->functions.size() > 0)
+        {
+          item->functions[0].func();
+          return;
+        }
+      }
+    }
+    return;
+  }
+
   if (BtnSel.clicks != 0)
   {
     ESP_LOGI(TAG, "Clicks: %d", BtnSel.clicks);

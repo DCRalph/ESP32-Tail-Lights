@@ -7,6 +7,7 @@
 #include "ApplicationScreen.h"
 #include "SyncScreen.h"
 #include "SettingsScreen.h"
+#include "ProvisioningRequired.h"
 #include "Debug/Debug.h"
 #include "Debug/IOTest.h"
 #include "Debug/Battery.h"
@@ -18,6 +19,7 @@ extern ShutdownScreen shutdownScreen;
 extern ApplicationScreen applicationScreen;
 extern SyncScreen syncScreen;
 extern SettingsScreen settingsScreen;
+extern ProvisioningRequiredScreen provisioningRequiredScreen;
 extern DebugScreen debugScreen;
 extern IOTestScreen ioTestScreen;
 extern BatteryScreen batteryScreen;

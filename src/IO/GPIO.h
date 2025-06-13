@@ -4,8 +4,6 @@
 
 class GpIO;
 
-extern GpIO led;
-
 extern GpIO btnBoot;
 extern GpIO btnPrev;
 extern GpIO btnSel;

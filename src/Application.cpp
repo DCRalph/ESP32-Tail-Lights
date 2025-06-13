@@ -104,11 +104,10 @@ void Application::begin()
 {
 
   mode = static_cast<ApplicationMode>(preferences.getUInt("mode", 0));
-  prevMode = mode == ApplicationMode::NORMAL ? ApplicationMode::OFF : mode;
+  prevMode = mode == ApplicationMode::NORMAL ? ApplicationMode::OFF : ApplicationMode::NORMAL;
 
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
-  FastLED.setBrightness(255);
 
 #ifdef ENABLE_HEADLIGHTS
   LEDStripConfig headlights(
@@ -300,19 +299,19 @@ void Application::loop()
     {
     case ApplicationMode::NORMAL:
       statusLed1.setColor(0, 255, 0);
-      statusLeds.show();
+      // statusLeds.show();
       break;
     case ApplicationMode::TEST:
       statusLed1.setColor(255, 0, 255);
-      statusLeds.show();
+      // statusLeds.show();
       break;
     case ApplicationMode::REMOTE:
       statusLed1.setColor(0, 0, 255);
-      statusLeds.show();
+      // statusLeds.show();
       break;
     case ApplicationMode::OFF:
       statusLed1.setColor(255, 0, 0);
-      statusLeds.show();
+      // statusLeds.show();
       break;
     }
   }

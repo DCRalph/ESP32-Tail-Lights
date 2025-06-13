@@ -125,7 +125,6 @@ private:
 
 ApplicationScreen::ApplicationScreen(String _name) : Screen(_name)
 {
-  app = Application::getInstance();
 
   // Setup menu structure
   menu.addMenuItem(&backItem);
@@ -327,6 +326,8 @@ void ApplicationScreen::update()
 
 void ApplicationScreen::onEnter()
 {
+  app = Application::getInstance();
+
   updateEffectsFromApplication();
   updateModeDisplay();
 }

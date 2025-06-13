@@ -9,6 +9,7 @@
 enum class RGB_MODE
 {
   Manual,
+  Overide,
   Rainbow,
   Pulsing,
   Blink
@@ -42,6 +43,9 @@ public:
 
   void setPrevColor(uint8_t r, uint8_t g, uint8_t b);
 
+  void setOverideColor(uint8_t r, uint8_t g, uint8_t b);
+  void setOverideColor(uint32_t color);
+
   // Animation controls
   void setPulsingColor(uint32_t color);
   void setPulsingColor(uint8_t _r, uint8_t _g, uint8_t _b);
@@ -61,6 +65,7 @@ private:
   uint8_t _maxModeHistory = 10;
   std::vector<RGB_MODE> _modeHistory;
   uint32_t _prevManualColor = 0;
+  uint32_t _overideColor = 0;
 
   // Task names
   char _rainbowTaskName[32];
@@ -69,7 +74,7 @@ private:
 
   // Animation task handles
   TaskHandle_t _rainbowHandle = NULL;
-  uint8_t _rainbowSpeed = 5;
+  uint16_t _rainbowSpeed = 2000;
 
   TaskHandle_t _pulsingHandle = NULL;
   uint8_t _pulsingSpeed = 2;
@@ -85,7 +90,7 @@ private:
   void _setColor(uint32_t color);
   void _updateModeHistory(RGB_MODE oldMode);
   void _setMode(RGB_MODE newMode);
-  void _show();
+  // void _show();
 
   // Animation methods
   void _startRainbow();
@@ -113,16 +118,24 @@ public:
   ~StatusLeds();
 
   void begin();
-  void show();
+  // void show();
   CRGB *getLedPtr(uint8_t index);
   void setBrightness(uint8_t brightness);
   uint8_t getBrightness() const;
+
+  void startShowTask();
+  void stopShowTask();
+  bool isShowTaskRunning();
+  void show();
 
 private:
   bool _initialized;
   CRGB _leds[STATUS_LED_COUNT];
   CLEDController *_controller;
   uint8_t _brightness = 255;
+
+  xTaskHandle _showTaskHandle;
+  static void _showTask(void *pvParameters);
 };
 
 extern StatusLeds statusLeds;

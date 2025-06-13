@@ -610,13 +610,13 @@ void SyncManager::updateSyncedLED()
     {
       statusLed2.setColor(0, 0, 0);
     }
-    statusLeds.show();
+    // statusLeds.show();
   }
   else
   {
     // If not synced or not in group, turn LED off
     statusLed2.setColor(0, 0, 0);
-    statusLeds.show();
+    // statusLeds.show();
   }
 }
 

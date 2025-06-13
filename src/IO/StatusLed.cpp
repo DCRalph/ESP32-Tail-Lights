@@ -69,6 +69,36 @@ uint8_t StatusLeds::getBrightness() const
   return _brightness;
 }
 
+void StatusLeds::startShowTask()
+{
+  xTaskCreate(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle);
+}
+
+void StatusLeds::stopShowTask()
+{
+  vTaskDelete(_showTaskHandle);
+  _showTaskHandle = NULL;
+}
+
+bool StatusLeds::isShowTaskRunning()
+{
+  return _showTaskHandle != NULL;
+}
+
+void StatusLeds::_showTask(void *pvParameters)
+{
+  StatusLeds *statusLeds = (StatusLeds *)pvParameters;
+  while (true)
+  {
+    statusLeds->show();
+    vTaskDelay(pdMS_TO_TICKS(1000 / 50)); // 50fps
+  }
+}
+
+// ================================
+// StatusLed
+// ================================
+
 StatusLed::StatusLed()
 {
   _initialized = false;
@@ -102,7 +132,7 @@ void StatusLed::begin(StatusLeds *controller, CRGB *ledPtr)
 
     // Initialize LED to off
     *_ledPtr = CRGB(0, 0, 0);
-    _show();
+    // _show();
 
     ESP_LOGI(TAG, "StatusLed initialized with controller");
   }
@@ -136,17 +166,32 @@ void StatusLed::_setColor(uint32_t color)
   _setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
 }
 
-void StatusLed::_show()
+void StatusLed::setOverideColor(uint8_t r, uint8_t g, uint8_t b)
 {
-  if (_controller)
+  setOverideColor((r << 16) | (g << 8) | b);
+}
+
+void StatusLed::setOverideColor(uint32_t color)
+{
+  _overideColor = color;
+
+  if (_mode == RGB_MODE::Overide)
   {
-    _controller->show();
-  }
-  else
-  {
-    ESP_LOGE(TAG, "StatusLed::_show() called but controller is null");
+    _setColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
   }
 }
+
+// void StatusLed::_show()
+// {
+//   if (_controller)
+//   {
+//     _controller->show();
+//   }
+//   else
+//   {
+//     ESP_LOGE(TAG, "StatusLed::_show() called but controller is null");
+//   }
+// }
 
 void StatusLed::_updateModeHistory(RGB_MODE oldMode)
 {
@@ -178,9 +223,12 @@ void StatusLed::_setMode(RGB_MODE newMode)
   case RGB_MODE::Blink:
     _startBlink();
     break;
+  case RGB_MODE::Overide:
+    _setColor((_overideColor >> 16) & 0xFF, (_overideColor >> 8) & 0xFF, _overideColor & 0xFF);
+    break;
   case RGB_MODE::Manual:
     _setColor(_prevManualColor);
-    _show();
+    // _show();
     break;
   }
 }
@@ -214,23 +262,23 @@ void StatusLed::_rainbow()
     for (uint8_t i = 0; i < 255 && _mode == RGB_MODE::Rainbow; i++)
     {
       _setColor(255 - i, i, 0);
-      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed));
+      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed / 3 / 255));
     }
 
     // Green to Blue
     for (uint8_t i = 0; i < 255 && _mode == RGB_MODE::Rainbow; i++)
     {
       _setColor(0, 255 - i, i);
-      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed));
+      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed / 3 / 255));
     }
 
     // Blue to Red
     for (uint8_t i = 0; i < 255 && _mode == RGB_MODE::Rainbow; i++)
     {
       _setColor(i, 0, 255 - i);
-      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed));
+      vTaskDelay(pdMS_TO_TICKS(_rainbowSpeed / 3 / 255));
     }
-    _show();
+    // _show();
   }
 }
 
@@ -279,7 +327,7 @@ void StatusLed::_pulsing()
       uint8_t blue = b - (b * i / 255);
 
       _setColor(red, green, blue);
-      _show();
+      // _show();
       vTaskDelay(pdMS_TO_TICKS(_pulsingSpeed));
     }
 
@@ -291,7 +339,7 @@ void StatusLed::_pulsing()
       uint8_t blue = (b * i / 255);
 
       _setColor(red, green, blue);
-      _show();
+      // _show();
       vTaskDelay(pdMS_TO_TICKS(_pulsingSpeed));
     }
   }
@@ -333,11 +381,11 @@ void StatusLed::_blink()
   for (uint8_t i = 0; i < _blinkCount; i++)
   {
     _setColor(_blinkColor);
-    _show();
+    // _show();
     vTaskDelay(pdMS_TO_TICKS(_blinkSpeed * 100)); // Convert to ms
 
     _setColor(0, 0, 0);
-    _show();
+    // _show();
     vTaskDelay(pdMS_TO_TICKS(_blinkSpeed * 100));
   }
 
@@ -427,7 +475,7 @@ void StatusLed::goBackSteps(uint8_t steps)
   }
 
   _setMode(targetMode);
-  _show();
+  // _show();
 }
 
 void StatusLed::clearHistory()

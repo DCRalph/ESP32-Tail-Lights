@@ -97,7 +97,11 @@ void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
 
 void LEDStripManager::setBrightness(uint8_t brightness)
 {
-  FastLED.setBrightness(brightness);
+  for (auto &pair : strips)
+  {
+    if (pair.second.strip)
+      pair.second.strip->setBrightness(brightness);
+  }
 }
 
 void LEDStripManager::updateEffects()
@@ -124,7 +128,6 @@ void LEDStripManager::draw()
   {
     if (pair.second.strip)
       pair.second.strip->draw();
-      pair.second.strip->show();
+    pair.second.strip->show();
   }
-
 }

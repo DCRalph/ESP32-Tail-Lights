@@ -31,8 +31,6 @@ public:
 
   MenuItemNavigate batteryItem = MenuItemNavigate("Battery", "Battery");
 
-  MenuItemToggle ledItem = MenuItemToggle("LED", &ledState);
-
   MenuItemNumber<long> bootCountItem = MenuItemNumber<long>("Boot", &bootCount);
 
   MenuItemString totalMemItem = MenuItemString("tmem", &totalMemStr);
@@ -50,15 +48,11 @@ DebugScreen::DebugScreen(String _name) : Screen(_name)
   menu.addMenuItem(&backItem);
   menu.addMenuItem(&ioTestItem);
   menu.addMenuItem(&batteryItem);
-  menu.addMenuItem(&ledItem);
   menu.addMenuItem(&bootCountItem);
 
   menu.addMenuItem(&totalMemItem);
   menu.addMenuItem(&freeMemItem);
   menu.addMenuItem(&usedMemItem);
-
-  ledItem.setOnChange([&]()
-                      { led.Write(ledState); });
 }
 
 void DebugScreen::draw()
@@ -83,5 +77,4 @@ void DebugScreen::onEnter()
 {
 
   bootCount = preferences.getLong("bootCount", 0);
-  ledState = led.read();
 }

@@ -1,7 +1,5 @@
 #include "GPIO.h"
 
-GpIO led(LED_PIN, Output, HIGH);
-
 #ifdef S3_V1
 GpIO btnBoot(INPUT_BTN_BOOT_PIN, InputPullup, LOW);
 GpIO btnPrev(INPUT_BTN_PREV_PIN, InputPullup, LOW);
@@ -185,8 +183,6 @@ void GpIO::initIO()
 {
   Serial.println("\t[INFO] [IO] Configuring pins...");
 
-  led.init();
-
 #ifdef S3_V1
   btnBoot.init();
   btnBoot.enableDebounce(50);
@@ -198,14 +194,17 @@ void GpIO::initIO()
   btnNext.enableDebounce(50);
 
   BtnBoot.debounceTime = 20;
-  BtnBoot.multiclickTime = 200;
+  BtnBoot.multiclickTime = 100;
   BtnBoot.longClickTime = 300;
   BtnPrev.debounceTime = 20;
-  BtnPrev.multiclickTime = 200;
+  BtnPrev.multiclickTime = 100;
   BtnPrev.longClickTime = 300;
   BtnSel.debounceTime = 20;
-  BtnSel.multiclickTime = 200;
+  BtnSel.multiclickTime = 100;
   BtnSel.longClickTime = 300;
+  BtnNext.debounceTime = 20;
+  BtnNext.multiclickTime = 100;
+  BtnNext.longClickTime = 300;
 
   voltage.init();
 #endif
