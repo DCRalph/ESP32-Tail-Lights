@@ -3,6 +3,7 @@
 #include "IO/LED/Effects.h"
 #include "IO/LED/LEDStripManager.h"
 #include "Sync/SyncManager.h"
+#include "IO/TimeProfiler.h"
 
 // Command constants
 constexpr uint8_t CMD_PING = 0xe0;
@@ -436,6 +437,13 @@ void Application::setupWireless()
 
                              data_packet pTX = {0};
                              pTX.type = CAR_CMD_GET_STATS;
+
+                             AppStats stats = {0};
+                             stats.updateInputTime = timeProfiler.getTimeUs("updateInputs");
+                             stats.updateModeTime = timeProfiler.getTimeUs("updateMode");
+                             stats.updateSyncTime = timeProfiler.getTimeUs("updateSync");
+                             stats.updateEffectsTime = timeProfiler.getTimeUs("updateEffects");
+                             stats.drawTime = timeProfiler.getTimeUs("drawEffects");
 
                              pTX.len = sizeof(AppStats);
                              memcpy(pTX.data, &stats, sizeof(AppStats));

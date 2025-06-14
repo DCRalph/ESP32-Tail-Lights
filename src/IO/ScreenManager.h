@@ -5,38 +5,44 @@
 #include "IO/Display.h"
 #include <vector>
 
-class Screen;
+// class Screen;
+class Screen2;
 
+// screen architecture v2
 class ScreenManager
 {
 private:
-  int currentScreen;
-  std::vector<Screen *> screens;
-  std::vector<int> screenHistory;
+  const Screen2 *currentScreen = nullptr;
+  const Screen2 *pendingScreen = nullptr;
+  std::vector<const Screen2 *> screenHistory;
 
-  void updateHistory(void);
+  void updateHistory(const Screen2 *screen);
 
 public:
-  ScreenManager();
-
-  void init();
+  void init(void);
 
   void update(void);
   void draw(void);
 
-  void setScreen(int screen);
-  void setScreen(String screenName);
+  const Screen2 *getCurrentScreen(void);
 
-  void addScreen(Screen *screen);
-
-  void removeScreen(int screen);
-  void removeScreen(String screenName);
-
-  Screen *getCurrentScreen(void);
-  Screen *getScreen(String screenName);
+  void setScreen(const Screen2 *screen);
+  bool applyPendingScreenChange();
 
   void back(void);
   void clearHistory(void);
+  bool goToHistoryIndex(size_t index);
+};
+
+struct Screen2
+{
+  // Screen2(const char *name, void (*draw)(), void (*update)(), void (*onEnter)(), void (*onExit)());
+  const String name;
+  const String topBarText;
+  void (*draw)();
+  void (*update)();
+  void (*onEnter)();
+  void (*onExit)();
 };
 
 extern ScreenManager screenManager;

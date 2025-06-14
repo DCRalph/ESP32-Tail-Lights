@@ -114,6 +114,24 @@ bool MenuItem::isHidden()
   return hidden;
 }
 
+void MenuItem::run()
+{
+  if (functions.size() == 0 || BtnSel.clicks == 0)
+    return;
+
+  ESP_LOGI(TAG, "Running %s", name.c_str());
+  ESP_LOGI(TAG, "Functions: %d", functions.size());
+
+  for (uint8_t i = 0; i < functions.size(); i++)
+  {
+    if (BtnSel.clicks == functions[i].clicksToRun)
+    {
+      functions[i].func();
+      break;
+    }
+  }
+}
+
 void MenuItem::executeFunc()
 {
   if (functions.size() > 0 && functions[0].clicksToRun == 1)
@@ -143,19 +161,25 @@ MenuItemAction::MenuItemAction(String _name, int8_t _clicksToRun, std::function<
 
 // ###### MenuItemNavigate ######
 
-MenuItemNavigate::MenuItemNavigate(String _name, String _target) : MenuItem(_name)
+MenuItemNavigate::MenuItemNavigate(String _name, const Screen2 *_target) : MenuItem(_name)
 {
   type = MenuItemType::Navigate;
   target = _target;
 
   addFunc(MENU_DEFUALT_CLICKS, [this]()
-          { screenManager.setScreen(target); });
+          {
+            screenManager.setScreen(target);
+            //
+          });
 }
 
-void MenuItemNavigate::addRoute(int8_t _clicksToRun, String _target)
+void MenuItemNavigate::addRoute(int8_t _clicksToRun, const Screen2 *_target)
 {
   addFunc(_clicksToRun, [this, _target]()
-          { screenManager.setScreen(_target); });
+          {
+            screenManager.setScreen(_target);
+            //
+          });
 }
 
 // ###### MenuItemBack ######

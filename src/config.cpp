@@ -4,6 +4,7 @@ DeviceInfo::DeviceInfo()
 {
   provisioned = false;
   debugEnabled = false;
+  oledEnabled = false;
   memset(macAddress, 0, sizeof(macAddress));
   serialNumber = 0;
   hardwareVersion = 0;
@@ -14,6 +15,7 @@ void DeviceInfo::print()
   Serial.println("DeviceInfo:");
   Serial.printf("Provisioned: %s\n", provisioned ? "true" : "false");
   Serial.printf("Debug Enabled: %s\n", debugEnabled ? "true" : "false");
+  Serial.printf("OLED Enabled: %s\n", oledEnabled ? "true" : "false");
   Serial.printf("Mac Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 macAddress[0], macAddress[1], macAddress[2],
                 macAddress[3], macAddress[4], macAddress[5]);

@@ -496,22 +496,6 @@ void Menu::draw()
   display.u8g2.drawBox(DISPLAY_WIDTH - 3, 12 + scrollBarPosition, 3, scrollBarHeight);
 }
 
-void MenuItem::run()
-{
-
-  ESP_LOGI(TAG, "Running %s", name.c_str());
-  ESP_LOGI(TAG, "Functions: %d", functions.size());
-
-  for (uint8_t i = 0; i < functions.size(); i++)
-  {
-    if (BtnSel.clicks == functions[i].clicksToRun)
-    {
-      functions[i].func();
-      break;
-    }
-  }
-}
-
 void Menu::update()
 {
   // Delegate to active submenu if present
@@ -525,6 +509,7 @@ void Menu::update()
   {
     if (BtnSel.clicks == 1)
     {
+      BtnSel.clicks = 0;
       screenManager.back();
     }
 
@@ -533,6 +518,7 @@ void Menu::update()
 
   if (BtnBoot.clicks == -1)
   {
+    BtnBoot.clicks = 0;
     // check if the current menu has a back item and if it does, run it
     for (auto item : items)
     {
@@ -552,13 +538,13 @@ void Menu::update()
   {
     ESP_LOGI(TAG, "Clicks: %d", BtnSel.clicks);
     items[active]->run();
+    BtnSel.clicks = 0;
   }
 
   MenuItem *currentItem = items[active];
 
   if (BtnNext.clicks == 1)
   {
-
     switch (currentItem->getType())
     {
     case MenuItemType::Select:
@@ -587,10 +573,11 @@ void Menu::update()
       nextItem();
       break;
     }
+
+    BtnNext.clicks = 0;
   }
   else if (BtnPrev.clicks == 1)
   {
-
     switch (currentItem->getType())
     {
     case MenuItemType::Select:
@@ -619,5 +606,7 @@ void Menu::update()
       prevItem();
       break;
     }
+
+    BtnPrev.clicks = 0;
   }
 }

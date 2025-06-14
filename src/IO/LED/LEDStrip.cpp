@@ -100,11 +100,15 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
       ledPin(ledPin),
       fliped(false),
       fps(100),
-      lastUpdateTime(0),
-      lastUpdateDuration(0),
-      lastDrawDuration(0),
-      brightness(255)
+      brightness(255),
+      taskHandle(nullptr),
+      running(false)
 {
+  // Create task name based on pin
+  taskName = "LED_P" + String(ledPin);
+
+  // Create mutex for buffer access
+  bufferMutex = xSemaphoreCreateMutex();
 
   leds = new CRGB[numLEDs];
   memset(leds, 0, numLEDs * sizeof(CRGB));
@@ -113,73 +117,82 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
   switch (ledPin)
   {
   case 1:
-    controller = &FastLED.addLeds<WS2812, 1, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 1, GRB>(leds, numLEDs);
     break;
   case 2:
-    controller = &FastLED.addLeds<WS2812, 2, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 2, GRB>(leds, numLEDs);
     break;
   case 3:
-    controller = &FastLED.addLeds<WS2812, 3, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 3, GRB>(leds, numLEDs);
     break;
   case 4:
-    controller = &FastLED.addLeds<WS2812, 4, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 4, GRB>(leds, numLEDs);
     break;
   case 5:
-    controller = &FastLED.addLeds<WS2812, 5, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 5, GRB>(leds, numLEDs);
     break;
   case 6:
-    controller = &FastLED.addLeds<WS2812, 6, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 6, GRB>(leds, numLEDs);
     break;
   case 7:
-    controller = &FastLED.addLeds<WS2812, 7, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 7, GRB>(leds, numLEDs);
     break;
   case 8:
-    controller = &FastLED.addLeds<WS2812, 8, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 8, GRB>(leds, numLEDs);
     break;
   case 9:
-    controller = &FastLED.addLeds<WS2812, 9, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 9, GRB>(leds, numLEDs);
     break;
   case 10:
-    controller = &FastLED.addLeds<WS2812, 10, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 10, GRB>(leds, numLEDs);
     break;
   case 11:
-    controller = &FastLED.addLeds<WS2812, 11, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 11, GRB>(leds, numLEDs);
     break;
   case 12:
-    controller = &FastLED.addLeds<WS2812, 12, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 12, GRB>(leds, numLEDs);
     break;
   case 13:
-    controller = &FastLED.addLeds<WS2812, 13, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 13, GRB>(leds, numLEDs);
     break;
   case 14:
-    controller = &FastLED.addLeds<WS2812, 14, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 14, GRB>(leds, numLEDs);
     break;
   case 15:
-    controller = &FastLED.addLeds<WS2812, 15, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 15, GRB>(leds, numLEDs);
     break;
   case 16:
-    controller = &FastLED.addLeds<WS2812, 16, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 16, GRB>(leds, numLEDs);
     break;
   case 17:
-    controller = &FastLED.addLeds<WS2812, 17, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 17, GRB>(leds, numLEDs);
     break;
   case 18:
-    controller = &FastLED.addLeds<WS2812, 18, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 18, GRB>(leds, numLEDs);
     break;
   case 19:
-    controller = &FastLED.addLeds<WS2812, 19, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 19, GRB>(leds, numLEDs);
     break;
   case 20:
-    controller = &FastLED.addLeds<WS2812, 20, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 20, GRB>(leds, numLEDs);
     break;
   case 21:
-    controller = &FastLED.addLeds<WS2812, 21, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2812B, 21, GRB>(leds, numLEDs);
     break;
   }
 }
 
 LEDStrip::~LEDStrip()
 {
+  // Stop the task if it's running
+  stop();
+
+  // Clean up mutex
+  if (bufferMutex != nullptr)
+  {
+    vSemaphoreDelete(bufferMutex);
+  }
+
   for (auto effect : effects)
   {
     delete effect;
@@ -208,98 +221,93 @@ void LEDStrip::removeEffect(LEDEffect *effect)
 
 void LEDStrip::updateEffects()
 {
-  // Record the total frame start time.
-  uint64_t frameStart = micros();
-
-  if (lastUpdateTime == 0)
+  // Take mutex before accessing buffer
+  if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
   {
-    lastUpdateTime = millis();
-  }
+    // Start timing the update effects
+    String profilerKey = taskName + "_UpdateEffects";
+    timeProfiler.start(profilerKey);
 
-  uint64_t currentTime = millis();
-  uint64_t deltaTime = currentTime - lastUpdateTime;
-  uint64_t frameInterval = 1000 / fps;
-
-  if (deltaTime >= frameInterval)
-  {
-    lastUpdateTime = currentTime;
-  }
-  else
-  {
-    return;
-  }
-
-  // Clear the main LED buffer before applying effects.
-  clearBuffer();
+    // Clear the main LED buffer before applying effects.
+    clearBufferUnsafe();
 
 #ifdef USE_2_BUFFERS
-  // Create a temporary buffer with the same size as the main LED buffer.
-  // Using the default constructor for Color will initialize all pixels to black.
-  Color *tempBuffer = new Color[numLEDs];
+    // Create a temporary buffer with the same size as the main LED buffer.
+    // Using the default constructor for Color will initialize all pixels to black.
+    Color *tempBuffer = new Color[numLEDs];
 #endif
 
-  // --- Update and render each effect ---
-  for (auto effect : effects)
-  {
-    // Update the effect.
-    effect->update(this);
+    // --- Update and render each effect ---
+    for (auto effect : effects)
+    {
+      // Update the effect.
+      effect->update(this);
 
 #ifdef USE_2_BUFFERS
-    // Clear temporary buffer to black before rendering this effect.
-    for (auto &c : tempBuffer)
-    {
-      c = Color(0, 0, 0);
-    }
-
-    // Render the current effect into tempBuffer.
-    effect->render(tempBuffer);
-#else
-    // Render the current effect directly into ledBuffer.
-    effect->render(this, ledBuffer);
-#endif
-
-#ifdef USE_2_BUFFERS
-    // Merge the rendered result from tempBuffer into ledBuffer.
-    if (effect->isTransparent())
-    {
-      // For transparent effects, only copy pixels that are not black.
-      for (size_t i = 0; i < ledBuffer.size(); i++)
+      // Clear temporary buffer to black before rendering this effect.
+      for (auto &c : tempBuffer)
       {
-        if (tempBuffer[i].r != 0 && tempBuffer[i].g != 0 && tempBuffer[i].b != 0)
+        c = Color(0, 0, 0);
+      }
+
+      // Render the current effect into tempBuffer.
+      effect->render(tempBuffer);
+#else
+      // Render the current effect directly into ledBuffer.
+      effect->render(this, ledBuffer);
+#endif
+
+#ifdef USE_2_BUFFERS
+      // Merge the rendered result from tempBuffer into ledBuffer.
+      if (effect->isTransparent())
+      {
+        // For transparent effects, only copy pixels that are not black.
+        for (size_t i = 0; i < ledBuffer.size(); i++)
         {
-          ledBuffer[i] = tempBuffer[i];
+          if (tempBuffer[i].r != 0 && tempBuffer[i].g != 0 && tempBuffer[i].b != 0)
+          {
+            ledBuffer[i] = tempBuffer[i];
+          }
         }
       }
-    }
-    else
-    {
-      // For opaque effects, overwrite the entire ledBuffer.
-      ledBuffer = tempBuffer;
-    }
+      else
+      {
+        // For opaque effects, overwrite the entire ledBuffer.
+        ledBuffer = tempBuffer;
+      }
 #endif
-  }
+    }
 
-  // Measure update duration.
-  lastUpdateDuration = micros() - frameStart;
+    // Stop timing the update effects
+    timeProfiler.stop(profilerKey);
+
+    // Release mutex after buffer access
+    xSemaphoreGive(bufferMutex);
+  }
 }
 
 void LEDStrip::draw()
 {
-  if (!fliped)
+  if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
   {
-    for (uint16_t i = 0; i < numLEDs; i++)
-      leds[i] = CRGB(ledBuffer[i].r, ledBuffer[i].g, ledBuffer[i].b);
-  }
-  else
-  {
-    for (uint16_t i = 0; i < numLEDs; i++)
-      leds[numLEDs - 1 - i] = CRGB(ledBuffer[i].r, ledBuffer[i].g, ledBuffer[i].b);
+    if (!fliped)
+    {
+      for (uint16_t i = 0; i < numLEDs; i++)
+        leds[i] = CRGB(ledBuffer[i].r, ledBuffer[i].g, ledBuffer[i].b);
+    }
+    else
+    {
+      for (uint16_t i = 0; i < numLEDs; i++)
+        leds[numLEDs - 1 - i] = CRGB(ledBuffer[i].r, ledBuffer[i].g, ledBuffer[i].b);
+    }
+    xSemaphoreGive(bufferMutex);
   }
 }
 
 void LEDStrip::show()
 {
   controller->showLeds(brightness);
+  // FastLED.show();
 }
 
 CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
@@ -307,6 +315,20 @@ CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
 Color *LEDStrip::getBuffer() { return ledBuffer; }
 
 void LEDStrip::clearBuffer()
+{
+  if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
+  {
+    for (uint16_t i = 0; i < numLEDs; i++)
+    {
+      ledBuffer[i].r = 0;
+      ledBuffer[i].g = 0;
+      ledBuffer[i].b = 0;
+    }
+    xSemaphoreGive(bufferMutex);
+  }
+}
+
+void LEDStrip::clearBufferUnsafe()
 {
   for (uint16_t i = 0; i < numLEDs; i++)
   {
@@ -320,7 +342,16 @@ LEDStripType LEDStrip::getType() const { return type; }
 
 uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
 
-void LEDStrip::setFPS(uint16_t fps) { this->fps = fps; }
+void LEDStrip::setFPS(uint16_t fps)
+{
+  this->fps = fps;
+  // If task is running, restart it to apply new FPS
+  if (running)
+  {
+    stop();
+    start();
+  }
+}
 
 uint16_t LEDStrip::getFPS() const { return fps; }
 
@@ -341,11 +372,75 @@ uint8_t LEDStrip::getBrightness() const
   return brightness;
 }
 
-uint64_t LEDStrip::getLastUpdateDuration() const { return lastUpdateDuration; }
-
-uint64_t LEDStrip::getLastDrawDuration() const { return lastDrawDuration; }
-
-uint64_t LEDStrip::getLastFrameTime() const
+// Task control functions
+void LEDStrip::start()
 {
-  return lastUpdateDuration + lastDrawDuration;
+  if (!running && taskHandle == nullptr)
+  {
+    running = true;
+    xTaskCreatePinnedToCore(ledTask, taskName.c_str(), 4096, this, 1, &taskHandle, 0);
+  }
+}
+
+void LEDStrip::stop()
+{
+  if (running && taskHandle != nullptr)
+  {
+    running = false;
+    vTaskDelete(taskHandle);
+    taskHandle = nullptr;
+  }
+}
+
+bool LEDStrip::isRunning() const
+{
+  return running;
+}
+
+// Static task function
+void LEDStrip::ledTask(void *parameter)
+{
+  LEDStrip *strip = static_cast<LEDStrip *>(parameter);
+  strip->taskLoop();
+}
+
+// Task loop implementation
+void LEDStrip::taskLoop()
+{
+  TickType_t lastWakeTime = xTaskGetTickCount();
+  const TickType_t frameDelay = pdMS_TO_TICKS(1000 / fps);
+
+  // Serial.println("LEDStrip::taskLoop: Starting task loop, delay: " + String(frameDelay) + " fps: " + String(fps));
+  // vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+  while (running)
+  {
+    String frameProfilerKey = taskName + "_Frame";
+    String drawProfilerKey = taskName + "_Draw";
+    String showProfilerKey = taskName + "_Show";
+
+    // Start timing the entire frame
+    timeProfiler.start(frameProfilerKey);
+    timeProfiler.increment(taskName + "_FPS");
+
+    // Time the draw operation
+    timeProfiler.start(drawProfilerKey);
+    draw();
+    timeProfiler.stop(drawProfilerKey);
+
+    // Time the show operation
+    timeProfiler.start(showProfilerKey);
+    show();
+    timeProfiler.stop(showProfilerKey);
+
+    // Stop timing the entire frame
+    timeProfiler.stop(frameProfilerKey);
+
+    // Wait for next frame
+    // vTaskDelayUntil(&lastWakeTime, frameDelay);
+    vTaskDelay(frameDelay);
+  }
+
+  // Clean up task when stopping
+  vTaskDelete(nullptr);
 }

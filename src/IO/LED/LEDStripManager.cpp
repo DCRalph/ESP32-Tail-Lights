@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <set> // Add include for std::set
 #include <map>
+#include "IO/TimeProfiler.h"
 
 // Initialize static instance pointer
 LEDStripManager *LEDStripManager::instance = nullptr;
@@ -21,7 +22,9 @@ LEDStripManager::LEDStripManager()
 {
   // Store this instance in the static pointer for callbacks to use
   instance = this;
-  drawFPS = 100;
+  drawFPS = 150;
+  ledTaskHandle = NULL;
+  taskRunning = false;
 }
 
 LEDStripManager::~LEDStripManager()
@@ -93,6 +96,10 @@ void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
 
   // Add to the map of strips
   strips[config.type] = config;
+  // Serial.println("LEDStripManager::addLEDStrip: Setting FPS to " + String(drawFPS));
+  strips[config.type].strip->setFPS(drawFPS);
+  strips[config.type].strip->setBrightness(255);
+  // strips[config.type].strip->start();
 }
 
 void LEDStripManager::setBrightness(uint8_t brightness)
@@ -118,16 +125,91 @@ void LEDStripManager::updateEffects()
 
 void LEDStripManager::draw()
 {
-  if (millis() - lastDrawTime < 1000 / drawFPS)
-    return;
-
-  lastDrawTime = millis();
+  timeProfiler.start("drawEffects", TimeUnit::MICROSECONDS);
+  timeProfiler.increment("ledFps");
 
   // Draw all strips
   for (auto &pair : strips)
   {
     if (pair.second.strip)
+    {
       pair.second.strip->draw();
-    pair.second.strip->show();
+      pair.second.strip->show();
+    }
   }
+
+  timeProfiler.stop("drawEffects");
+}
+
+// Task management functions
+void LEDStripManager::startTask()
+{
+  if (taskRunning)
+  {
+    Serial.println("LEDStripManager: Task already running");
+    return;
+  }
+
+  taskRunning = true;
+
+  // Create the LED task with high priority for smooth LED updates
+  xTaskCreatePinnedToCore(
+      ledTask,        // Task function
+      "LEDStripTask", // Task name
+      4096,           // Stack size
+      this,           // Parameter passed to task
+      5,              // Priority (higher priority for LED updates)
+      &ledTaskHandle, // Task handle
+      0               // Core to run on
+  );
+
+  Serial.println("LEDStripManager: Task started");
+}
+
+void LEDStripManager::stopTask()
+{
+  if (!taskRunning)
+  {
+    Serial.println("LEDStripManager: Task not running");
+    return;
+  }
+
+  taskRunning = false;
+
+  if (ledTaskHandle != NULL)
+  {
+    vTaskDelete(ledTaskHandle);
+    ledTaskHandle = NULL;
+  }
+
+  Serial.println("LEDStripManager: Task stopped");
+}
+
+bool LEDStripManager::isTaskRunning()
+{
+  return taskRunning;
+}
+
+// Static task function for FreeRTOS
+void LEDStripManager::ledTask(void *parameter)
+{
+  LEDStripManager *manager = static_cast<LEDStripManager *>(parameter);
+
+  // Calculate delay in ticks based on FPS
+  const TickType_t delayTicks = pdMS_TO_TICKS(1000 / manager->drawFPS);
+
+  Serial.println("LEDStripManager: Task loop started with FPS: " + String(manager->drawFPS));
+
+  while (manager->taskRunning)
+  {
+    // Draw all strips
+    manager->draw();
+
+    // Delay to maintain FPS
+    vTaskDelay(delayTicks);
+  }
+
+  // Clean up when task ends
+  manager->ledTaskHandle = NULL;
+  vTaskDelete(NULL);
 }

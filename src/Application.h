@@ -142,7 +142,5 @@ private:
 
   uint64_t lastRemotePing;
 
-  uint64_t lastLoopsTime;
-  uint32_t loopsPerSecond;
   AppStats stats;
 };

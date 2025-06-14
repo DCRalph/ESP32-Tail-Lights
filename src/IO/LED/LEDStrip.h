@@ -5,6 +5,7 @@
 #include "Effects.h"
 #include <Arduino.h>
 #include "FastLED.h"
+#include "../TimeProfiler.h"
 
 // ####################################
 //  Uncomment this line to use double buffering for more complex transparent effects.
@@ -117,14 +118,15 @@ public:
   void setBrightness(uint8_t brightness);
   uint8_t getBrightness() const;
 
-  // Return the last frame's update duration (in microseconds).
-  uint64_t getLastUpdateDuration() const;
+  // Task control functions
+  void start();
+  void stop();
+  bool isRunning() const;
 
-  // Return the last frame's draw duration (in microseconds).
-  uint64_t getLastDrawDuration() const;
+  // Public mutex for external buffer access
+  SemaphoreHandle_t bufferMutex;
 
-  // Return combined frame duration (update + draw).
-  uint64_t getLastFrameTime() const;
+  CLEDController *controller;
 
 private:
   friend class LEDStripConfig;
@@ -134,16 +136,20 @@ private:
 
   bool fliped;
   uint16_t fps;
-  uint64_t lastUpdateTime;
 
   uint8_t ledPin;
   CRGB *leds;
-  CLEDController *controller;
   uint8_t brightness;
 
   std::vector<LEDEffect *> effects;
 
-  // Time (in microseconds) it took for the last update and draw calls.
-  uint64_t lastUpdateDuration;
-  uint64_t lastDrawDuration;
+  // Task-related members
+  TaskHandle_t taskHandle;
+  bool running;
+  String taskName;
+  static void ledTask(void *parameter);
+  void taskLoop();
+
+  // Private buffer clear without mutex (for internal use)
+  void clearBufferUnsafe();
 };

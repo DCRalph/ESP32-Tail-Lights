@@ -160,7 +160,8 @@ public:
 class MenuItemNavigate : public MenuItem
 {
 private:
-  String target;
+  // String target;
+  const Screen2 *target;
 
 public:
   /**
@@ -169,14 +170,14 @@ public:
    * @param _name The name of the menu item.
    * @param _target The target of the navigation.
    */
-  MenuItemNavigate(String _name, String _target);
+  MenuItemNavigate(String _name, const Screen2 *_target);
 
   /**
    * Adds a new route to the menu.
    *
    * @param route The route to be added.
    */
-  void addRoute(int8_t _clicksToRun, String _target);
+  void addRoute(int8_t _clicksToRun, const Screen2 *_target);
 
   // void draw(u8 _x, u8 _y, bool _active) override;
 };

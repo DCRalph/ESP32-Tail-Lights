@@ -71,7 +71,7 @@ uint8_t StatusLeds::getBrightness() const
 
 void StatusLeds::startShowTask()
 {
-  xTaskCreate(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle);
+  xTaskCreatePinnedToCore(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle, 0);
 }
 
 void StatusLeds::stopShowTask()
@@ -91,7 +91,7 @@ void StatusLeds::_showTask(void *pvParameters)
   while (true)
   {
     statusLeds->show();
-    vTaskDelay(pdMS_TO_TICKS(1000 / 50)); // 50fps
+    vTaskDelay(pdMS_TO_TICKS(1000 / 30)); // 50fps
   }
 }
 

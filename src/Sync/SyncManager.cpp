@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "IO/GPIO.h"
 #include "IO/StatusLed.h"
+#include "IO/TimeProfiler.h"
 
 SyncManager *SyncManager::getInstance()
 {
@@ -36,12 +37,15 @@ void SyncManager::begin()
 
 void SyncManager::loop()
 {
+  timeProfiler.start("syncManagerLoop", TimeUnit::MICROSECONDS);
+
   uint32_t now = millis();
   if (now - lastHeartbeat >= HEARTBEAT_INTERVAL)
   {
     sendHeartbeat();
     lastHeartbeat = now;
   }
+
   checkDiscoveryCleanup(now);
   checkGroupCleanup(now);
   checkMemberTimeout(now);
@@ -88,6 +92,8 @@ void SyncManager::loop()
       checkAutoCreate(now);
     }
   }
+
+  timeProfiler.stop("syncManagerLoop");
 }
 
 const std::map<std::string, DiscoveredDevice> &
@@ -622,8 +628,14 @@ void SyncManager::updateSyncedLED()
 
 void SyncManager::handleSyncPacket(fullPacket *fp)
 {
+
+
   if (fp->p.len < 1)
+  {
+
     return;
+  }
+
   uint8_t sub = fp->p.data[0];
   switch (sub)
   {
@@ -654,6 +666,8 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   default:
     break;
   }
+
+
 }
 
 void SyncManager::processHeartbeat(fullPacket *fp)

@@ -6,6 +6,7 @@
 #include "IO/LED/LEDStripManager.h"
 #include "Sync/SyncManager.h"
 #include "IO/StatusLed.h"
+#include "IO/TimeProfiler.h"
 
 //----------------------------------------------------------------------------
 
@@ -109,6 +110,8 @@ void Application::begin()
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
 
+  ledManager->startTask();
+
 #ifdef ENABLE_HEADLIGHTS
   LEDStripConfig headlights(
       LEDStripType::HEADLIGHT,
@@ -120,10 +123,8 @@ void Application::begin()
   ledManager->addLEDStrip(headlights);
 
   headlights.strip->getBuffer()[0] = Color(255, 0, 0);
-  headlights.strip->show();
   delay(500);
   headlights.strip->getBuffer()[0] = Color(0, 0, 0);
-  headlights.strip->show();
 
 #endif
 
@@ -135,10 +136,9 @@ void Application::begin()
   ledManager->addLEDStrip(taillights);
 
   taillights.strip->getBuffer()[0] = Color(255, 0, 0);
-  taillights.strip->show();
   delay(500);
   taillights.strip->getBuffer()[0] = Color(0, 0, 0);
-  taillights.strip->show();
+
 #endif
 
 #ifdef ENABLE_UNDERGLOW
@@ -149,10 +149,8 @@ void Application::begin()
   ledManager->addLEDStrip(underglow);
 
   underglow.strip->getBuffer()[0] = Color(255, 0, 0);
-  underglow.strip->show();
   delay(500);
   underglow.strip->getBuffer()[0] = Color(0, 0, 0);
-  underglow.strip->show();
 #endif
 
 #ifdef ENABLE_INTERIOR
@@ -163,10 +161,8 @@ void Application::begin()
   ledManager->addLEDStrip(interior);
 
   interior.strip->getBuffer()[0] = Color(255, 0, 0);
-  interior.strip->show();
   delay(500);
   interior.strip->getBuffer()[0] = Color(0, 0, 0);
-  interior.strip->show();
 #endif
 
   setupEffects();
@@ -242,10 +238,14 @@ void Application::updateInputs()
  */
 void Application::loop()
 {
+
+  timeProfiler.increment("appFps");
+  timeProfiler.start("appLoop", TimeUnit::MICROSECONDS);
+
   // Update input states.
-  uint64_t start = micros();
+  timeProfiler.start("updateInputs", TimeUnit::MICROSECONDS);
   updateInputs();
-  stats.updateInputTime = micros() - start;
+  timeProfiler.stop("updateInputs");
 
   // handle remote dissconnection
   if (lastRemotePing != 0 && millis() - lastRemotePing > 2000)
@@ -266,7 +266,7 @@ void Application::loop()
   brakeTapSequence3->loop();
 #endif
 
-  start = micros();
+  timeProfiler.start("updateMode", TimeUnit::MICROSECONDS);
   switch (mode)
   {
   case ApplicationMode::NORMAL:
@@ -316,10 +316,10 @@ void Application::loop()
     }
   }
 
-  stats.updateModeTime = micros() - start;
+  timeProfiler.stop("updateMode");
 
   // Update SyncManager
-  start = micros();
+  timeProfiler.start("updateSync", TimeUnit::MICROSECONDS);
   SyncManager *syncMgr = SyncManager::getInstance();
   syncMgr->loop();
 
@@ -331,54 +331,16 @@ void Application::loop()
     syncMgr->updateSyncedLED();
   }
 
-  stats.updateSyncTime = micros() - start;
-
-#ifdef ENABLE_SYNC
-  // TODO: Implement effect synchronization on top of the core sync foundation
-  // This is where you would:
-  // 1. Collect current effect states
-  // 2. Send effect updates to other devices (if master)
-  // 3. Apply effect updates from master (if slave)
-  // 4. Use synchronized time for coordinated effects
-
-  // Example of how to check sync status:
-  if (syncMgr->isInGroup())
-  {
-    // We have a group - check if we're syncing with others
-    const GroupInfo &groupInfo = syncMgr->getGroupInfo();
-    if (groupInfo.members.size() > 1)
-    {
-      // We have other devices in the network
-      if (syncMgr->isGroupMaster())
-      {
-        // We're the master - we can broadcast effect states
-        // TODO: Implement master effect broadcasting
-      }
-      else
-      {
-        // We're a slave - we should listen for effect states
-        // TODO: Implement slave effect listening
-      }
-    }
-  }
-#endif
+  timeProfiler.stop("updateSync");
 
   // Update and draw LED effects.
-  start = micros();
+  timeProfiler.start("updateEffects", TimeUnit::MICROSECONDS);
   LEDStripManager::getInstance()->updateEffects();
-  stats.updateEffectsTime = micros() - start;
+  timeProfiler.stop("updateEffects");
 
-  start = micros();
-  LEDStripManager::getInstance()->draw();
-  stats.drawTime = micros() - start;
+  // LEDStripManager::getInstance()->draw();
 
-  loopsPerSecond++;
-  if (millis() - lastLoopsTime >= 1000)
-  {
-    lastLoopsTime = millis();
-    stats.loopsPerSecond = loopsPerSecond;
-    loopsPerSecond = 0;
-  }
+  timeProfiler.stop("appLoop");
 }
 
 void Application::enableNormalMode()

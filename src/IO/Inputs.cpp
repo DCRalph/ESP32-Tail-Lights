@@ -19,6 +19,10 @@ HVInput::HVInput()
   _enabled = false;
   _override = false;
   _overrideState = false;
+
+  // Initialize optimization members
+  _rawAdcValue = 0;
+  _rawThreshold = 0;
 }
 
 HVInput::HVInput(GpIO *gpio, bool activeState, float threshold, float debounceTime)
@@ -35,6 +39,24 @@ HVInput::HVInput(GpIO *gpio, bool activeState, float threshold, float debounceTi
   _enabled = true;
   _override = false;
   _overrideState = false;
+
+  // Initialize optimization members
+  _rawAdcValue = 0;
+  _rawThreshold = 0;
+  _calculateRawThreshold();
+
+  // Initialize the raw ADC value if GPIO is available
+  if (_gpio)
+  {
+    _rawAdcValue = _gpio->analogRead();
+  }
+}
+
+void HVInput::_calculateRawThreshold()
+{
+  // Pre-calculate the threshold as a raw ADC value to avoid float calculations in update()
+  // Formula: threshold_adc = (V_thresh / (V_ref * Divider)) * ADC_MAX
+  _rawThreshold = (int32_t)((_threshold / (ADC_REF_VOLTAGE * DIVIDER_FACTOR)) * ADC_MAX_INT);
 }
 
 void HVInput::enable()
@@ -54,7 +76,6 @@ bool HVInput::isEnabled()
 
 void HVInput::update()
 {
-
   if (_override)
   {
     _lastState = _state;
@@ -73,12 +94,17 @@ void HVInput::update()
   if (!_gpio)
     return;
 
-  float adcReading = (float)_gpio->analogRead();
-  float newVoltage = (adcReading / ADC_MAX) * ADC_REF_VOLTAGE * DIVIDER_FACTOR;
+  // 1. Read the raw ADC value (this is still the main time cost)
+  int32_t newRawAdc = _gpio->analogRead();
 
-  _voltage = (_voltage * DEFAULT_SMOOTH_FACTOR) + (newVoltage * (1.0f - DEFAULT_SMOOTH_FACTOR));
+  // 2. Apply smoothing using fast integer math
+  // This is an integer-based Exponential Moving Average (EMA)
+  // new_value = old_value - (old_value / N) + (new_sample / N)
+  _rawAdcValue = _rawAdcValue - (_rawAdcValue / SMOOTHING_FACTOR) + (newRawAdc / SMOOTHING_FACTOR);
+
+  // 3. Compare raw integer values - this is extremely fast
   _lastState = _state;
-  bool rawState = _voltage > _threshold;
+  bool rawState = _rawAdcValue > _rawThreshold;
 
   // If debouncing is disabled (debounce time is 0), use raw state directly
   if (_debounceTime <= 0)
@@ -88,7 +114,7 @@ void HVInput::update()
   }
   else
   {
-    // Debouncing logic
+    // Debouncing logic - cache millis() call for efficiency
     uint64_t currentTime = millis();
 
     // If the raw state has changed from the last raw state, reset the debounce timer
@@ -116,7 +142,9 @@ void HVInput::update()
 
 float HVInput::getVoltage()
 {
-  return _voltage;
+  // Calculate voltage on-demand from the smoothed raw ADC value
+  // This avoids floating-point math in the critical update() path
+  return ((float)_rawAdcValue / (float)ADC_MAX_INT) * ADC_REF_VOLTAGE * DIVIDER_FACTOR;
 }
 
 bool HVInput::get()

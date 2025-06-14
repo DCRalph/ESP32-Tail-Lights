@@ -44,10 +44,6 @@ public:
   bool isNotificationActive();
   void drawNotification();
 
-  // profileing
-  uint64_t startTime;
-  uint64_t elapsedTime;
-
   // Get X position for placing custom icons in the top bar
   int getCustomIconX(int width);
 
@@ -55,41 +51,41 @@ public:
   void resetCustomIconPosition();
 };
 
-class Screen
-{
-public:
-  String name;
-  String topBarText;
+// class Screen
+// {
+// public:
+//   String name;
+//   String topBarText;
 
-  /**
-   * @brief Constructs a new Screen object with the specified name.
-   *
-   * @param _name The name of the screen.
-   */
-  Screen(String _name);
-  Screen(String _name, String _topBarText);
+//   /**
+//    * @brief Constructs a new Screen object with the specified name.
+//    *
+//    * @param _name The name of the screen.
+//    */
+//   Screen(String _name);
+//   Screen(String _name, String _topBarText);
 
-  void setTopBarText(String _text);
+//   void setTopBarText(String _text);
 
-  /**
-   * @brief Draws the screen.
-   */
-  virtual void draw();
+//   /**
+//    * @brief Draws the screen.
+//    */
+//   virtual void draw();
 
-  /**
-   * @brief Updates the screen.
-   */
-  virtual void update();
+//   /**
+//    * @brief Updates the screen.
+//    */
+//   virtual void update();
 
-  /**
-   * @brief Called when the screen is entered.
-   */
-  virtual void onEnter();
+//   /**
+//    * @brief Called when the screen is entered.
+//    */
+//   virtual void onEnter();
 
-  /**
-   * @brief Called when the screen is exited.
-   */
-  virtual void onExit();
-};
+//   /**
+//    * @brief Called when the screen is exited.
+//    */
+//   virtual void onExit();
+// };
 
 extern Display display;

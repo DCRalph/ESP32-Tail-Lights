@@ -4,8 +4,8 @@
 // #include "FastLED.h"
 #include <map>
 #include <string>
-
-
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // Structure to store LED strip configuration
 struct LEDStripConfig
@@ -64,10 +64,22 @@ public:
   // draw all strips
   void draw();
 
+  // Task management functions
+  void startTask();
+  void stopTask();
+  bool isTaskRunning();
+
 private:
   // Map of LED strip configurations by type
   std::map<LEDStripType, LEDStripConfig> strips;
 
   uint64_t lastDrawTime;
-  uint32_t drawFPS;
+  uint16_t drawFPS;
+
+  // Task-related members
+  TaskHandle_t ledTaskHandle;
+  bool taskRunning;
+
+  // Static task function for FreeRTOS
+  static void ledTask(void *parameter);
 };

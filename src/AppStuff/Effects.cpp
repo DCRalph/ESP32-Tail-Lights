@@ -44,8 +44,8 @@ void Application::setupEffects()
     headlightStrip->addEffect(rgbEffect);
     headlightStrip->addEffect(nightriderEffect);
     headlightStrip->addEffect(policeEffect);
-    headlightStrip->addEffect(pulseWaveEffect);
-    headlightStrip->addEffect(auroraEffect);
+    // headlightStrip->addEffect(pulseWaveEffect);
+    // headlightStrip->addEffect(auroraEffect);
     headlightStrip->addEffect(solidColorEffect);
   }
 
@@ -62,8 +62,8 @@ void Application::setupEffects()
     taillightStrip->addEffect(rgbEffect);
     taillightStrip->addEffect(nightriderEffect);
     taillightStrip->addEffect(policeEffect);
-    taillightStrip->addEffect(pulseWaveEffect);
-    taillightStrip->addEffect(auroraEffect);
+    // taillightStrip->addEffect(pulseWaveEffect);
+    // taillightStrip->addEffect(auroraEffect);
     taillightStrip->addEffect(solidColorEffect);
   }
 
@@ -72,8 +72,8 @@ void Application::setupEffects()
     taillightStrip->addEffect(rgbEffect);
     taillightStrip->addEffect(nightriderEffect);
     taillightStrip->addEffect(policeEffect);
-    taillightStrip->addEffect(pulseWaveEffect);
-    taillightStrip->addEffect(auroraEffect);
+    // taillightStrip->addEffect(pulseWaveEffect);
+    // taillightStrip->addEffect(auroraEffect);
     taillightStrip->addEffect(solidColorEffect);
   }
 }

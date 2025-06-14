@@ -15,6 +15,12 @@ class HVInput
 
   static constexpr float DEFAULT_DEBOUNCE_TIME = 20;
 
+  // --- OPTIMIZATION CONSTANTS ---
+  // Integer-based smoothing factor. Using power of 2 for fast bit-shift operations
+  // A factor of 8 means we keep 7/8 of the old value and add 1/8 of the new one
+  static constexpr int32_t SMOOTHING_FACTOR = 8;
+  static constexpr int32_t ADC_MAX_INT = 8192;
+
 private:
   bool _enabled;
 
@@ -24,7 +30,7 @@ private:
   bool _debouncedState;
   bool _lastState;
   bool _lastRawState;
-  float _voltage;
+  float _voltage; // Keep for backward compatibility, but calculate on-demand
   float _threshold;
   uint64_t _lastDebounceTime;
 
@@ -34,6 +40,11 @@ private:
   bool _override;
   bool _overrideState;
 
+  // --- OPTIMIZATION MEMBERS ---
+  // Raw ADC values for integer-based processing
+  int32_t _rawAdcValue;
+  int32_t _rawThreshold;
+
 public:
   HVInput();
   HVInput(GpIO *gpio, bool activeState, float threshold = DEFAULT_VOLTAGE_THRESHOLD, float debounceTime = DEFAULT_DEBOUNCE_TIME);
@@ -42,7 +53,7 @@ public:
   bool isEnabled();
 
   void update();
-  float getVoltage();
+  float getVoltage(); // Now calculates voltage on-demand from raw ADC value
   bool get();
   bool getLast();
   bool isActiveFor(uint64_t duration);
@@ -51,4 +62,8 @@ public:
 
   void override(bool state);
   void clearOverride();
+
+private:
+  // Helper function to calculate raw threshold from voltage threshold
+  void _calculateRawThreshold();
 };

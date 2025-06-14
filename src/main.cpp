@@ -10,21 +10,16 @@
 #include "IO/StatusLed.h"
 #include "IO/Display.h"
 #include "IO/ScreenManager.h"
+#include "IO/TimeProfiler.h"
 
-#include "Screens/Screens.h"
-
-StartUpScreen startUpScreen("Start Up");
-HomeScreen homeScreen("Home");
-ShutdownScreen shutdownScreen("Shutdown");
-ApplicationScreen applicationScreen("Application");
-SyncScreen syncScreen("Sync");
-SettingsScreen settingsScreen("Settings");
-ProvisioningRequiredScreen provisioningRequiredScreen("Provisioning Required");
-DebugScreen debugScreen("Debug");
-IOTestScreen ioTestScreen("IO Test");
-BatteryScreen batteryScreen("Battery");
+#include "Screens/StartUp.h"
+#include "Screens/Home.h"
+#include "Screens/ProvisioningRequired.h"
 
 Application *app;
+
+// Screen disable/enable feature
+bool screenEnabled = true;
 
 void setup()
 {
@@ -56,23 +51,22 @@ void setup()
   preferences.begin("esp", false);
   loadDeviceInfo();
 
-  display.init();
-  screenManager.init();
+  timeProfiler.begin();
 
-  screenManager.addScreen(&startUpScreen);
-  screenManager.addScreen(&homeScreen);
-  screenManager.addScreen(&shutdownScreen);
-  screenManager.addScreen(&applicationScreen);
-  screenManager.addScreen(&syncScreen);
-  screenManager.addScreen(&settingsScreen);
-  screenManager.addScreen(&provisioningRequiredScreen);
-  screenManager.addScreen(&debugScreen);
-  screenManager.addScreen(&ioTestScreen);
-  screenManager.addScreen(&batteryScreen);
+  // Initialize display and screen manager only if OLED is enabled
+  if (deviceInfo.oledEnabled)
+  {
+    display.init();
+    screenManager.init();
 
-  screenManager.setScreen("Start Up");
-  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(1);
-  display.display();
+    screenManager.setScreen(&StartUpScreen);
+    startUpScreenSetStage(1);
+    display.display();
+  }
+  else
+  {
+    Serial.println("[INFO] [CONFIG] OLED display disabled, skipping display initialization");
+  }
 
   WiFi.mode(WIFI_AP_STA);
 
@@ -85,7 +79,12 @@ void setup()
 
   Serial.println("[INFO] [CONFIG] Boot count: " + String(bootCount));
 
-  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(2);
+  // Update startup screen if OLED is enabled
+  if (deviceInfo.oledEnabled)
+  {
+    startUpScreenSetStage(2);
+    display.display();
+  }
 
   if (isDeviceProvisioned())
   {
@@ -102,40 +101,6 @@ void setup()
     }
 
     app->begin();
-
-    // xTaskCreatePinnedToCore(
-    //     [](void *pvParameters)
-    //     {
-    //       // statusLed1.setMode(RGB_MODE::Rainbow);
-    //       // statusLed2.setMode(RGB_MODE::Rainbow);
-
-    //       statusLed1.setMode(RGB_MODE::Overide);
-    //       statusLed2.setMode(RGB_MODE::Overide);
-
-    //       statusLed1.setOverideColor(255, 0, 0);
-    //       statusLed2.setOverideColor(255, 0, 0);
-
-    //       vTaskDelay(300 / portTICK_PERIOD_MS);
-
-    //       statusLed1.setOverideColor(0, 255, 0);
-    //       statusLed2.setOverideColor(0, 255, 0);
-
-    //       vTaskDelay(300 / portTICK_PERIOD_MS);
-
-    //       statusLed1.setOverideColor(0, 0, 255);
-    //       statusLed2.setOverideColor(0, 0, 255);
-
-    //       vTaskDelay(300 / portTICK_PERIOD_MS);
-
-    //       statusLed1.setOverideColor(0, 0, 0);
-    //       statusLed2.setOverideColor(0, 0, 0);
-
-    //       statusLed1.goBackSteps(1);
-    //       statusLed2.goBackSteps(1);
-
-    //       vTaskDelete(NULL);
-    //     },
-    //     "startup_blink", 10000, NULL, 1, NULL, 1);
   }
   else
   {
@@ -147,7 +112,12 @@ void setup()
     statusLed2.setMode(RGB_MODE::Pulsing);
   }
 
-  ((StartUpScreen *)screenManager.getCurrentScreen())->setStage(3);
+  // Update screen display if OLED is enabled
+  if (deviceInfo.oledEnabled)
+  {
+    startUpScreenSetStage(3);
+    display.display();
+  }
 
   if (isDeviceProvisioned())
   {
@@ -159,12 +129,21 @@ void setup()
     statusLed1.goBackSteps(1);
     statusLed2.goBackSteps(1);
 
-    screenManager.setScreen("Home");
+    // Set home screen if OLED is enabled
+    if (deviceInfo.oledEnabled)
+    {
+      screenManager.setScreen(&HomeScreen);
+      display.display();
+    }
   }
   else
   {
     // Show provisioning required screen and keep red status LEDs
-    screenManager.setScreen("Provisioning Required");
+    if (deviceInfo.oledEnabled)
+    {
+      screenManager.setScreen(&ProvisioningRequiredScreen);
+      display.display();
+    }
   }
 
   initSerialMenu();
@@ -176,41 +155,55 @@ unsigned long lastDraw = 0;
 void loop()
 {
   unsigned long currentTime = millis();
-  wireless.loop();
+  timeProfiler.start("mainLoop", TimeUnit::MICROSECONDS);
+  timeProfiler.increment("mainLoopFps");
+
+  wireless.loop(); // does nothing
+
+  // if (millis() - batteryLoopMs > 500)
+  // {
+  //   batteryLoopMs = millis();
+  //   timeProfiler.start("batteryUpdate", TimeUnit::MICROSECONDS);
+  //   batteryUpdate(); // ~130 us
+  //   timeProfiler.stop("batteryUpdate");
+  // }
 
   if (isDeviceProvisioned())
+    app->loop(); // ~1000 us most of the time ~5000 sometimes
+
+  // if (millis() - lastDraw > 35)
+  // {
+  //   lastDraw = millis();
+
+  //   timeProfiler.start("btnUpdate", TimeUnit::MICROSECONDS);
+  //   BtnBoot.Update();
+  //   BtnPrev.Update();
+  //   BtnSel.Update();
+  //   BtnNext.Update();
+  //   timeProfiler.stop("btnUpdate");
+
+  //   // Check for boot button long press to re-enable screen
+  //   if (BtnBoot.clicks == -1)
+  //   {
+  //     if (!screenEnabled)
+  //     {
+  //       screenEnabled = true;
+  //       BtnBoot.clicks = 0;
+  //     }
+  //   }
+
+  //   // Only update display if screen is enabled
+  //   if (screenEnabled)
+  //   {
+  //     display.display(); //  ~22000 us
+  //   }
+  // }
+
+  if (Serial.available() > 0)
   {
-    app->loop();
+    String input = Serial.readString();
+    processMenuInput(input); // idk probably fuck all
   }
 
-  if (millis() - batteryLoopMs > 500)
-  {
-    batteryLoopMs = millis();
-    batteryUpdate();
-  }
-
-  if (millis() - lastDraw > 25)
-  {
-    lastDraw = millis();
-
-    BtnBoot.Update();
-    BtnPrev.Update();
-    BtnSel.Update();
-    BtnNext.Update();
-
-    display.display();
-  }
-
-  try
-  {
-    if (Serial.available() > 0)
-    {
-      String input = Serial.readString();
-      processMenuInput(input);
-    }
-  }
-  catch (...)
-  {
-    Serial.println("[ERROR] Exception in serialTask");
-  }
+  timeProfiler.stop("mainLoop"); // ~ 1300 us avg, slowest ~24000 us
 }

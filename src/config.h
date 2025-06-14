@@ -19,6 +19,7 @@ struct DeviceInfo
 {
   bool provisioned = false;
   bool debugEnabled = false;
+  bool oledEnabled = false;
 
   uint8_t macAddress[6];
   uint32_t serialNumber;
@@ -31,6 +32,9 @@ struct DeviceInfo
 extern Preferences preferences;
 
 extern DeviceInfo deviceInfo;
+
+// Screen disable/enable feature
+extern bool screenEnabled;
 
 void restart();
 String formatBytes(size_t bytes, bool _short = false);
@@ -105,7 +109,7 @@ bool isDeviceProvisioned();
 
 #define ENABLE_HEADLIGHTS
 #define ENABLE_TAILLIGHTS
-#define ENABLE_UNDERGLOW
+// #define ENABLE_UNDERGLOW
 // #define ENABLE_INTERIOR
 
 #ifdef ENABLE_HEADLIGHTS
@@ -126,5 +130,5 @@ bool isDeviceProvisioned();
 
 #ifdef ENABLE_INTERIOR
 #define INTERIOR_LED_COUNT 60
-#define INTERIOR_LED_PIN 18
+#define INTERIOR_LED_PIN OUTPUT_LED_4_PIN
 #endif

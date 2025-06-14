@@ -16,6 +16,9 @@
 #include "systemMenu.h"
 #include "syncMenu.h"
 #include "provisioningMenu.h"
+#include "IO/TimeProfiler.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 /****************************************************
  * mainMenu object
@@ -38,6 +41,7 @@ void printMainMenu(const SerialMenu &menu)
     Serial.println(F("1) System Menu"));
     Serial.println(F("2) Sync Manager"));
     Serial.println(F("3) Device Provisioning"));
+    Serial.println(F("4) Time Profiler"));
     Serial.println(F("r) Reboot"));
     Serial.println(F("Press Enter to re-print this menu"));
 }
@@ -59,6 +63,12 @@ bool handleMainMenuInput(SerialMenu &menu, const String &input)
         setMenu(&provisioningMenu);
         return true;
     }
+    else if (input == F("4"))
+    {
+        timeProfiler.printAll();
+        return true;
+    }
+
     else if (input == F("r"))
     {
         Serial.println(F("Rebooting..."));

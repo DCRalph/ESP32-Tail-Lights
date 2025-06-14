@@ -50,14 +50,15 @@ void printProvisioningMenu(const SerialMenu &menu)
   Serial.println(F("2) Set Serial Number"));
   Serial.println(F("3) Set Hardware Version"));
   Serial.println(F("4) Toggle Debug Mode"));
+  Serial.println(F("5) Toggle OLED Display"));
 
   if (!deviceInfo.provisioned)
   {
-    Serial.println(F("5) Complete Provisioning"));
+    Serial.println(F("6) Complete Provisioning"));
   }
   else
   {
-    Serial.println(F("5) Mark as Unprovisioned"));
+    Serial.println(F("6) Mark as Unprovisioned"));
   }
 
   Serial.println(F("9) Factory Reset"));
@@ -130,6 +131,14 @@ bool handleProvisioningMenuInput(SerialMenu &menu, const String &input)
     return true;
   }
   else if (input == F("5"))
+  {
+    deviceInfo.oledEnabled = !deviceInfo.oledEnabled;
+    saveDeviceInfo();
+    Serial.println(String(F("OLED display ")) + (deviceInfo.oledEnabled ? "ENABLED" : "DISABLED"));
+    Serial.println(F("Note: Restart required for change to take effect"));
+    return true;
+  }
+  else if (input == F("6"))
   {
     if (!deviceInfo.provisioned)
     {
@@ -208,6 +217,7 @@ bool handleProvisioningMenuInput(SerialMenu &menu, const String &input)
     Serial.println();
     Serial.println(F("Optional:"));
     Serial.println(F("- Enable debug mode for detailed logging"));
+    Serial.println(F("- Enable/disable OLED display (requires restart)"));
     Serial.println();
     Serial.println(F("The device MAC address is automatically set and cannot be changed."));
     Serial.println();
@@ -276,6 +286,7 @@ void showProvisioningStatus()
   Serial.println(String(F("Serial Number: ")) + (deviceInfo.serialNumber == 0 ? "NOT SET" : String(deviceInfo.serialNumber)));
   Serial.println(String(F("Hardware Version: ")) + (deviceInfo.hardwareVersion == 0 ? "NOT SET" : String(deviceInfo.hardwareVersion)));
   Serial.println(String(F("Debug Mode: ")) + (deviceInfo.debugEnabled ? "ENABLED" : "DISABLED"));
+  Serial.println(String(F("OLED Display: ")) + (deviceInfo.oledEnabled ? "ENABLED" : "DISABLED"));
   Serial.printf("MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 deviceInfo.macAddress[0], deviceInfo.macAddress[1], deviceInfo.macAddress[2],
                 deviceInfo.macAddress[3], deviceInfo.macAddress[4], deviceInfo.macAddress[5]);

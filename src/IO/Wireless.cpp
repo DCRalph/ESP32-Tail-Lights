@@ -1,6 +1,7 @@
 #include "Wireless.h"
 #include "esp_now.h"
 #include "WiFi.h"
+#include "IO/TimeProfiler.h"
 
 uint8_t BROADCAST_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -83,6 +84,7 @@ void Wireless::sendCallback(const uint8_t *mac_addr,
 void Wireless::recvCallback(const uint8_t *mac_addr, const uint8_t *data,
                             int len)
 {
+  timeProfiler.increment("packetPps");
   char macStr[18];
   snprintf(macStr, sizeof(macStr),
            "%02x:%02x:%02x:%02x:%02x:%02x",

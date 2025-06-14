@@ -1,5 +1,6 @@
 #include "Display.h"
 #include "Wireless.h"
+#include "TimeProfiler.h"
 
 Display::Display()
 {
@@ -59,12 +60,17 @@ void Display::drawTopBar(void)
 {
   u8g2.setFont(u8g2_font_koleeko_tf);
   u8g2.setDrawColor(1);
-  u8g2.drawStr(0, 9, screenManager.getCurrentScreen()->topBarText.c_str());
+
+  if (screenManager.getCurrentScreen())
+    u8g2.drawStr(0, 9, screenManager.getCurrentScreen()->topBarText.c_str());
+  else
+    u8g2.drawStr(0, 9, "Unknown");
+
   u8g2.drawLine(0, 10, DISPLAY_WIDTH, 10);
 
   char buffer[32];
 
-  sprintf(buffer, "%d%%%", batteryGetPercentageSmooth());
+  sprintf(buffer, "%.1fV", batteryGetVoltageSmooth());
 
   u8g2.setFont(u8g2_font_koleeko_tf);
   int battW = u8g2.getStrWidth(buffer);
@@ -89,6 +95,8 @@ void Display::noTopBar()
 
 void Display::display(void)
 {
+  timeProfiler.increment("displayFps");
+  timeProfiler.start("display", TimeUnit::MICROSECONDS);
 
   // u8g2.firstPage();
   // do
@@ -98,37 +106,36 @@ void Display::display(void)
   //     drawTopBar();
   // } while (u8g2.nextPage());
 
-  // startTime = micros();
+  timeProfiler.start("clearBuffer", TimeUnit::MICROSECONDS);
   u8g2.clearBuffer(); // Clear the internal buffer
-  // elapsedTime = micros() - startTime;
-  // clearBufferTime = elapsedTime;
+  timeProfiler.stop("clearBuffer");
 
-  // startTime = micros();
+  timeProfiler.start("screenManagerDraw", TimeUnit::MICROSECONDS);
   screenManager.draw();
-  // elapsedTime = micros() - startTime;
-  // screenManagerDrawTime = elapsedTime;
+  timeProfiler.stop("screenManagerDraw");
 
-  // startTime = micros();
+  timeProfiler.start("drawTopBar", TimeUnit::MICROSECONDS);
   if (!_noTopBar)
     drawTopBar();
-  // elapsedTime = micros() - startTime;
-  // drawTopBarTime = elapsedTime;
+  timeProfiler.stop("drawTopBar");
 
   // Check and draw notification if active
   if (isNotificationActive())
   {
+    timeProfiler.start("drawNotification", TimeUnit::MICROSECONDS);
     drawNotification();
+    timeProfiler.stop("drawNotification");
   }
 
-  // startTime = micros();
+  timeProfiler.start("sendBuffer", TimeUnit::MILLISECONDS);
   u8g2.sendBuffer();
-  // elapsedTime = micros() - startTime;
-  // sendBufferTime = elapsedTime;
+  timeProfiler.stop("sendBuffer");
 
-  // startTime = micros();
+  timeProfiler.start("screenUpdate", TimeUnit::MICROSECONDS);
   screenManager.update();
-  // elapsedTime = micros() - startTime;
-  // screenUpdateDrawTime = elapsedTime;
+  timeProfiler.stop("screenUpdate");
+
+  timeProfiler.stop("display");
 
   _noTopBar = false;
 }
@@ -193,43 +200,6 @@ void Display::drawNotification()
 
   // Reset draw color
   u8g2.setDrawColor(1);
-}
-
-// ######################
-// Screen
-// ######################
-
-Screen::Screen(String _name)
-{
-  name = _name;
-  topBarText = _name;
-}
-
-Screen::Screen(String _name, String _topBarText)
-{
-  name = _name;
-  topBarText = _topBarText;
-}
-
-void Screen::setTopBarText(String _text)
-{
-  topBarText = _text;
-}
-
-void Screen::draw()
-{
-}
-
-void Screen::update()
-{
-}
-
-void Screen::onEnter()
-{
-}
-
-void Screen::onExit()
-{
 }
 
 Display display;
