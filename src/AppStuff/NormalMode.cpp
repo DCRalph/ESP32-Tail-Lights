@@ -65,11 +65,11 @@ void Application::handleNormalEffects()
   }
   else
   {
-    if (!debugSync)
-    {
-      taillightEffect->setDim();
-      headlightEffect->setCarOn();
-    }
+    // if (!debugSync)
+    // {
+      // taillightEffect->setDim();
+      // headlightEffect->setCarOn();
+    // }
 
     // Only apply physical input controls if we're the master
     // or we're not syncing with other devices
