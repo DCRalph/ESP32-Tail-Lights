@@ -45,6 +45,8 @@
 //   return input.isEnabled();
 // }
 
+#define NUM_MODES 4
+
 enum class ApplicationMode
 {
   NORMAL,
@@ -82,15 +84,14 @@ public:
   // Main loop function to be called from loop()
   void loop();
 
+  void btnLoop();
+
   // Set testMode externally.
   void enableNormalMode();
   void enableTestMode();
   void enableRemoteMode();
   void enableOffMode();
 
-  // Global pointer to the custom LED manager.
-
-private:
   // HVInput instances
   HVInput accOnInput;          // 12v ACC
   HVInput leftIndicatorInput;  // Left indicator
@@ -99,6 +100,7 @@ private:
   HVInput brakeInput;          // Brake
   HVInput reverseInput;        // Reverse
 
+private:
   void updateInputs();
   void setupWireless();
 
@@ -126,9 +128,7 @@ private:
   IndicatorFlickSequence *RGBFlickSequence;
   IndicatorFlickSequence *nightRiderFlickSequence;
 
-#ifdef ENABLE_TAILLIGHTS
   BrakeTapSequence *brakeTapSequence3;
-#endif
 
   // Application Mode
   ApplicationMode mode;

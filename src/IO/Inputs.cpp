@@ -186,3 +186,8 @@ void HVInput::clearOverride()
 {
   _override = false;
 }
+
+bool HVInput::isOverride()
+{
+  return _override;
+}

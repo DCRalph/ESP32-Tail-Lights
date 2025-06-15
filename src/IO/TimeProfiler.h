@@ -1,5 +1,4 @@
-#ifndef TIMEPROFILER_H
-#define TIMEPROFILER_H
+#pragma once
 
 #include <Arduino.h>
 #include <map>
@@ -87,5 +86,3 @@ public:
 
 // Global instance
 extern TimeProfiler timeProfiler;
-
-#endif

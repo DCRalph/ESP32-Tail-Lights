@@ -8,9 +8,7 @@ void Application::setupSequences()
   RGBFlickSequence = new IndicatorFlickSequence(IndicatorSide::LEFT_SIDE);
   nightRiderFlickSequence = new IndicatorFlickSequence(IndicatorSide::RIGHT_SIDE);
 
-#ifdef ENABLE_TAILLIGHTS
   brakeTapSequence3 = new BrakeTapSequence(3);
-#endif
 
   unlockSequence->setActive(true);
   unlockSequence->setCallback([this]()
@@ -18,7 +16,7 @@ void Application::setupSequences()
                                 taillightEffect->setStartup();
                                 headlightEffect->setStartup();
                                 unlockSequence->setActive(false);
-                                lockSequence->reset();
+                                // lockSequence->reset();
                                 //
                               });
 
@@ -51,7 +49,6 @@ void Application::setupSequences()
                                          //
                                        });
 
-#ifdef ENABLE_TAILLIGHTS
   brakeTapSequence3->setActive(true);
   brakeTapSequence3->setCallback([this]()
                                  {
@@ -65,5 +62,4 @@ void Application::setupSequences()
                                    enableNormalMode();
                                    //
                                  });
-#endif
 }

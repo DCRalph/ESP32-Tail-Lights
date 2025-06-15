@@ -8,9 +8,9 @@
 class HVInput
 {
   static constexpr float DEFAULT_SMOOTH_FACTOR = 0.5f;
-  static constexpr float ADC_MAX = 8192;
+  static constexpr float ADC_MAX = 4095;
   static constexpr float ADC_REF_VOLTAGE = 3.3;
-  static constexpr float DIVIDER_FACTOR = 10.0;
+  static constexpr float DIVIDER_FACTOR = 11.0;
   static constexpr float DEFAULT_VOLTAGE_THRESHOLD = 3;
 
   static constexpr float DEFAULT_DEBOUNCE_TIME = 20;
@@ -19,7 +19,7 @@ class HVInput
   // Integer-based smoothing factor. Using power of 2 for fast bit-shift operations
   // A factor of 8 means we keep 7/8 of the old value and add 1/8 of the new one
   static constexpr int32_t SMOOTHING_FACTOR = 8;
-  static constexpr int32_t ADC_MAX_INT = 8192;
+  static constexpr int32_t ADC_MAX_INT = 4095;
 
 private:
   bool _enabled;
@@ -62,6 +62,7 @@ public:
 
   void override(bool state);
   void clearOverride();
+  bool isOverride();
 
 private:
   // Helper function to calculate raw threshold from voltage threshold

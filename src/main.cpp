@@ -18,9 +18,6 @@
 
 Application *app;
 
-// Screen disable/enable feature
-bool screenEnabled = true;
-
 void setup()
 {
   Serial.begin(115200);
@@ -50,6 +47,7 @@ void setup()
 
   preferences.begin("esp", false);
   loadDeviceInfo();
+  loadLEDConfig();
 
   timeProfiler.begin();
 
@@ -160,44 +158,46 @@ void loop()
 
   wireless.loop(); // does nothing
 
-  // if (millis() - batteryLoopMs > 500)
-  // {
-  //   batteryLoopMs = millis();
-  //   timeProfiler.start("batteryUpdate", TimeUnit::MICROSECONDS);
-  //   batteryUpdate(); // ~130 us
-  //   timeProfiler.stop("batteryUpdate");
-  // }
+  if (millis() - batteryLoopMs > 500)
+  {
+    batteryLoopMs = millis();
+    timeProfiler.start("batteryUpdate", TimeUnit::MICROSECONDS);
+    batteryUpdate(); // ~130 us
+    timeProfiler.stop("batteryUpdate");
+  }
 
   if (isDeviceProvisioned())
     app->loop(); // ~1000 us most of the time ~5000 sometimes
 
-  // if (millis() - lastDraw > 35)
-  // {
-  //   lastDraw = millis();
+  if (millis() - lastDraw > 35)
+  {
+    lastDraw = millis();
 
-  //   timeProfiler.start("btnUpdate", TimeUnit::MICROSECONDS);
-  //   BtnBoot.Update();
-  //   BtnPrev.Update();
-  //   BtnSel.Update();
-  //   BtnNext.Update();
-  //   timeProfiler.stop("btnUpdate");
+    timeProfiler.start("btnUpdate", TimeUnit::MICROSECONDS);
+    BtnBoot.Update();
+    BtnPrev.Update();
+    BtnSel.Update();
+    BtnNext.Update();
+    timeProfiler.stop("btnUpdate");
 
-  //   // Check for boot button long press to re-enable screen
-  //   if (BtnBoot.clicks == -1)
-  //   {
-  //     if (!screenEnabled)
-  //     {
-  //       screenEnabled = true;
-  //       BtnBoot.clicks = 0;
-  //     }
-  //   }
+    // Only update display if screen is enabled
+    if (deviceInfo.oledEnabled)
+    {
+      // display.display(); //  ~22000 us
+    }
+    else
+    {
+      // if (BtnBoot.clicks == -1)
+      // {
+      //   deviceInfo.oledEnabled = true;
+      //   saveDeviceInfo();
+      //   BtnBoot.clicks = 0;
+      // }
 
-  //   // Only update display if screen is enabled
-  //   if (screenEnabled)
-  //   {
-  //     display.display(); //  ~22000 us
-  //   }
-  // }
+      if (isDeviceProvisioned())
+        app->btnLoop();
+    }
+  }
 
   if (Serial.available() > 0)
   {

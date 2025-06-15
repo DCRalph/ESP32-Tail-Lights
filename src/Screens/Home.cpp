@@ -25,7 +25,8 @@ namespace HomeScreenNamespace
   MenuItemAction disableScreenItem = MenuItemAction(
       "Disable Screen", 1, []()
       {
-        screenEnabled = false;
+        deviceInfo.oledEnabled = false;
+        saveDeviceInfo();
         display.u8g2.clearBuffer();
         display.u8g2.sendBuffer();
         Serial.println("[INFO] [SCREEN] Screen disabled via menu"); });

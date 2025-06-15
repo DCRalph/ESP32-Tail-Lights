@@ -6,7 +6,7 @@ NightRiderEffect::NightRiderEffect(uint8_t priority, bool transparent)
       active(false),
       cycleTime(5.0f),
       tailLength(15.0f),
-      currentPos(0.0f),
+      progress(0.0f),
       forward(true),
       lastUpdateTime(0),
       syncEnabled(true) // Enable sync by default
@@ -22,8 +22,8 @@ void NightRiderEffect::setActive(bool _active)
 
   if (active)
   {
-    // Reset the position and direction.
-    currentPos = 0.0f;
+    // Reset the progress and direction.
+    progress = 0.0f;
     forward = true;
     lastUpdateTime = SyncManager::syncMillis();
   }
@@ -42,7 +42,7 @@ void NightRiderEffect::setSyncData(NightRiderSyncData syncData)
   active = syncData.active;
   cycleTime = syncData.cycleTime;
   tailLength = syncData.tailLength;
-  currentPos = syncData.currentPos;
+  progress = syncData.progress;
   forward = syncData.forward;
 }
 
@@ -51,7 +51,7 @@ NightRiderSyncData NightRiderEffect::getSyncData()
   return NightRiderSyncData{
       .cycleTime = cycleTime,
       .tailLength = tailLength,
-      .currentPos = currentPos,
+      .progress = progress,
       .forward = forward,
       .active = active,
   };
@@ -74,36 +74,32 @@ void NightRiderEffect::update(LEDStrip *strip)
   float dtSeconds = dtMillis / 1000.0f;
   lastUpdateTime = currentTime;
 
-  uint16_t numLEDs = strip->getNumLEDs();
-  if (numLEDs < 2 || cycleTime <= 0.0f)
+  if (cycleTime <= 0.0f)
     return;
 
-  // Compute the total distance for a full cycle (there and back).
-  // The head goes from index 0 to index (numLEDs-1) and then back to 0.
-  float fullCycleDistance = 2.0f * (numLEDs - 1);
-  // Calculate speed (in LED positions per second).
-  float positionPerSecond = fullCycleDistance / cycleTime;
+  // Calculate progress step per second (0.0 to 1.0 represents a full cycle).
+  float progressPerSecond = 1.0f / cycleTime;
   // Calculate step size.
-  float step = positionPerSecond * dtSeconds;
+  float step = progressPerSecond * dtSeconds;
 
-  // Update position based on direction.
+  // Update progress based on direction.
   if (forward)
   {
-    currentPos += step;
-    if (currentPos >= numLEDs - 1)
+    progress += step;
+    if (progress >= 1.0f)
     {
       // Overshoot correction and change direction.
-      currentPos = (numLEDs - 1) - (currentPos - (numLEDs - 1));
+      progress = 1.0f - (progress - 1.0f);
       forward = false;
     }
   }
   else
   {
-    currentPos -= step;
-    if (currentPos <= 0)
+    progress -= step;
+    if (progress <= 0.0f)
     {
       // Overshoot correction and change direction.
-      currentPos = -currentPos;
+      progress = -progress;
       forward = true;
     }
   }
@@ -115,11 +111,17 @@ void NightRiderEffect::render(LEDStrip *strip, Color *buffer)
     return;
 
   uint16_t numLEDs = strip->getNumLEDs();
+  if (numLEDs < 2)
+    return;
+
   // Clear the buffer (turn off all LEDs).
   for (uint16_t i = 0; i < numLEDs; i++)
   {
     buffer[i] = Color(0, 0, 0);
   }
+
+  // Map progress (0.0-1.0) to actual LED position (0 to numLEDs-1).
+  float currentPos = progress * (numLEDs - 1);
 
   // Define the head color: bright red.
   const float headBrightness = 1.0f;

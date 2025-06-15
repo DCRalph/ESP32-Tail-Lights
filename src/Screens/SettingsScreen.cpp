@@ -156,19 +156,6 @@ namespace SettingsScreenNamespace
     // Initialize data
     updateDeviceInfo();
     updateSystemStatus();
-
-#ifdef HEADLIGHT_LED_COUNT
-    headlightLedCount = HEADLIGHT_LED_COUNT;
-#endif
-#ifdef TAILLIGHT_LED_COUNT
-    taillightLedCount = TAILLIGHT_LED_COUNT;
-#endif
-#ifdef UNDERGLOW_LED_COUNT
-    underglowLedCount = UNDERGLOW_LED_COUNT;
-#endif
-#ifdef INTERIOR_LED_COUNT
-    interiorLedCount = INTERIOR_LED_COUNT;
-#endif
   }
 
   // onExit function

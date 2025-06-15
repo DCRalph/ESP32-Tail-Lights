@@ -32,7 +32,7 @@ void Application::handleNormalEffects()
     LEDEffect::disableAllEffects();
   }
 
-  if (accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false)
+  if (accOnInput.getLast() != accOnInput.get() && accOnInput.get() == false) // acc just went off
   {
     if (taillightEffect)
     {
@@ -46,31 +46,36 @@ void Application::handleNormalEffects()
   debugSync = true;
 #endif
 
-  if (accOnInput.get() == false && !debugSync)
+  if (accOnInput.get() == false && !debugSync) // acc is off
   {
     // Since ACC is off, disable the other effects.
     leftIndicatorEffect->setActive(false);
     rightIndicatorEffect->setActive(false);
 
-    // headlightEffect->setOff();
-    // headlightEffect->setSplit(false);
-    // headlightEffect->setColor(false, false, false);
-
     brakeEffect->setActive(false);
     brakeEffect->setIsReversing(false);
     reverseLightEffect->setActive(false);
+    policeEffect->setActive(false);
 
     pulseWaveEffect->setActive(false);
     auroraEffect->setActive(false);
-  }
-  else
-  {
-    // if (!debugSync)
-    // {
-      // taillightEffect->setDim();
-      // headlightEffect->setCarOn();
-    // }
 
+    rgbEffect->setActive(false);
+    nightriderEffect->setActive(false);
+    solidColorEffect->setActive(false);
+  }
+
+  if (accOnInput.getLast() != accOnInput.get() && accOnInput.get() == true) // acc just went on
+  {
+    if (taillightEffect)
+    {
+      taillightEffect->setDim();
+      headlightEffect->setCarOn();
+    }
+  }
+
+  if (accOnInput.get() == true) // acc is on
+  { 
     // Only apply physical input controls if we're the master
     // or we're not syncing with other devices
     if (!isSyncing || isMaster)
@@ -79,12 +84,10 @@ void Application::handleNormalEffects()
       leftIndicatorEffect->setActive(leftIndicatorInput.get());
       rightIndicatorEffect->setActive(rightIndicatorInput.get());
 
-#ifdef ENABLE_TAILLIGHTS
       // Keep separate brake and reverse effects
       brakeEffect->setActive(brakeInput.get());
       brakeEffect->setIsReversing(reverseInput.get() || reverseLightEffect->isAnimating());
       reverseLightEffect->setActive(reverseInput.get());
-#endif
 
       if (isMaster && syncMgr->isEffectSyncEnabled())
       {

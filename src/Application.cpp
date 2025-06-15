@@ -28,14 +28,11 @@ Application::Application()
   leftIndicatorInput = HVInput(&input2, HV_HIGH_ACTIVE);
   rightIndicatorInput = HVInput(&input3, HV_HIGH_ACTIVE);
 
-#ifdef ENABLE_HEADLIGHTS
-  headlightInput = HVInput(&input5, HV_HIGH_ACTIVE);
-#endif
+  headlightInput = HVInput(&input4, HV_HIGH_ACTIVE);
 
-#ifdef ENABLE_TAILLIGHTS
   brakeInput = HVInput(&input5, HV_HIGH_ACTIVE);
   reverseInput = HVInput(&input6, HV_HIGH_ACTIVE);
-#endif
+
 #endif
 
   // Initialize effect pointers to nullptr
@@ -54,9 +51,7 @@ Application::Application()
   RGBFlickSequence = nullptr;
   nightRiderFlickSequence = nullptr;
 
-#ifdef ENABLE_TAILLIGHTS
   brakeTapSequence3 = nullptr;
-#endif
 }
 
 /*
@@ -89,13 +84,7 @@ Application::~Application()
   delete RGBFlickSequence;
   delete nightRiderFlickSequence;
 
-#ifdef ENABLE_TAILLIGHTS
   delete brakeTapSequence3;
-#endif
-
-#ifdef ENABLE_HEADLIGHTS
-  // No headlight-specific sequences to delete yet
-#endif
 }
 
 /*
@@ -112,58 +101,65 @@ void Application::begin()
 
   ledManager->startTask();
 
-#ifdef ENABLE_HEADLIGHTS
-  LEDStripConfig headlights(
-      LEDStripType::HEADLIGHT,
-      new LEDStrip(HEADLIGHT_LED_COUNT, HEADLIGHT_LED_PIN),
-      "Headlights");
-#ifdef HEADLIGHT_FLIPED
-  headlights.strip->setFliped(true);
-#endif
-  ledManager->addLEDStrip(headlights);
+  if (ledConfig.headlightsEnabled)
+  {
+    LEDStripConfig headlights(
+        LEDStripType::HEADLIGHT,
+        new LEDStrip(ledConfig.headlightLedCount, OUTPUT_LED_1_PIN),
+        "Headlights");
+    headlights.strip->setFliped(ledConfig.headlightFlipped);
 
-  headlights.strip->getBuffer()[0] = Color(255, 0, 0);
-  delay(500);
-  headlights.strip->getBuffer()[0] = Color(0, 0, 0);
+    ledManager->addLEDStrip(headlights);
 
-#endif
+    headlights.strip->getBuffer()[0] = Color(255, 0, 0);
+    delay(500);
+    headlights.strip->getBuffer()[0] = Color(0, 0, 0);
+  }
 
-#ifdef ENABLE_TAILLIGHTS
-  LEDStripConfig taillights(
-      LEDStripType::TAILLIGHT,
-      new LEDStrip(TAILLIGHT_LED_COUNT, TAILLIGHT_LED_PIN),
-      "Taillights");
-  ledManager->addLEDStrip(taillights);
+  if (ledConfig.taillightsEnabled)
+  {
+    LEDStripConfig taillights(
+        LEDStripType::TAILLIGHT,
+        new LEDStrip(ledConfig.taillightLedCount, OUTPUT_LED_2_PIN),
+        "Taillights");
+    taillights.strip->setFliped(ledConfig.taillightFlipped);
 
-  taillights.strip->getBuffer()[0] = Color(255, 0, 0);
-  delay(500);
-  taillights.strip->getBuffer()[0] = Color(0, 0, 0);
+    ledManager->addLEDStrip(taillights);
 
-#endif
+    taillights.strip->getBuffer()[0] = Color(255, 0, 0);
+    delay(500);
+    taillights.strip->getBuffer()[0] = Color(0, 0, 0);
+  }
 
-#ifdef ENABLE_UNDERGLOW
-  LEDStripConfig underglow(
-      LEDStripType::UNDERGLOW,
-      new LEDStrip(UNDERGLOW_LED_COUNT, UNDERGLOW_LED_PIN),
-      "Underglow");
-  ledManager->addLEDStrip(underglow);
+  if (ledConfig.underglowEnabled)
+  {
+    LEDStripConfig underglow(
+        LEDStripType::UNDERGLOW,
+        new LEDStrip(ledConfig.underglowLedCount, OUTPUT_LED_3_PIN),
+        "Underglow");
+    underglow.strip->setFliped(ledConfig.underglowFlipped);
 
-  underglow.strip->getBuffer()[0] = Color(255, 0, 0);
-  delay(500);
-  underglow.strip->getBuffer()[0] = Color(0, 0, 0);
-#endif
+    ledManager->addLEDStrip(underglow);
 
-#ifdef ENABLE_INTERIOR
-  LEDStripConfig interior(
-      LEDStripType::INTERIOR,
-      new LEDStrip(INTERIOR_LED_COUNT, INTERIOR_LED_PIN),
-      "Interior");
-  ledManager->addLEDStrip(interior);
+    underglow.strip->getBuffer()[0] = Color(255, 0, 0);
+    delay(500);
+    underglow.strip->getBuffer()[0] = Color(0, 0, 0);
+  }
 
-  interior.strip->getBuffer()[0] = Color(255, 0, 0);
-  delay(500);
-  interior.strip->getBuffer()[0] = Color(0, 0, 0);
-#endif
+  if (ledConfig.interiorEnabled)
+  {
+    LEDStripConfig interior(
+        LEDStripType::INTERIOR,
+        new LEDStrip(ledConfig.interiorLedCount, OUTPUT_LED_4_PIN),
+        "Interior");
+    interior.strip->setFliped(ledConfig.interiorFlipped);
+
+    ledManager->addLEDStrip(interior);
+
+    interior.strip->getBuffer()[0] = Color(255, 0, 0);
+    delay(500);
+    interior.strip->getBuffer()[0] = Color(0, 0, 0);
+  }
 
   setupEffects();
   setupSequences();
@@ -201,19 +197,8 @@ void Application::begin()
                                   Serial.println("Application: Effect sync received");
                                   handleSyncedEffects(effectState); });
 
-  // Enable auto-join functionality
-  // syncMgr->enableAutoJoin(false);
-  // syncMgr->enableAutoCreate(false);
-  // syncMgr->setAutoJoinTimeout(8000); // Wait 8 seconds before creating own group
-
   Serial.println("Application: Auto-join enabled - devices will automatically pair");
 #endif
-
-  // #ifndef ENABLE_HV_INPUTS
-  //   enableTestMode();
-  //   // rgbEffect->setActive(true);
-  //   headlightStartupEffect->setActive(true);
-  // #endif
 
   // set brightness to 100
   ledManager->setBrightness(255);
@@ -221,15 +206,12 @@ void Application::begin()
 
 void Application::updateInputs()
 {
-  // #ifdef ENABLE_HV_INPUTS
-  // Simply call update() on each HVInput instance
   accOnInput.update();
   leftIndicatorInput.update();
   rightIndicatorInput.update();
   headlightInput.update();
   brakeInput.update();
   reverseInput.update();
-  // #endif
 }
 
 /*
@@ -261,10 +243,8 @@ void Application::loop()
   }
 
   // handle brake tap sequence. always check if this is triggered
-#ifdef ENABLE_TAILLIGHTS
   brakeTapSequence3->setInput(brakeInput.get());
   brakeTapSequence3->loop();
-#endif
 
   timeProfiler.start("updateMode", TimeUnit::MICROSECONDS);
   switch (mode)
@@ -341,6 +321,17 @@ void Application::loop()
   // LEDStripManager::getInstance()->draw();
 
   timeProfiler.stop("appLoop");
+}
+
+void Application::btnLoop()
+{
+
+  if (BtnBoot.clicks == 1)
+  {
+    // cycle through modes
+    mode = static_cast<ApplicationMode>((static_cast<uint8_t>(mode) + 1) % NUM_MODES);
+    preferences.putUInt("mode", static_cast<uint8_t>(mode));
+  }
 }
 
 void Application::enableNormalMode()

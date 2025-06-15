@@ -16,7 +16,7 @@ struct __attribute__((packed)) NightRiderSyncData
 {
   float cycleTime;
   float tailLength;
-  float currentPos;
+  float progress;
   bool forward;
   bool active;
 

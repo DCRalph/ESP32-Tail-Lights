@@ -2,8 +2,6 @@
 
 #include "../Effects.h"
 
-
-
 class NightRiderEffect : public LEDEffect
 {
 public:
@@ -30,8 +28,8 @@ public:
 
 private:
   bool active;
-  // The current position (can be fractional for smooth movement).
-  float currentPos;
+  // The current progress in the cycle (0.0 to 1.0).
+  float progress;
   // Direction of movement: true = moving forward, false = moving backward.
   bool forward;
   // Last update time (in milliseconds).

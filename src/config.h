@@ -29,12 +29,42 @@ struct DeviceInfo
   void print();
 };
 
+struct LEDConfig
+{
+  // LED strip enable flags
+  bool headlightsEnabled;
+  bool taillightsEnabled;
+  bool underglowEnabled;
+  bool interiorEnabled;
+
+  // LED strip lengths (default to 50 as requested)
+  uint16_t headlightLedCount;
+  uint16_t taillightLedCount;
+  uint16_t underglowLedCount;
+  uint16_t interiorLedCount;
+
+  // LED strip pins (use defaults from defines)
+  // uint8_t headlightPin;
+  // uint8_t taillightPin;
+  // uint8_t underglowPin;
+  // uint8_t interiorPin;
+
+  // LED strip flip settings
+  bool headlightFlipped;
+  bool taillightFlipped;
+  bool underglowFlipped;
+  bool interiorFlipped;
+
+  LEDConfig();
+  void print();
+};
+
 extern Preferences preferences;
 
 extern DeviceInfo deviceInfo;
+extern LEDConfig ledConfig;
 
-// Screen disable/enable feature
-extern bool screenEnabled;
+
 
 void restart();
 String formatBytes(size_t bytes, bool _short = false);
@@ -42,6 +72,9 @@ String formatBytes(size_t bytes, bool _short = false);
 void saveDeviceInfo();
 void loadDeviceInfo();
 bool isDeviceProvisioned();
+
+void saveLEDConfig();
+void loadLEDConfig();
 
 #define S3_V1
 // #define S3_DEV
@@ -54,7 +87,7 @@ bool isDeviceProvisioned();
 // #define DEBUG_ESP_NOW
 // #define ESPNOW_NO_DISABLE_WIFI
 
-#define DEBUG_SYNC
+// #define DEBUG_SYNC
 #define ENABLE_SYNC
 
 #ifdef S3_V1
@@ -107,28 +140,28 @@ bool isDeviceProvisioned();
 #define INPUT_6_PIN 6
 #endif
 
-#define ENABLE_HEADLIGHTS
-#define ENABLE_TAILLIGHTS
-// #define ENABLE_UNDERGLOW
-// #define ENABLE_INTERIOR
+// #define ENABLE_HEADLIGHTS
+// #define ENABLE_TAILLIGHTS
+// // #define ENABLE_UNDERGLOW
+// // #define ENABLE_INTERIOR
 
-#ifdef ENABLE_HEADLIGHTS
-#define HEADLIGHT_LED_COUNT 120
-#define HEADLIGHT_LED_PIN OUTPUT_LED_1_PIN
-// #define HEADLIGHT_FLIPED
-#endif
+// #ifdef ENABLE_HEADLIGHTS
+// #define HEADLIGHT_LED_COUNT 99
+// #define HEADLIGHT_LED_PIN OUTPUT_LED_1_PIN
+// // #define HEADLIGHT_FLIPED
+// #endif
 
-#ifdef ENABLE_TAILLIGHTS
-#define TAILLIGHT_LED_COUNT 120
-#define TAILLIGHT_LED_PIN OUTPUT_LED_2_PIN
-#endif
+// #ifdef ENABLE_TAILLIGHTS
+// #define TAILLIGHT_LED_COUNT 120
+// #define TAILLIGHT_LED_PIN OUTPUT_LED_2_PIN
+// #endif
 
-#ifdef ENABLE_UNDERGLOW
-#define UNDERGLOW_LED_COUNT 120
-#define UNDERGLOW_LED_PIN OUTPUT_LED_3_PIN
-#endif
+// #ifdef ENABLE_UNDERGLOW
+// #define UNDERGLOW_LED_COUNT 120
+// #define UNDERGLOW_LED_PIN OUTPUT_LED_3_PIN
+// #endif
 
-#ifdef ENABLE_INTERIOR
-#define INTERIOR_LED_COUNT 60
-#define INTERIOR_LED_PIN OUTPUT_LED_4_PIN
-#endif
+// #ifdef ENABLE_INTERIOR
+// #define INTERIOR_LED_COUNT 60
+// #define INTERIOR_LED_PIN OUTPUT_LED_4_PIN
+// #endif

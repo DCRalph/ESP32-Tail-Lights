@@ -28,6 +28,54 @@ Preferences preferences;
 
 DeviceInfo deviceInfo;
 
+LEDConfig::LEDConfig()
+{
+  // Constructor initializes with default values as set in header
+  headlightsEnabled = true;
+  taillightsEnabled = true;
+  underglowEnabled = false;
+  interiorEnabled = false;
+
+  headlightLedCount = 50;
+  taillightLedCount = 50;
+  underglowLedCount = 50;
+  interiorLedCount = 50;
+
+  // headlightPin = OUTPUT_LED_1_PIN;
+  // taillightPin = OUTPUT_LED_2_PIN;
+  // underglowPin = OUTPUT_LED_3_PIN;
+  // interiorPin = OUTPUT_LED_4_PIN;
+
+  headlightFlipped = false;
+  taillightFlipped = false;
+  underglowFlipped = false;
+  interiorFlipped = false;
+}
+
+void LEDConfig::print()
+{
+  Serial.println("LED Configuration:");
+  Serial.printf("Headlights: %s, Count: %d, Pin: %d, Flipped: %s\n",
+                headlightsEnabled ? "ENABLED" : "DISABLED",
+                headlightLedCount, 0, // headlightPin,
+                headlightFlipped ? "YES" : "NO");
+  Serial.printf("Taillights: %s, Count: %d, Pin: %d, Flipped: %s\n",
+                taillightsEnabled ? "ENABLED" : "DISABLED",
+                taillightLedCount, 0, // taillightPin,
+                taillightFlipped ? "YES" : "NO");
+  Serial.printf("Underglow: %s, Count: %d, Pin: %d, Flipped: %s\n",
+                underglowEnabled ? "ENABLED" : "DISABLED",
+                underglowLedCount, 0, // underglowPin,
+                underglowFlipped ? "YES" : "NO");
+  Serial.printf("Interior: %s, Count: %d, Pin: %d, Flipped: %s\n",
+                interiorEnabled ? "ENABLED" : "DISABLED",
+                interiorLedCount, 0, // interiorPin,
+                interiorFlipped ? "YES" : "NO");
+  Serial.println();
+}
+
+LEDConfig ledConfig;
+
 void restart()
 {
   Serial.println("[INFO] [CONFIG] Restarting...");
@@ -102,4 +150,25 @@ void loadDeviceInfo()
 bool isDeviceProvisioned()
 {
   return deviceInfo.provisioned;
+}
+
+void saveLEDConfig()
+{
+  preferences.putBytes("ledConfig", &ledConfig, sizeof(LEDConfig));
+  Serial.println("[INFO] [CONFIG] LED config saved to preferences");
+}
+
+void loadLEDConfig()
+{
+  size_t schLen = preferences.getBytesLength("ledConfig");
+  if (schLen == sizeof(LEDConfig))
+  {
+    preferences.getBytes("ledConfig", &ledConfig, sizeof(LEDConfig));
+    Serial.println("[INFO] [CONFIG] LED config loaded from preferences");
+  }
+  else
+  {
+    Serial.println("[INFO] [CONFIG] No valid LED config found in preferences, using defaults");
+    saveLEDConfig(); // Save defaults
+  }
 }
