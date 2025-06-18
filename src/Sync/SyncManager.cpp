@@ -627,7 +627,7 @@ void SyncManager::updateSyncedLED()
   {
   case SyncMode::SOLO:
     // SOLO mode: Steady white - no group interaction
-    statusLed2.setColor(255, 255, 255);
+    statusLed2.setColor(100, 100, 100);
     break;
 
   case SyncMode::JOIN:
