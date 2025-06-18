@@ -4,7 +4,7 @@
 NightRiderEffect::NightRiderEffect(uint8_t priority, bool transparent)
     : LEDEffect(priority, transparent),
       active(false),
-      cycleTime(5.0f),
+      cycleTime(3.0f),
       tailLength(15.0f),
       progress(0.0f),
       forward(true),
