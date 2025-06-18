@@ -47,7 +47,7 @@ bool IndicatorFlickSequence::update()
       else if ((currentTime - hazardStartTime) >= 200)
       {
         reset();
-        Serial.println("IndicatorFlick-" + String(expectedSequence[0]) + " Both indicators are on for 200ms. Resetting sequence.");
+        // Serial.println("IndicatorFlick-" + String(expectedSequence[0]) + " Both indicators are on for 200ms. Resetting sequence.");
         return false;
       }
     }

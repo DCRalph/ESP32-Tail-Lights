@@ -22,6 +22,14 @@ constexpr uint8_t SYNC_TIME_RESPONSE = 0x06;
 constexpr uint8_t SYNC_EFFECT_STATE = 0x07;
 constexpr uint8_t SYNC_GROUP_LEAVE = 0x08;
 
+// Sync modes - simplified from complex auto-join/auto-create system
+enum class SyncMode : uint8_t
+{
+  SOLO,
+  JOIN,
+  HOST
+};
+
 struct DiscoveredDevice
 {
   uint32_t deviceId;
@@ -132,17 +140,11 @@ public:
   void joinGroup(uint32_t groupId);
   void leaveGroup();
 
-  // Auto‐join settings
-  void enableAutoJoin(bool enabled = true);
-  void setAutoJoinTimeout(uint32_t ms);
-  bool isAutoJoinEnabled() const;
-  uint32_t getAutoJoinTimeout() const;
-
-  // Auto-create settings (separate from auto-join)
-  void enableAutoCreate(bool enabled = true);
-  void setAutoCreateTimeout(uint32_t ms);
-  bool isAutoCreateEnabled() const;
-  uint32_t getAutoCreateTimeout() const;
+  // Simplified mode system replacing auto-join and auto-create
+  void setSyncMode(SyncMode mode);
+  SyncMode getSyncMode();
+  String getSyncModeString();
+  String getSyncModeString(SyncMode mode);
 
   // Time sync
   void requestTimeSync();
@@ -174,9 +176,9 @@ public:
       std::function<void(const EffectSyncState &)> cb);
 
   // Debug/Info functions
-  void printDeviceInfo() const;
-  void printGroupInfo() const;
-  void printAutoSettings() const;
+  void printDeviceInfo();
+  void printGroupInfo();
+  void printSyncModeInfo();
 
   // senders
   void sendHeartbeat();
@@ -206,13 +208,11 @@ private:
   void checkDiscoveryCleanup(uint32_t now);
   void checkGroupCleanup(uint32_t now);
   void checkMemberTimeout(uint32_t now);
-  void checkAutoJoin(uint32_t now);
-  void checkAutoCreate(uint32_t now);
+  void checkJoinMode(uint32_t now);
 
   // preferences management
   void loadPreferences();
-  void saveAutoJoinPreferences();
-  void saveAutoCreatePreferences();
+  void saveSyncModePreferences();
 
   // utilities
   uint32_t generateDeviceId();
@@ -226,15 +226,8 @@ private:
   GroupInfo currentGroup;
   uint32_t ourDeviceId;
 
-  // auto‐join settings
-  bool autoJoinEnabled = false;
-  uint32_t autoJoinTimeout = 10000;
-  uint32_t autoJoinStartTime = 0;
-
-  // auto-create settings (separate from auto-join)
-  bool autoCreateEnabled = false;
-  uint32_t autoCreateTimeout = 30000; // Wait longer before creating a group
-  uint32_t autoCreateStartTime = 0;
+  // Simplified sync mode system
+  SyncMode syncMode = SyncMode::SOLO;
 
   // time‐sync
   bool timeSynced = false;

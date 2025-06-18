@@ -1,689 +1,648 @@
 #include "LEDMenu.h"
-#include "Application.h"
 #include "esp_log.h"
 
 static const char *TAG = "LEDMenu";
 
-// Global instance
-LEDMenu ledMenu;
+// default patterns - updated to use new pattern system
+const LEDPattern LEDMenu::IDLE_PATTERN = LEDPattern(0x00ff00, 0x001100);
+const LEDPattern LEDMenu::EDITING_PATTERN = LEDPattern::createAlternating(0xFF0000, 0x000000, 0x0000FF, 0x000000, 250);
 
-// LEDMenuItem constructors
-LEDMenuItem::LEDMenuItem()
+std::map<ButtonEventType, String> buttonEventTypeStrings = {
+    {ButtonEventType::SINGLE_CLICK, "SINGLE_CLICK"},
+    {ButtonEventType::DOUBLE_CLICK, "DOUBLE_CLICK"},
+    {ButtonEventType::TRIPLE_CLICK, "TRIPLE_CLICK"},
+    {ButtonEventType::LONG_CLICK, "LONG_CLICK"},
+    {ButtonEventType::DOUBLE_LONG_CLICK, "DOUBLE_LONG_CLICK"},
+    {ButtonEventType::TRIPLE_LONG_CLICK, "TRIPLE_LONG_CLICK"},
+};
+
+std::map<ButtonType, String> buttonTypeStrings = {
+    {ButtonType::BOOT, "BOOT"},
+    {ButtonType::PREV, "PREV"},
+    {ButtonType::SELECT, "SELECT"},
+    {ButtonType::NEXT, "NEXT"},
+};
+
+// LEDMenuItem implementation
+LEDMenuItem LEDMenuItem::createAction(const String &name,
+                                      std::function<void()> cb,
+                                      const LEDPattern &pattern,
+                                      const LEDPattern &editPattern)
 {
-  type = LEDMenuItemType::ACTION;
-  toggleValuePtr = nullptr;
-  intValuePtr = nullptr;
-  minValue = 0;
-  maxValue = 0;
-  step = 1;
-  options = nullptr;
+  LEDMenuItem i;
+  i.name = name;
+  i.type = LEDMenuItemType::ACTION;
+  i.pattern = pattern;
+  i.editingPattern = editPattern.type != LEDPatternType::SOLID || editPattern.led1Color != 0 || editPattern.led2Color != 0 ? editPattern : LEDMenu::EDITING_PATTERN;
+  i.actionCallback = cb;
+  return i;
 }
 
-LEDMenuItem::LEDMenuItem(const LEDMenuItem &other)
+LEDMenuItem LEDMenuItem::createToggle(const String &name,
+                                      bool *ptr,
+                                      const LEDPattern &pattern,
+                                      const LEDPattern &editPattern)
 {
-  name = other.name;
-  type = other.type;
-  toggleValuePtr = other.toggleValuePtr;
-  intValuePtr = other.intValuePtr;
-  minValue = other.minValue;
-  maxValue = other.maxValue;
-  step = other.step;
-  options = other.options;
-  actionCallback = other.actionCallback;
+  LEDMenuItem i;
+  i.name = name;
+  i.type = LEDMenuItemType::TOGGLE;
+  i.pattern = pattern;
+  i.editingPattern = editPattern.type != LEDPatternType::SOLID || editPattern.led1Color != 0 || editPattern.led2Color != 0 ? editPattern : LEDMenu::EDITING_PATTERN;
+  i.toggleValuePtr = ptr;
+  return i;
 }
 
-LEDMenuItem &LEDMenuItem::operator=(const LEDMenuItem &other)
+LEDMenuItem LEDMenuItem::createSelect(const String &name,
+                                      int *ptr,
+                                      int minV,
+                                      int maxV,
+                                      std::vector<String> *opts,
+                                      const LEDPattern &pattern,
+                                      const LEDPattern &editPattern,
+                                      std::function<void()> onSave)
 {
-  if (this != &other)
+  LEDMenuItem i;
+  i.name = name;
+  i.type = LEDMenuItemType::SELECT;
+  i.pattern = pattern;
+  i.editingPattern = editPattern.type != LEDPatternType::SOLID || editPattern.led1Color != 0 || editPattern.led2Color != 0 ? editPattern : LEDMenu::EDITING_PATTERN;
+  i.intValuePtr = ptr;
+  i.minValue = minV;
+  i.maxValue = maxV;
+  i.options = opts;
+  i.actionCallback = onSave;
+  return i;
+}
+
+LEDMenuItem LEDMenuItem::createSubMenu(const String &name,
+                                       std::vector<LEDMenuItem> *subItems,
+                                       const LEDPattern &pattern)
+{
+  LEDMenuItem i;
+  i.name = name;
+  i.type = LEDMenuItemType::SUBMENU;
+  i.pattern = pattern;
+  i.subMenuItems = subItems;
+  return i;
+}
+
+LEDMenuItem LEDMenuItem::createBack(const String &name,
+                                    const LEDPattern &pattern)
+{
+  LEDMenuItem i;
+  i.name = name;
+  i.type = LEDMenuItemType::BACK;
+  i.pattern = pattern.type != LEDPatternType::SOLID || pattern.led1Color != 0 || pattern.led2Color != 0 ? pattern : LEDPattern::createFlash(0xFFA500, 0xFFA500, 300, 1700);
+  return i;
+}
+
+void LEDMenuItem::startEditing()
+{
+  state = LEDMenuItemState::EDITING;
+  currentValue = getCurrentValue();
+  valueModified = false;
+}
+
+void LEDMenuItem::stopEditing()
+{
+  state = LEDMenuItemState::NORMAL;
+  valueModified = false;
+}
+
+void LEDMenuItem::incrementValue()
+{
+  if (type == LEDMenuItemType::TOGGLE)
   {
-    name = other.name;
-    type = other.type;
-    toggleValuePtr = other.toggleValuePtr;
-    intValuePtr = other.intValuePtr;
-    minValue = other.minValue;
-    maxValue = other.maxValue;
-    step = other.step;
-    options = other.options;
-    actionCallback = other.actionCallback;
+    currentValue = !currentValue;
+    valueModified = true;
   }
-  return *this;
+  else if (type == LEDMenuItemType::SELECT && currentValue < maxValue)
+  {
+    currentValue++;
+    valueModified = true;
+  }
 }
 
-LEDMenuItem::~LEDMenuItem()
+void LEDMenuItem::decrementValue()
 {
-  // Nothing to clean up - we don't own the pointers
+  if (type == LEDMenuItemType::TOGGLE)
+  {
+    currentValue = !currentValue;
+    valueModified = true;
+  }
+  else if (type == LEDMenuItemType::SELECT && currentValue > minValue)
+  {
+    currentValue--;
+    valueModified = true;
+  }
 }
 
-// LEDMenuItem static factory methods
-LEDMenuItem LEDMenuItem::createToggle(const String &name, bool *valuePtr)
+int LEDMenuItem::getCurrentValue() const
 {
-  LEDMenuItem item;
-  item.name = name;
-  item.type = LEDMenuItemType::TOGGLE;
-  item.toggleValuePtr = valuePtr;
-  return item;
+  if (type == LEDMenuItemType::TOGGLE)
+    return toggleValuePtr && *toggleValuePtr ? 1 : 0;
+  if (type == LEDMenuItemType::SELECT)
+    return intValuePtr ? *intValuePtr : 0;
+  return 0;
 }
 
-LEDMenuItem LEDMenuItem::createSelect(const String &name, int *valuePtr, int minValue, int maxValue, std::vector<String> *options)
+void LEDMenuItem::setCurrentValue(int v)
 {
-  LEDMenuItem item;
-  item.name = name;
-  item.type = LEDMenuItemType::SELECT;
-  item.intValuePtr = valuePtr;
-  item.minValue = minValue;
-  item.maxValue = maxValue;
-  item.options = options;
-  return item;
+  if (type == LEDMenuItemType::TOGGLE && toggleValuePtr)
+    *toggleValuePtr = (v != 0);
+  if (type == LEDMenuItemType::SELECT && intValuePtr)
+    *intValuePtr = constrain(v, minValue, maxValue);
 }
 
-LEDMenuItem LEDMenuItem::createNumber(const String &name, int *valuePtr, int minValue, int maxValue, int step)
+void LEDMenuItem::saveValue()
 {
-  LEDMenuItem item;
-  item.name = name;
-  item.type = LEDMenuItemType::NUMBER;
-  item.intValuePtr = valuePtr;
-  item.minValue = minValue;
-  item.maxValue = maxValue;
-  item.step = step;
-  return item;
+  if (valueModified)
+  {
+    setCurrentValue(currentValue);
+    if (actionCallback)
+      actionCallback();
+  }
+  stopEditing();
 }
 
-LEDMenuItem LEDMenuItem::createAction(const String &name, std::function<void()> callback)
+void LEDMenuItem::cancelEdit()
 {
-  LEDMenuItem item;
-  item.name = name;
-  item.type = LEDMenuItemType::ACTION;
-  item.actionCallback = callback;
-  return item;
+  currentValue = getCurrentValue(); // Reset to original value
+  stopEditing();
+}
+
+LEDPattern LEDMenuItem::getCurrentPattern() const
+{
+  return isEditing() ? editingPattern : pattern;
 }
 
 // LEDMenu implementation
-LEDMenu::LEDMenu()
-{
-  _enabled = false;
-  _state = LEDMenuState::IDLE;
-  _currentMenuItem = 0;
-  _currentValue = 0;
-  _valueModified = false;
-
-  _lastButtonUpdate = 0;
-  _lastLEDUpdate = 0;
-  _ledBlinkTimer = 0;
-  _ledBlinkState = false;
-  _lastActivity = 0;
-}
-
-LEDMenu::~LEDMenu()
-{
-  clearMenuItems();
-}
+LEDMenu::LEDMenu() {}
+LEDMenu::~LEDMenu() { clearMenuItems(); }
 
 void LEDMenu::begin()
 {
-  ESP_LOGI(TAG, "LED Menu initialized");
+  ESP_LOGI(TAG, "LEDMenu init");
+  _patternStartTime = millis();
+  _showPattern(IDLE_PATTERN);
+}
 
-  // Set initial LED state
-  _showIdleState();
+void LEDMenu::setEnabled(bool ena)
+{
+  if (_enabled == ena)
+    return;
+  _enabled = ena;
+  if (_enabled)
+  {
+    ESP_LOGI(TAG, "Menu enabled");
+    _showPattern(IDLE_PATTERN);
+  }
+  else
+  {
+    ESP_LOGI(TAG, "Menu disabled");
+    _exitMenu();
+  }
+}
+
+bool LEDMenu::isEnabled() const { return _enabled; }
+
+void LEDMenu::addMenuItem(const LEDMenuItem &item)
+{
+  _rootMenuItems.push_back(item);
+  ESP_LOGD(TAG, "Added menu item '%s'", item.name.c_str());
+}
+
+void LEDMenu::clearMenuItems()
+{
+  _rootMenuItems.clear();
+  _menuStack.clear();
+}
+
+void LEDMenu::enterSubMenu(std::vector<LEDMenuItem> *subItems)
+{
+  if (subItems && !subItems->empty())
+  {
+    _menuStack.push_back(MenuLevel(subItems, 0));
+    _patternStartTime = millis();
+    ESP_LOGI(TAG, "Entered submenu with %d items", subItems->size());
+  }
+}
+
+void LEDMenu::exitSubMenu()
+{
+  if (_menuStack.size() > 1)
+  {
+    _menuStack.pop_back();
+    _patternStartTime = millis();
+    ESP_LOGI(TAG, "Exited submenu");
+  }
+  else
+  {
+    _exitMenu();
+  }
 }
 
 void LEDMenu::update()
 {
   if (!_enabled)
     return;
-
-  unsigned long currentTime = millis();
-
-  // Update buttons at 20Hz
-  if (currentTime - _lastButtonUpdate >= BUTTON_UPDATE_INTERVAL)
-  {
-    _lastButtonUpdate = currentTime;
-    _updateButtons();
-  }
-
-  // Update LEDs
   _updateLEDs();
-
-  // Check for auto-exit timeout
-  if (_state != LEDMenuState::IDLE && _isActivityTimedOut())
+  if (_state != LEDMenuState::IDLE && _timedOut())
   {
-    ESP_LOGI(TAG, "Menu auto-exit due to inactivity");
+    ESP_LOGI(TAG, "Auto-exit menu (timeout)");
     _exitMenu();
   }
 }
 
-void LEDMenu::setEnabled(bool enabled)
+void LEDMenu::handleButtonEvent(const ButtonEvent &ev)
 {
-  if (_enabled != enabled)
-  {
-    _enabled = enabled;
+  if (!_enabled)
+    return;
+  _resetActivity();
 
-    if (_enabled)
+  // print event
+  ESP_LOGI(TAG, "Button event: %s, %s", buttonTypeStrings[ev.button].c_str(), buttonEventTypeStrings[ev.type].c_str());
+
+  if (_state == LEDMenuState::IDLE)
+  {
+    if (ev.button == ButtonType::SELECT && ev.type == ButtonEventType::LONG_CLICK)
     {
-      ESP_LOGI(TAG, "LED Menu enabled");
-      _showIdleState();
+      _enterMenu();
+    }
+  }
+  else
+  {
+    LEDMenuItem *currentItem = _getCurrentItem();
+    if (currentItem && currentItem->isEditing())
+    {
+      _onEditingEvent(ev);
     }
     else
     {
-      ESP_LOGI(TAG, "LED Menu disabled");
-      _exitMenu();
+      _onMenuEvent(ev);
     }
   }
 }
 
-bool LEDMenu::isEnabled() const
+void LEDMenu::exit()
 {
-  return _enabled;
+  _exitMenu();
 }
 
-void LEDMenu::addMenuItem(const LEDMenuItem &item)
-{
-  _menuItems.push_back(item);
-  ESP_LOGD(TAG, "Added menu item: %s", item.name.c_str());
-}
-
-void LEDMenu::clearMenuItems()
-{
-  _menuItems.clear();
-  _currentMenuItem = 0;
-}
-
-void LEDMenu::_updateButtons()
-{
-  // Update button states
-  BtnBoot.Update();
-  BtnPrev.Update();
-  BtnSel.Update();
-  BtnNext.Update();
-
-  switch (_state)
-  {
-  case LEDMenuState::IDLE:
-    // Long press SELECT to enter menu
-    if (BtnSel.clicks == -1)
-    {
-      BtnSel.clicks = 0;
-      _enterMenu();
-    }
-    break;
-
-  case LEDMenuState::MAIN_MENU:
-    _handleMainMenuButtons();
-    break;
-
-  case LEDMenuState::EDITING_VALUE:
-    _handleEditingButtons();
-    break;
-  }
-}
-
-void LEDMenu::_handleMainMenuButtons()
-{
-  // BOOT button - exit menu
-  if (BtnBoot.clicks != 0)
-  {
-    BtnBoot.clicks = 0;
-    _exitMenu();
-    return;
-  }
-
-  // NEXT button - next menu item
-  if (BtnNext.clicks == 1)
-  {
-    BtnNext.clicks = 0;
-    _incrementCurrentItem();
-    _resetActivity();
-  }
-
-  // PREV button - previous menu item
-  if (BtnPrev.clicks == 1)
-  {
-    BtnPrev.clicks = 0;
-    _decrementCurrentItem();
-    _resetActivity();
-  }
-
-  // SEL button - enter editing or execute action
-  if (BtnSel.clicks == 1)
-  {
-    BtnSel.clicks = 0;
-    _executeCurrentItem();
-    _resetActivity();
-  }
-}
-
-void LEDMenu::_handleEditingButtons()
-{
-  // BOOT button - exit editing without saving
-  if (BtnBoot.clicks != 0)
-  {
-    BtnBoot.clicks = 0;
-    _exitEditing();
-    return;
-  }
-
-  // SEL button - save and exit editing
-  if (BtnSel.clicks == 1)
-  {
-    BtnSel.clicks = 0;
-
-    if (_valueModified)
-    {
-      _setCurrentItemValue(_currentValue);
-      ESP_LOGI(TAG, "Saved value: %d", _currentValue);
-    }
-
-    _exitEditing();
-    return;
-  }
-
-  // NEXT button - increase value
-  if (BtnNext.clicks == 1)
-  {
-    BtnNext.clicks = 0;
-
-    const LEDMenuItem &item = _menuItems[_currentMenuItem];
-
-    switch (item.type)
-    {
-    case LEDMenuItemType::TOGGLE:
-      _currentValue = !_currentValue;
-      _valueModified = true;
-      break;
-
-    case LEDMenuItemType::SELECT:
-      if (_currentValue < item.maxValue)
-      {
-        _currentValue++;
-        _valueModified = true;
-      }
-      break;
-
-    case LEDMenuItemType::NUMBER:
-      if (_currentValue < item.maxValue)
-      {
-        _currentValue = min(_currentValue + item.step, item.maxValue);
-        _valueModified = true;
-      }
-      break;
-
-    default:
-      break;
-    }
-
-    _resetActivity();
-  }
-
-  // PREV button - decrease value
-  if (BtnPrev.clicks == 1)
-  {
-    BtnPrev.clicks = 0;
-
-    const LEDMenuItem &item = _menuItems[_currentMenuItem];
-
-    switch (item.type)
-    {
-    case LEDMenuItemType::TOGGLE:
-      _currentValue = !_currentValue;
-      _valueModified = true;
-      break;
-
-    case LEDMenuItemType::SELECT:
-      if (_currentValue > item.minValue)
-      {
-        _currentValue--;
-        _valueModified = true;
-      }
-      break;
-
-    case LEDMenuItemType::NUMBER:
-      if (_currentValue > item.minValue)
-      {
-        _currentValue = max(_currentValue - item.step, item.minValue);
-        _valueModified = true;
-      }
-      break;
-
-    default:
-      break;
-    }
-
-    _resetActivity();
-  }
-}
-
-void LEDMenu::_updateLEDs()
-{
-  switch (_state)
-  {
-  case LEDMenuState::IDLE:
-    _showIdleState();
-    break;
-
-  case LEDMenuState::MAIN_MENU:
-    _showMenuPosition();
-    break;
-
-  case LEDMenuState::EDITING_VALUE:
-    _showEditingValue();
-    break;
-  }
-}
+// — state transitions —
 
 void LEDMenu::_enterMenu()
 {
-  if (_menuItems.empty())
+  if (_rootMenuItems.empty())
   {
-    ESP_LOGW(TAG, "Cannot enter menu - no menu items");
+    ESP_LOGW(TAG, "No items – cannot enter menu");
     return;
   }
-
-  _state = LEDMenuState::MAIN_MENU;
-  _currentMenuItem = 0;
-  _resetActivity();
-
-  ESP_LOGI(TAG, "Entered menu mode");
+  _state = LEDMenuState::ACTIVE;
+  _menuStack.clear();
+  _menuStack.push_back(MenuLevel(&_rootMenuItems, 0));
+  _patternStartTime = millis();
+  ESP_LOGI(TAG, "Entered menu");
 }
 
 void LEDMenu::_exitMenu()
 {
+  // Stop any editing
+  LEDMenuItem *currentItem = _getCurrentItem();
+  if (currentItem && currentItem->isEditing())
+  {
+    currentItem->stopEditing();
+  }
+
   _state = LEDMenuState::IDLE;
-  _currentMenuItem = 0;
-  _valueModified = false;
-
-  ESP_LOGI(TAG, "Exited menu mode");
+  _menuStack.clear();
+  _patternStartTime = millis();
+  ESP_LOGI(TAG, "Exited menu");
 }
 
-void LEDMenu::_enterEditing()
+// — event dispatch —
+
+void LEDMenu::_onMenuEvent(const ButtonEvent &ev)
 {
-  _state = LEDMenuState::EDITING_VALUE;
-  _currentValue = _getCurrentItemValue();
-  _valueModified = false;
-
-  ESP_LOGI(TAG, "Entered editing mode for: %s", _menuItems[_currentMenuItem].name.c_str());
-}
-
-void LEDMenu::_exitEditing()
-{
-  _state = LEDMenuState::MAIN_MENU;
-  _valueModified = false;
-
-  ESP_LOGI(TAG, "Exited editing mode");
-}
-
-void LEDMenu::_showMenuPosition()
-{
-  unsigned long currentTime = millis();
-
-  // Blink LED1 to show menu position (1-based)
-  if (currentTime - _ledBlinkTimer >= LED_BLINK_INTERVAL)
-  {
-    _ledBlinkTimer = currentTime;
-    _ledBlinkState = !_ledBlinkState;
-  }
-
-  if (_ledBlinkState)
-  {
-    statusLed1.setMode(RGB_MODE::Overide);
-    statusLed1.setOverideColor(COLOR_MENU_POS);
-  }
-  else
-  {
-    statusLed1.setMode(RGB_MODE::Overide);
-    statusLed1.setOverideColor(0x000000);
-  }
-
-  // LED2 shows current menu item number by blinking N times
-  static int blinkCount = 0;
-  static unsigned long lastBlink = 0;
-  static bool blinkPhase = false; // false = off, true = on
-
-  if (currentTime - lastBlink >= 200) // Fast blinks every 200ms
-  {
-    lastBlink = currentTime;
-
-    if (!blinkPhase)
-    {
-      // Turn on
-      statusLed2.setMode(RGB_MODE::Overide);
-      statusLed2.setOverideColor(COLOR_MENU_POS);
-      blinkPhase = true;
-    }
-    else
-    {
-      // Turn off
-      statusLed2.setMode(RGB_MODE::Overide);
-      statusLed2.setOverideColor(0x000000);
-      blinkPhase = false;
-      blinkCount++;
-
-      // After showing the menu number, pause
-      if (blinkCount >= (_currentMenuItem + 1))
-      {
-        blinkCount = 0;
-        lastBlink = currentTime + 1000; // 1 second pause
-      }
-    }
-  }
-}
-
-void LEDMenu::_showEditingValue()
-{
-  // LED1 shows editing mode (steady purple)
-  statusLed1.setMode(RGB_MODE::Overide);
-  statusLed1.setOverideColor(COLOR_EDITING);
-
-  // LED2 shows the value
-  const LEDMenuItem &item = _menuItems[_currentMenuItem];
-  uint32_t valueColor = 0x000000;
-
-  switch (item.type)
-  {
-  case LEDMenuItemType::TOGGLE:
-    valueColor = _currentValue ? COLOR_VALUE_ON : COLOR_VALUE_OFF;
-    break;
-
-  case LEDMenuItemType::SELECT:
-  case LEDMenuItemType::NUMBER:
-    valueColor = COLOR_NUMBER;
-    // Could implement blinking pattern based on value
-    break;
-
-  default:
-    valueColor = 0x101010; // Dim white
-    break;
-  }
-
-  // For numbers, blink LED2 to represent the value
-  if (item.type == LEDMenuItemType::NUMBER || item.type == LEDMenuItemType::SELECT)
-  {
-    unsigned long currentTime = millis();
-    static int blinkCount = 0;
-    static unsigned long lastBlink = 0;
-    static bool blinkPhase = false;
-
-    if (currentTime - lastBlink >= 300)
-    {
-      lastBlink = currentTime;
-
-      if (!blinkPhase)
-      {
-        statusLed2.setMode(RGB_MODE::Overide);
-        statusLed2.setOverideColor(valueColor);
-        blinkPhase = true;
-      }
-      else
-      {
-        statusLed2.setMode(RGB_MODE::Overide);
-        statusLed2.setOverideColor(0x000000);
-        blinkPhase = false;
-        blinkCount++;
-
-        // Show value as number of blinks (capped at 10)
-        int displayValue = min(_currentValue, 10);
-        if (blinkCount >= displayValue)
-        {
-          blinkCount = 0;
-          lastBlink = currentTime + 1500; // Longer pause between sequences
-        }
-      }
-    }
-  }
-  else
-  {
-    // For toggles, show steady color
-    statusLed2.setMode(RGB_MODE::Overide);
-    statusLed2.setOverideColor(valueColor);
-  }
-}
-
-void LEDMenu::_showIdleState()
-{
-  // Both LEDs dim blue to indicate system is ready
-  statusLed1.setMode(RGB_MODE::Overide);
-  statusLed1.setOverideColor(COLOR_IDLE);
-
-  statusLed2.setMode(RGB_MODE::Overide);
-  statusLed2.setOverideColor(COLOR_IDLE);
-}
-
-void LEDMenu::_executeCurrentItem()
-{
-  if (_currentMenuItem >= _menuItems.size())
+  if (ev.type != ButtonEventType::SINGLE_CLICK)
     return;
 
-  const LEDMenuItem &item = _menuItems[_currentMenuItem];
-
-  switch (item.type)
+  switch (ev.button)
   {
-  case LEDMenuItemType::ACTION:
-    ESP_LOGI(TAG, "Executing action: %s", item.name.c_str());
-    if (item.actionCallback)
-    {
-      item.actionCallback();
-    }
+  case ButtonType::BOOT:
+    exitSubMenu();
     break;
-
-  case LEDMenuItemType::TOGGLE:
-  case LEDMenuItemType::SELECT:
-  case LEDMenuItemType::NUMBER:
-    _enterEditing();
+  case ButtonType::NEXT:
+    _incrementCurrentItem();
+    break;
+  case ButtonType::PREV:
+    _decrementCurrentItem();
+    break;
+  case ButtonType::SELECT:
+    _executeCurrentItem();
     break;
   }
 }
+
+void LEDMenu::_onEditingEvent(const ButtonEvent &ev)
+{
+  LEDMenuItem *currentItem = _getCurrentItem();
+  if (!currentItem)
+    return;
+
+  // BOOT cancels edit
+  if (ev.button == ButtonType::BOOT && ev.type == ButtonEventType::SINGLE_CLICK)
+  {
+    currentItem->cancelEdit();
+    _patternStartTime = millis();
+    return;
+  }
+
+  // SELECT saves & calls onSave
+  if (ev.button == ButtonType::SELECT && ev.type == ButtonEventType::SINGLE_CLICK)
+  {
+    ESP_LOGI(TAG, "Saved value=%d", currentItem->currentValue);
+    currentItem->saveValue();
+    _patternStartTime = millis();
+    return;
+  }
+
+  if (ev.type != ButtonEventType::SINGLE_CLICK)
+    return;
+
+  switch (ev.button)
+  {
+  case ButtonType::NEXT:
+    currentItem->incrementValue();
+    break;
+  case ButtonType::PREV:
+    currentItem->decrementValue();
+    break;
+  default:
+    break;
+  }
+}
+
+// — core logic —
 
 void LEDMenu::_incrementCurrentItem()
 {
-  if (_menuItems.empty())
+  MenuLevel *level = _getCurrentLevel();
+  if (!level || !level->items || level->items->empty())
     return;
 
-  _currentMenuItem = (_currentMenuItem + 1) % _menuItems.size();
-  ESP_LOGD(TAG, "Menu item: %d (%s)", _currentMenuItem, _menuItems[_currentMenuItem].name.c_str());
+  level->currentIndex = (level->currentIndex + 1) % level->items->size();
+  _patternStartTime = millis();
+  ESP_LOGD(TAG, "Menu idx=%d", level->currentIndex);
 }
 
 void LEDMenu::_decrementCurrentItem()
 {
-  if (_menuItems.empty())
+  MenuLevel *level = _getCurrentLevel();
+  if (!level || !level->items || level->items->empty())
     return;
 
-  _currentMenuItem = (_currentMenuItem == 0) ? (_menuItems.size() - 1) : (_currentMenuItem - 1);
-  ESP_LOGD(TAG, "Menu item: %d (%s)", _currentMenuItem, _menuItems[_currentMenuItem].name.c_str());
+  if (level->currentIndex == 0)
+    level->currentIndex = level->items->size() - 1;
+  else
+    level->currentIndex--;
+  _patternStartTime = millis();
+  ESP_LOGD(TAG, "Menu idx=%d", level->currentIndex);
 }
 
-int LEDMenu::_getCurrentItemValue()
+void LEDMenu::_executeCurrentItem()
 {
-  if (_currentMenuItem >= _menuItems.size())
-    return 0;
-
-  const LEDMenuItem &item = _menuItems[_currentMenuItem];
-
-  switch (item.type)
-  {
-  case LEDMenuItemType::TOGGLE:
-    return item.toggleValuePtr ? (*item.toggleValuePtr ? 1 : 0) : 0;
-
-  case LEDMenuItemType::SELECT:
-    return item.intValuePtr ? *item.intValuePtr : 0;
-
-  case LEDMenuItemType::NUMBER:
-    return item.intValuePtr ? *item.intValuePtr : 0;
-
-  default:
-    return 0;
-  }
-}
-
-void LEDMenu::_setCurrentItemValue(int value)
-{
-  if (_currentMenuItem >= _menuItems.size())
+  LEDMenuItem *item = _getCurrentItem();
+  if (!item)
     return;
 
-  const LEDMenuItem &item = _menuItems[_currentMenuItem];
-
-  switch (item.type)
+  switch (item->type)
   {
-  case LEDMenuItemType::TOGGLE:
-    if (item.toggleValuePtr)
-    {
-      *item.toggleValuePtr = (value != 0);
-    }
-    break;
-
-  case LEDMenuItemType::SELECT:
-    if (item.intValuePtr)
-    {
-      *item.intValuePtr = constrain(value, item.minValue, item.maxValue);
-    }
-    break;
-
-  case LEDMenuItemType::NUMBER:
-    if (item.intValuePtr)
-    {
-      *item.intValuePtr = constrain(value, item.minValue, item.maxValue);
-    }
-    break;
-
-  default:
-    break;
-  }
-}
-
-String LEDMenu::_getCurrentItemDisplayValue()
-{
-  if (_currentMenuItem >= _menuItems.size())
-    return "?";
-
-  const LEDMenuItem &item = _menuItems[_currentMenuItem];
-  int value = _getCurrentItemValue();
-
-  switch (item.type)
-  {
-  case LEDMenuItemType::TOGGLE:
-    return value ? "ON" : "OFF";
-
-  case LEDMenuItemType::SELECT:
-    if (item.options && value >= 0 && value < item.options->size())
-    {
-      return (*item.options)[value];
-    }
-    return String(value);
-
-  case LEDMenuItemType::NUMBER:
-    return String(value);
-
   case LEDMenuItemType::ACTION:
-    return "EXEC";
+    ESP_LOGI(TAG, "Action '%s'", item->name.c_str());
+    if (item->actionCallback)
+      item->actionCallback();
+    break;
 
-  default:
-    return "?";
+  case LEDMenuItemType::TOGGLE:
+  case LEDMenuItemType::SELECT:
+    item->startEditing();
+    _patternStartTime = millis();
+    ESP_LOGI(TAG, "Editing '%s'", item->name.c_str());
+    break;
+
+  case LEDMenuItemType::SUBMENU:
+    if (item->subMenuItems)
+    {
+      enterSubMenu(item->subMenuItems);
+      ESP_LOGI(TAG, "Entered submenu '%s'", item->name.c_str());
+    }
+    break;
+
+  case LEDMenuItemType::BACK:
+    exitSubMenu();
+    ESP_LOGI(TAG, "Back from submenu");
+    break;
   }
 }
+
+LEDMenuItem *LEDMenu::_getCurrentItem()
+{
+  MenuLevel *level = _getCurrentLevel();
+  if (!level || !level->items || level->items->empty())
+    return nullptr;
+
+  if (level->currentIndex < 0 || level->currentIndex >= level->items->size())
+    return nullptr;
+
+  return &(*level->items)[level->currentIndex];
+}
+
+LEDMenu::MenuLevel *LEDMenu::_getCurrentLevel()
+{
+  if (_menuStack.empty())
+    return nullptr;
+  return &_menuStack.back();
+}
+
+// — LEDs & timing —
 
 void LEDMenu::_resetActivity()
 {
   _lastActivity = millis();
 }
 
-bool LEDMenu::_isActivityTimedOut()
+bool LEDMenu::_timedOut() const
 {
   return (millis() - _lastActivity) >= AUTO_EXIT_TIMEOUT;
 }
+
+void LEDMenu::_updateLEDs()
+{
+  LEDPattern currentPattern;
+
+  if (_state == LEDMenuState::IDLE)
+  {
+    currentPattern = IDLE_PATTERN;
+  }
+  else
+  {
+    LEDMenuItem *item = _getCurrentItem();
+    if (item)
+    {
+      currentPattern = item->getCurrentPattern();
+    }
+    else
+    {
+      currentPattern = IDLE_PATTERN;
+    }
+  }
+
+  _showPattern(currentPattern);
+}
+
+void LEDMenu::_showPattern(const LEDPattern &p)
+{
+  uint32_t now = millis();
+  uint32_t elapsed = now - _patternStartTime;
+
+  switch (p.type)
+  {
+  case LEDPatternType::SOLID:
+  {
+    statusLed1.setMode(RGB_MODE::Overide);
+    statusLed1.setOverideColor(p.led1Color);
+    statusLed2.setMode(RGB_MODE::Overide);
+    statusLed2.setOverideColor(p.led2Color);
+    break;
+  }
+
+  case LEDPatternType::BLINK:
+  {
+    uint32_t cycleTime = elapsed % p.period;
+    bool isOn = cycleTime < p.onTime;
+
+    // Handle blink count limit
+    if (p.blinkCount > 0)
+    {
+      uint32_t completedCycles = elapsed / p.period;
+      if (completedCycles >= p.blinkCount)
+      {
+        isOn = false; // Stay off after completing blink count
+      }
+    }
+
+    statusLed1.setMode(RGB_MODE::Overide);
+    statusLed2.setMode(RGB_MODE::Overide);
+
+    if (isOn)
+    {
+      statusLed1.setOverideColor(p.led1Color);
+      statusLed2.setOverideColor(p.led2Color);
+    }
+    else
+    {
+      statusLed1.setOverideColor(0x000000);
+      statusLed2.setOverideColor(0x000000);
+    }
+    break;
+  }
+
+  case LEDPatternType::PULSE:
+  {
+    uint8_t brightness = _calculatePulseBrightness(elapsed, p.period, p.minBrightness, p.maxBrightness);
+
+    statusLed1.setMode(RGB_MODE::Overide);
+    statusLed2.setMode(RGB_MODE::Overide);
+    statusLed1.setOverideColor(_modulateBrightness(p.led1Color, brightness));
+    statusLed2.setOverideColor(_modulateBrightness(p.led2Color, brightness));
+    break;
+  }
+
+  case LEDPatternType::ALTERNATE:
+  {
+    uint32_t cycleTime = elapsed % p.period;
+    bool useAlternate = cycleTime >= p.onTime;
+
+    statusLed1.setMode(RGB_MODE::Overide);
+    statusLed2.setMode(RGB_MODE::Overide);
+
+    if (useAlternate)
+    {
+      statusLed1.setOverideColor(p.led1AltColor);
+      statusLed2.setOverideColor(p.led2AltColor);
+    }
+    else
+    {
+      statusLed1.setOverideColor(p.led1Color);
+      statusLed2.setOverideColor(p.led2Color);
+    }
+    break;
+  }
+
+  case LEDPatternType::FLASH:
+  {
+    uint32_t cycleTime = elapsed % p.period;
+    bool isFlashing = cycleTime < p.onTime;
+
+    statusLed1.setMode(RGB_MODE::Overide);
+    statusLed2.setMode(RGB_MODE::Overide);
+
+    if (isFlashing)
+    {
+      statusLed1.setOverideColor(p.led1Color);
+      statusLed2.setOverideColor(p.led2Color);
+    }
+    else
+    {
+      statusLed1.setOverideColor(0x000000);
+      statusLed2.setOverideColor(0x000000);
+    }
+    break;
+  }
+
+  case LEDPatternType::CUSTOM:
+  {
+    if (p.customFunction)
+    {
+      p.customFunction(elapsed, p.led1Color, p.led2Color);
+    }
+    else
+    {
+      // Fallback to solid pattern if no custom function
+      statusLed1.setMode(RGB_MODE::Overide);
+      statusLed1.setOverideColor(p.led1Color);
+      statusLed2.setMode(RGB_MODE::Overide);
+      statusLed2.setOverideColor(p.led2Color);
+    }
+    break;
+  }
+  }
+}
+
+uint32_t LEDMenu::_modulateBrightness(uint32_t color, uint8_t brightness)
+{
+  if (color == 0)
+    return 0;
+
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+
+  r = (r * brightness) / 255;
+  g = (g * brightness) / 255;
+  b = (b * brightness) / 255;
+
+  return (r << 16) | (g << 8) | b;
+}
+
+uint8_t LEDMenu::_calculatePulseBrightness(uint32_t time, uint16_t period, uint8_t minBright, uint8_t maxBright)
+{
+  float phase = (float)(time % period) / (float)period;
+  float sinValue = sin(phase * 2 * PI);
+  float normalizedSin = (sinValue + 1.0f) / 2.0f; // Normalize to 0-1
+
+  return minBright + (uint8_t)((maxBright - minBright) * normalizedSin);
+}
+
+LEDMenu ledMenu;

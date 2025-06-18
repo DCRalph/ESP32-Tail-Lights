@@ -176,7 +176,10 @@ void HeadlightEffect::update(LEDStrip *strip)
     phase_start = now;
 
   uint16_t numLEDs = strip->getNumLEDs();
-  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDs / 2);
+  uint16_t numLEDsHalf = numLEDs / 2;
+  if (numLEDs % 2 == 1)
+    numLEDsHalf += 1;
+  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDsHalf);
 
   // Convert elapsed time from milliseconds to seconds.
   float elapsed = (now - phase_start) / 1000.0f;
@@ -325,7 +328,9 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
 
   uint16_t numLEDs = strip->getNumLEDs();
   uint16_t numLEDsHalf = numLEDs / 2;
-  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDs / 2);
+  if (numLEDs % 2 == 1)
+    numLEDsHalf += 1;
+  uint16_t effective_size = std::min<uint16_t>(headlight_size, numLEDsHalf);
 
   // For each phase, calculate which LEDs should be lit and at what brightness
   if (phase == 0) // Phase 0: Filling from outside at half brightness
@@ -427,7 +432,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
   }
   else if (phase == 11) // full strip full brightness
   {
-    for (int i = 0; i < numLEDs / 2; i++)
+    for (int i = 0; i < numLEDsHalf; i++)
     {
       buffer[i] = _getColor(strip, i, numLEDsHalf);
       buffer[numLEDs - 1 - i] = buffer[i];
@@ -561,7 +566,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     else
     {
       // Original behavior: fade entire strip from edges
-      int ledsPerSide = numLEDs / 2;
+      int ledsPerSide = numLEDsHalf;
       int ledsOffPerSide = ledsPerSide * p;
 
       for (int i = 0; i < numLEDsHalf; i++)

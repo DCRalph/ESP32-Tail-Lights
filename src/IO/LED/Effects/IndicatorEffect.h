@@ -48,6 +48,8 @@ private:
 
   IndicatorEffect *otherIndicator; // Pointer to the other indicator effect.
   bool synced;                     // Whether the indicator has been synced with the other indicator.
+  uint32_t onTime;
+  uint32_t blockTime;
 
   uint64_t activatedTime; // Time when the indicator was last activated.
 

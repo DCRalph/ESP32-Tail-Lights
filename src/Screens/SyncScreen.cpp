@@ -13,9 +13,6 @@ namespace SyncScreenNamespace
   // Selection tracking and state
   static uint32_t selectedDeviceId = 0;
   static uint32_t selectedGroupId = 0;
-  static bool autoJoinEnabled = false;
-  static bool autoCreateEnabled = false;
-
   // timing
   static uint64_t lastSyncUpdate = 0;
   static uint64_t lastSyncAutoRefresh = 0;
@@ -39,10 +36,8 @@ namespace SyncScreenNamespace
   void requestSyncGroupInfo();
   void requestSyncStatus();
   void joinSyncGroup(uint32_t groupId);
-  void setAutoJoin(bool enabled);
-  void setAutoCreate(bool enabled);
-  void requestAutoJoinStatus();
-  void requestAutoCreateStatus();
+  void setSyncMode(SyncMode mode);
+  void requestSyncModeStatus();
 
   // Menu instances
   static Menu menu = Menu(MenuSize::Medium);
@@ -65,8 +60,9 @@ namespace SyncScreenNamespace
   static MenuItem thisDeviceIdItem = MenuItem("ID: ---");
   static MenuItem thisDeviceGroupItem = MenuItem("Group: ---");
   static MenuItem thisDeviceStatusItem = MenuItem("Status: ---");
-  static MenuItemToggle autoJoinItem = MenuItemToggle("Auto Join", &autoJoinEnabled, true);
-  static MenuItemToggle autoCreateItem = MenuItemToggle("Auto Create", &autoCreateEnabled, true);
+  static std::vector<String> syncModeItems = {"Solo", "Join", "Host"};
+  static int syncModeIndex = 0;
+  static MenuItemSelect syncModeItem = MenuItemSelect("Mode", syncModeItems);
   static MenuItemAction leaveGroupItem = MenuItemAction("Leave Group", 1, []()
                                                         { leaveSyncGroup(); });
 
@@ -147,8 +143,7 @@ namespace SyncScreenNamespace
     syncThisDeviceMenu.addMenuItem(&thisDeviceIdItem);
     syncThisDeviceMenu.addMenuItem(&thisDeviceGroupItem);
     syncThisDeviceMenu.addMenuItem(&thisDeviceStatusItem);
-    syncThisDeviceMenu.addMenuItem(&autoJoinItem);
-    syncThisDeviceMenu.addMenuItem(&autoCreateItem);
+    syncThisDeviceMenu.addMenuItem(&syncModeItem);
     syncThisDeviceMenu.addMenuItem(&leaveGroupItem);
     syncThisDeviceMenu.setParentMenu(&menu);
 
@@ -200,12 +195,13 @@ namespace SyncScreenNamespace
     groupDetailMenu.addMenuItem(&groupJoinItem);
     groupDetailMenu.setParentMenu(&syncGroupsMenu);
 
+    
+
     // Set up callbacks
     syncThisDeviceUIItem.addFunc(1, []()
                                  {
       requestSyncStatus();
-      requestAutoJoinStatus();
-      requestAutoCreateStatus();
+      requestSyncModeStatus();
       updateThisDeviceDisplay(); });
 
     syncCurrentGroupUIItem.addFunc(1, []()
@@ -225,12 +221,6 @@ namespace SyncScreenNamespace
 
     groupMembersUIItem.addFunc(1, []()
                                { updateGroupMembersDisplay(); });
-
-    // Set up auto join/create callbacks
-    autoJoinItem.setOnChange([]()
-                             { setAutoJoin(autoJoinEnabled); });
-    autoCreateItem.setOnChange([]()
-                               { setAutoCreate(autoCreateEnabled); });
 
     // Set up device selection callbacks
     for (int i = 0; i < 8; i++)
@@ -253,6 +243,8 @@ namespace SyncScreenNamespace
     }
 
     syncMgr = SyncManager::getInstance();
+    syncModeIndex = static_cast<int>(syncMgr->getSyncMode());
+    syncModeItem.setCurrentIndex(syncModeIndex);
     syncRefreshData();
   }
 
@@ -295,8 +287,7 @@ namespace SyncScreenNamespace
     requestSyncDevices();
     requestSyncGroups();
     requestSyncGroupInfo();
-    requestAutoJoinStatus();
-    requestAutoCreateStatus();
+    requestSyncModeStatus();
 
     if (showNotification)
     {
@@ -373,8 +364,7 @@ namespace SyncScreenNamespace
       thisDeviceStatusItem.setName("Status: " + statusText);
     }
 
-    autoJoinEnabled = syncMgr->isAutoJoinEnabled();
-    autoCreateEnabled = syncMgr->isAutoCreateEnabled();
+    syncModeItem.setCurrentIndex(static_cast<int>(syncMgr->getSyncMode()));
   }
 
   void updateCurrentGroupDisplay()
@@ -546,26 +536,16 @@ namespace SyncScreenNamespace
     // Request detailed status from SyncManager
   }
 
-  void setAutoJoin(bool enabled)
+  void setSyncMode(SyncMode mode)
   {
-    syncMgr->enableAutoJoin(enabled);
-    display.showNotification("Auto Join updated", 1000);
+    syncMgr->setSyncMode(mode);
+    display.showNotification(String("Mode: ") + syncMgr->getSyncModeString(), 1500);
   }
 
-  void setAutoCreate(bool enabled)
+  void requestSyncModeStatus()
   {
-    syncMgr->enableAutoCreate(enabled);
-    display.showNotification("Auto Create updated", 1000);
-  }
-
-  void requestAutoJoinStatus()
-  {
-    autoJoinEnabled = syncMgr->isAutoJoinEnabled();
-  }
-
-  void requestAutoCreateStatus()
-  {
-    autoCreateEnabled = syncMgr->isAutoCreateEnabled();
+    // Current sync mode is always available from syncMgr->getSyncMode()
+    // No need to cache it like the old auto-join/auto-create bools
   }
 
 } // namespace SyncScreenNamespace

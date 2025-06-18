@@ -43,9 +43,9 @@ void printSyncMenu(const SerialMenu &menu)
   else
   {
     Serial.println(F("  No group joined"));
-    Serial.println(String(F("  Auto-join: ")) + (syncMgr->isAutoJoinEnabled() ? "ENABLED" : "DISABLED"));
-    Serial.println(String(F("  Auto-create: ")) + (syncMgr->isAutoCreateEnabled() ? "ENABLED" : "DISABLED"));
   }
+
+  Serial.println(String(F("  Sync Mode: ")) + syncMgr->getSyncModeString());
 
   Serial.println();
   Serial.println(F("Actions:"));
@@ -55,11 +55,11 @@ void printSyncMenu(const SerialMenu &menu)
   Serial.println(F("4) Join group (by number)"));
   Serial.println(F("5) Leave current group"));
   Serial.println(F("6) List known devices"));
-  Serial.println(F("7) Toggle auto-join"));
+  Serial.println(F("7) Set sync mode"));
   Serial.println(F("8) Refresh group list"));
   Serial.println(F("9) Print device info"));
   Serial.println(F("10) Print group info"));
-  Serial.println(F("11) Toggle auto-create"));
+  Serial.println(F("11) Print sync mode info"));
   Serial.println(F("b) Back to main menu"));
   Serial.println(F("Press Enter to refresh this menu"));
 }
@@ -135,9 +135,7 @@ bool handleSyncMenuInput(SerialMenu &menu, const String &input)
   }
   else if (input == F("7"))
   {
-    bool currentState = syncMgr->isAutoJoinEnabled();
-    syncMgr->enableAutoJoin(!currentState);
-    Serial.println(String(F("Auto-join ")) + (!currentState ? "ENABLED" : "DISABLED"));
+    setSyncMode();
     return true;
   }
   else if (input == F("8"))
@@ -158,9 +156,7 @@ bool handleSyncMenuInput(SerialMenu &menu, const String &input)
   }
   else if (input == F("11"))
   {
-    bool currentState = syncMgr->isAutoCreateEnabled();
-    syncMgr->enableAutoCreate(!currentState);
-    Serial.println(String(F("Auto-create ")) + (!currentState ? "ENABLED" : "DISABLED"));
+    syncMgr->printSyncModeInfo();
     return true;
   }
   else if (input == F("b"))
@@ -196,13 +192,7 @@ void showSyncStatus()
     Serial.println(String(F("Master Device: 0x")) + String(groupInfo.masterDeviceId, HEX));
   }
 
-  Serial.println(String(F("Auto-join: ")) + (syncMgr->isAutoJoinEnabled() ? "ENABLED" : "DISABLED"));
-
-  // Show auto-create status (only relevant when auto-join is enabled)
-  if (syncMgr->isAutoJoinEnabled())
-  {
-    Serial.println(String(F("Auto-create: ")) + (syncMgr->isAutoCreateEnabled() ? "ENABLED" : "DISABLED"));
-  }
+  Serial.println(String(F("Sync Mode: ")) + syncMgr->getSyncModeString());
 
   // Show discovered devices
   const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
@@ -390,4 +380,50 @@ void listKnownDevices()
   }
 
   Serial.println(F("====================\n"));
+}
+
+void setSyncMode()
+{
+  Serial.println(F("\n=== SET SYNC MODE ==="));
+  Serial.println(F("Choose sync mode:"));
+  Serial.println(F("1) SOLO - No group interaction"));
+  Serial.println(F("2) JOIN - Look for and join groups"));
+  Serial.println(F("3) HOST - Create and host a group"));
+  Serial.println(F("0) Cancel"));
+  Serial.print(F("Enter choice (0-3): "));
+
+  while (!Serial.available())
+  {
+    delay(10);
+  }
+  String choice = Serial.readStringUntil('\n');
+  choice.trim();
+
+  SyncManager *syncMgr = SyncManager::getInstance();
+
+  if (choice == "1")
+  {
+    syncMgr->setSyncMode(SyncMode::SOLO);
+    Serial.println(F("Sync mode set to SOLO"));
+  }
+  else if (choice == "2")
+  {
+    syncMgr->setSyncMode(SyncMode::JOIN);
+    Serial.println(F("Sync mode set to JOIN"));
+  }
+  else if (choice == "3")
+  {
+    syncMgr->setSyncMode(SyncMode::HOST);
+    Serial.println(F("Sync mode set to HOST"));
+  }
+  else if (choice == "0")
+  {
+    Serial.println(F("Mode change cancelled"));
+  }
+  else
+  {
+    Serial.println(F("Invalid choice"));
+  }
+
+  Serial.println(F("=====================\n"));
 }

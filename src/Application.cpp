@@ -7,6 +7,7 @@
 #include "Sync/SyncManager.h"
 #include "IO/StatusLed.h"
 #include "IO/TimeProfiler.h"
+#include <math.h>
 
 //----------------------------------------------------------------------------
 
@@ -52,6 +53,8 @@ Application::Application()
   nightRiderFlickSequence = nullptr;
 
   brakeTapSequence3 = nullptr;
+
+  appInitialized = false;
 }
 
 /*
@@ -85,6 +88,8 @@ Application::~Application()
   delete nightRiderFlickSequence;
 
   delete brakeTapSequence3;
+
+  appInitialized = false;
 }
 
 /*
@@ -92,6 +97,10 @@ Application::~Application()
  */
 void Application::begin()
 {
+  if (appInitialized)
+    return;
+
+  appInitialized = true;
 
   mode = static_cast<ApplicationMode>(preferences.getUInt("mode", 0));
   prevMode = mode == ApplicationMode::NORMAL ? ApplicationMode::OFF : ApplicationMode::NORMAL;
@@ -220,10 +229,11 @@ void Application::updateInputs()
  */
 void Application::loop()
 {
+  if (!appInitialized)
+    return;
 
   timeProfiler.increment("appFps");
   timeProfiler.start("appLoop", TimeUnit::MICROSECONDS);
-
   // Update input states.
   timeProfiler.start("updateInputs", TimeUnit::MICROSECONDS);
   updateInputs();
@@ -275,25 +285,6 @@ void Application::loop()
   if (mode != prevMode)
   {
     prevMode = mode;
-    switch (mode)
-    {
-    case ApplicationMode::NORMAL:
-      statusLed1.setColor(0, 255, 0);
-      // statusLeds.show();
-      break;
-    case ApplicationMode::TEST:
-      statusLed1.setColor(255, 0, 255);
-      // statusLeds.show();
-      break;
-    case ApplicationMode::REMOTE:
-      statusLed1.setColor(0, 0, 255);
-      // statusLeds.show();
-      break;
-    case ApplicationMode::OFF:
-      statusLed1.setColor(255, 0, 0);
-      // statusLeds.show();
-      break;
-    }
   }
 
   timeProfiler.stop("updateMode");
@@ -302,14 +293,6 @@ void Application::loop()
   timeProfiler.start("updateSync", TimeUnit::MICROSECONDS);
   SyncManager *syncMgr = SyncManager::getInstance();
   syncMgr->loop();
-
-  // Update synchronized LED blinking
-  static uint32_t lastSyncedUpdate = 0;
-  if (millis() - lastSyncedUpdate > 20)
-  {
-    lastSyncedUpdate = millis();
-    syncMgr->updateSyncedLED();
-  }
 
   timeProfiler.stop("updateSync");
 
@@ -323,21 +306,10 @@ void Application::loop()
   timeProfiler.stop("appLoop");
 }
 
-void Application::btnLoop()
-{
-
-  if (BtnBoot.clicks == 1)
-  {
-    // cycle through modes
-    mode = static_cast<ApplicationMode>((static_cast<uint8_t>(mode) + 1) % NUM_MODES);
-    preferences.putUInt("mode", static_cast<uint8_t>(mode));
-  }
-}
-
 void Application::enableNormalMode()
 {
   mode = ApplicationMode::NORMAL;
-  preferences.putUInt("mode", static_cast<uint8_t>(mode));
+  preferences.putUInt("mode", static_cast<int>(mode));
 
   // clear all overrides
   accOnInput.clearOverride();

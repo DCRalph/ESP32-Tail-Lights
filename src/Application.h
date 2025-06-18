@@ -55,6 +55,36 @@ enum class ApplicationMode
   OFF
 };
 
+// Add menu system enums and states
+enum class MenuState
+{
+  NORMAL_MODE, // Regular mode display
+  GROUP_INFO,  // Show group information
+  GROUP_MENU   // Group management menu
+};
+
+enum class GroupMenuOption
+{
+  CREATE_GROUP,
+  JOIN_GROUP,
+  LEAVE_GROUP,
+  AUTO_JOIN_TOGGLE,
+  BACK_TO_NORMAL
+};
+
+struct MenuContext
+{
+  MenuState currentState = MenuState::NORMAL_MODE;
+  GroupMenuOption selectedOption = GroupMenuOption::CREATE_GROUP;
+  uint32_t lastBootPress = 0;
+  uint32_t groupInfoDisplayStart = 0;
+  uint32_t lastSyncUpdate = 0;
+  bool inGroupMenu = false;
+  uint32_t groupIdToJoin = 0;
+  uint8_t groupIdDigitIndex = 0;
+  bool editingGroupId = false;
+};
+
 struct AppStats
 {
   uint32_t loopsPerSecond;
@@ -134,13 +164,25 @@ private:
   ApplicationMode mode;
   ApplicationMode prevMode;
 
+  bool appInitialized;
+
+  // Menu system
+  MenuContext menuContext;
+
   // Internal method to handle effect selection based on inputs.
   void handleNormalEffects();
   void handleTestEffects();
   void handleRemoteEffects();
   void handleSyncedEffects(const EffectSyncState &effectState);
 
-  uint64_t lastRemotePing;
+  // Menu system methods
+  void handleMenuNavigation();
+  void displayNormalMode();
+  void displayGroupInfo();
+  void displayGroupMenu();
+  void executeGroupMenuAction();
+  void updateSyncedLEDTiming();
 
+  uint64_t lastRemotePing;
   AppStats stats;
 };

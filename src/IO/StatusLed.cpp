@@ -415,7 +415,7 @@ void StatusLed::setMode(RGB_MODE mode)
 
   if (_mode == mode)
   {
-    ESP_LOGI(TAG, "SetMode() called with the same mode");
+    // ESP_LOGI(TAG, "SetMode() called with the same mode");
     return;
   }
 

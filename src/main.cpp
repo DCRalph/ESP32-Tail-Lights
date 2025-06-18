@@ -156,7 +156,7 @@ void loop()
   timeProfiler.start("mainLoop", TimeUnit::MICROSECONDS);
   timeProfiler.increment("mainLoopFps");
 
-  wireless.loop(); // does nothing
+  wireless.loop(); // does nothing  
 
   if (millis() - batteryLoopMs > 500)
   {

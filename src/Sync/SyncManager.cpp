@@ -19,8 +19,6 @@ SyncManager::SyncManager()
   ourDeviceId = generateDeviceId();
   // clear initial group
   currentGroup = {};
-
-  // Load saved preferences
 }
 
 SyncManager::~SyncManager() {}
@@ -82,14 +80,10 @@ void SyncManager::loop()
   }
   else
   {
-    // Check auto join and auto create when not in a group
-    if (autoJoinEnabled)
+    // Check join mode when not in a group
+    if (syncMode == SyncMode::JOIN)
     {
-      checkAutoJoin(now);
-    }
-    else if (autoCreateEnabled)
-    {
-      checkAutoCreate(now);
+      checkJoinMode(now);
     }
   }
 
@@ -248,72 +242,98 @@ void SyncManager::leaveGroup()
     onGroupLeft();
 }
 
-// Auto Join Settings
-void SyncManager::enableAutoJoin(bool enabled)
+// Sync Mode Management
+void SyncManager::setSyncMode(SyncMode mode)
 {
-  autoJoinEnabled = enabled;
-  if (enabled)
+  if (syncMode == mode)
+    return;
+
+  SyncMode oldMode = syncMode;
+  syncMode = mode;
+  preferences.putUInt("syncMode", static_cast<uint8_t>(mode));
+
+  Serial.println(String("[SyncMode] Changing from ") + getSyncModeString(oldMode) + " to " + getSyncModeString());
+
+  switch (mode)
   {
-    autoJoinStartTime = millis();
-    Serial.println("[AutoJoin] Auto-join ENABLED");
+  case SyncMode::SOLO:
+    // Leave any current group and stop all group operations
+    if (currentGroup.groupId != 0)
+    {
+      leaveGroup();
+    }
+    Serial.println("[SyncMode] SOLO mode - no group interaction");
+    break;
+
+  case SyncMode::JOIN:
+    // If not in a group, start looking for groups to join
+    if (currentGroup.groupId == 0)
+    {
+      Serial.println("[SyncMode] JOIN mode - looking for groups to join");
+      // checkJoinMode will be called in the next loop iteration
+    }
+    else
+    {
+      Serial.println("[SyncMode] JOIN mode - already in a group - leaving");
+      // check if we are the master
+      if (currentGroup.isMaster)
+      {
+        Serial.println("[SyncMode] JOIN mode - we are the master - leaving");
+        leaveGroup();
+      }
+      else
+      {
+        Serial.println("[SyncMode] JOIN mode - we are a slave - staying in group");
+      }
+    }
+    break;
+
+  case SyncMode::HOST:
+    // Create a group immediately
+    if (currentGroup.groupId == 0)
+    {
+      Serial.println("[SyncMode] HOST mode - creating group immediately");
+      createGroup();
+    }
+    else if (!currentGroup.isMaster)
+    {
+      Serial.println("[SyncMode] HOST mode - leaving current group and creating new one");
+      leaveGroup();
+      createGroup();
+    }
+    else
+    {
+      Serial.println("[SyncMode] HOST mode - already hosting a group");
+    }
+    break;
   }
-  else
+
+  saveSyncModePreferences();
+}
+
+SyncMode SyncManager::getSyncMode()
+{
+  return syncMode;
+}
+
+String SyncManager::getSyncModeString()
+{
+  return getSyncModeString(syncMode);
+}
+
+String SyncManager::getSyncModeString(SyncMode mode)
+{
+  switch (mode)
   {
-    autoJoinStartTime = 0;
-    Serial.println("[AutoJoin] Auto-join DISABLED");
+  case SyncMode::SOLO:
+    return "SOLO";
+  case SyncMode::JOIN:
+    return "JOIN";
+  case SyncMode::HOST:
+    return "HOST";
+  default:
+    return "UNKNOWN";
   }
-  saveAutoJoinPreferences();
-}
-
-void SyncManager::setAutoJoinTimeout(uint32_t ms)
-{
-  autoJoinTimeout = ms;
-  Serial.println(String("[AutoJoin] Timeout set to ") + String(ms) + "ms");
-  saveAutoJoinPreferences();
-}
-
-bool SyncManager::isAutoJoinEnabled() const
-{
-  return autoJoinEnabled;
-}
-
-uint32_t SyncManager::getAutoJoinTimeout() const
-{
-  return autoJoinTimeout;
-}
-
-// Auto Create Settings (separate from auto-join)
-void SyncManager::enableAutoCreate(bool enabled)
-{
-  autoCreateEnabled = enabled;
-  if (enabled)
-  {
-    autoCreateStartTime = millis();
-    Serial.println("[AutoCreate] Auto-create ENABLED");
-  }
-  else
-  {
-    autoCreateStartTime = 0;
-    Serial.println("[AutoCreate] Auto-create DISABLED");
-  }
-  saveAutoCreatePreferences();
-}
-
-void SyncManager::setAutoCreateTimeout(uint32_t ms)
-{
-  autoCreateTimeout = ms;
-  Serial.println(String("[AutoCreate] Timeout set to ") + String(ms) + "ms");
-  saveAutoCreatePreferences();
-}
-
-bool SyncManager::isAutoCreateEnabled() const
-{
-  return autoCreateEnabled;
-}
-
-uint32_t SyncManager::getAutoCreateTimeout() const
-{
-  return autoCreateTimeout;
 }
 
 void SyncManager::requestTimeSync()
@@ -390,7 +410,7 @@ void SyncManager::setTimeSyncCallback(
 void SyncManager::setEffectSyncCallback(
     std::function<void(const EffectSyncState &)> cb) { onEffectSync = cb; }
 
-void SyncManager::printDeviceInfo() const
+void SyncManager::printDeviceInfo()
 {
   Serial.println(F("\n=== DISCOVERED DEVICES ==="));
 
@@ -453,7 +473,7 @@ void SyncManager::printDeviceInfo() const
   Serial.println(F("==========================="));
 }
 
-void SyncManager::printGroupInfo() const
+void SyncManager::printGroupInfo()
 {
   Serial.println(F("\n=== GROUP INFORMATION ==="));
 
@@ -591,44 +611,107 @@ void SyncManager::printGroupInfo() const
 
 void SyncManager::updateSyncedLED()
 {
-  // Only blink the LED if we're in a group and time is synced
-  if (currentGroup.groupId != 0 && timeSynced)
+  uint32_t currentTime = millis();
+  bool fastBlink = (currentTime % 250) < 125;       // 4Hz fast blink
+  bool slowBlink = (currentTime % 1000) < 500;      // 1Hz slow blink
+  bool verySlowBlink = (currentTime % 2000) < 1000; // 0.5Hz very slow blink
+
+  // Use synchronized time for blinking when available
+  if (timeSynced && currentGroup.groupId != 0)
   {
-    // Use synchronized time for blinking
     uint32_t syncTime = getSyncedTime();
+    slowBlink = (syncTime % 1000) < 500;
+  }
 
-    // Blink pattern: syncTime % 1000 < 500 ? on : off
-    // This creates a 1Hz blink with 50% duty cycle
-    bool ledState = (syncTime % 1000) < 500;
+  switch (syncMode)
+  {
+  case SyncMode::SOLO:
+    // SOLO mode: Steady white - no group interaction
+    statusLed2.setColor(255, 255, 255);
+    break;
 
-    if (currentGroup.isMaster && currentGroup.members.size() < 2)
+  case SyncMode::JOIN:
+    if (currentGroup.groupId == 0)
     {
-      statusLed2.setColor(255, 0, 255);
-    }
-    else if (ledState)
-    {
-      if (currentGroup.isMaster)
-        statusLed2.setColor(255, 0, 255);
+      // JOIN mode, not in group: Fast blinking yellow - actively searching
+      if (fastBlink)
+        statusLed2.setColor(255, 255, 0);
       else
-        statusLed2.setColor(0, 0, 255);
+        statusLed2.setColor(0, 0, 0);
+    }
+    else if (!timeSynced)
+    {
+      // JOIN mode, in group but not synced: Fast blinking orange
+      if (fastBlink)
+        statusLed2.setColor(255, 165, 0);
+      else
+        statusLed2.setColor(0, 0, 0);
     }
     else
     {
-      statusLed2.setColor(0, 0, 0);
+      // JOIN mode, in group and synced: Slow blinking blue (slave)
+      if (slowBlink)
+        statusLed2.setColor(0, 0, 255);
+      else
+        statusLed2.setColor(0, 0, 0);
     }
-    // statusLeds.show();
-  }
-  else
-  {
-    // If not synced or not in group, turn LED off
-    statusLed2.setColor(0, 0, 0);
-    // statusLeds.show();
+    break;
+
+  case SyncMode::HOST:
+    if (currentGroup.groupId == 0)
+    {
+      // HOST mode, no group created yet: Very slow blinking red
+      if (verySlowBlink)
+        statusLed2.setColor(255, 0, 0);
+      else
+        statusLed2.setColor(0, 0, 0);
+    }
+    else if (currentGroup.isMaster)
+    {
+      if (currentGroup.members.size() < 2)
+      {
+        // HOST mode, master with no other members: Steady magenta
+        statusLed2.setColor(255, 0, 255);
+      }
+      else if (timeSynced)
+      {
+        // HOST mode, master with members and synced: Slow blinking magenta
+        if (slowBlink)
+          statusLed2.setColor(255, 0, 255);
+        else
+          statusLed2.setColor(0, 0, 0); // Dimmer magenta when "off"
+      }
+      else
+      {
+        // HOST mode, master but somehow not synced: Fast blinking magenta
+        if (fastBlink)
+          statusLed2.setColor(255, 0, 255);
+        else
+          statusLed2.setColor(0, 0, 0);
+      }
+    }
+    else
+    {
+      // HOST mode but we're somehow a slave (shouldn't happen): Fast blinking cyan
+      if (fastBlink)
+        statusLed2.setColor(0, 255, 255);
+      else
+        statusLed2.setColor(0, 0, 0);
+    }
+    break;
+
+  default:
+    // Unknown mode: Fast blinking red
+    if (fastBlink)
+      statusLed2.setColor(255, 0, 0);
+    else
+      statusLed2.setColor(0, 0, 0);
+    break;
   }
 }
 
 void SyncManager::handleSyncPacket(fullPacket *fp)
 {
-
 
   if (fp->p.len < 1)
   {
@@ -666,8 +749,6 @@ void SyncManager::handleSyncPacket(fullPacket *fp)
   default:
     break;
   }
-
-
 }
 
 void SyncManager::processHeartbeat(fullPacket *fp)
@@ -1053,49 +1134,16 @@ void SyncManager::checkMemberTimeout(uint32_t now)
   }
 }
 
-void SyncManager::checkAutoJoin(uint32_t now)
+void SyncManager::checkJoinMode(uint32_t now)
 {
   if (currentGroup.groupId != 0)
     return;
 
-  if (autoJoinStartTime == 0)
-  {
-    autoJoinStartTime = now;
-    return;
-  }
-
-  // Check if we found any groups to join
+  // In JOIN mode, immediately join any discovered group
   if (!discoveredGroups.empty())
   {
-    Serial.println("[AutoJoin] Found group, joining...");
+    Serial.println("[JoinMode] Found group, joining immediately...");
     joinGroup(discoveredGroups.begin()->first);
-    autoJoinStartTime = 0;
-  }
-  else if (now - autoJoinStartTime >= autoJoinTimeout)
-  {
-    // Auto-join timeout reached, no groups found
-    Serial.println("[AutoJoin] Timeout reached, no groups found");
-    autoJoinStartTime = now; // Reset timer to keep searching
-  }
-}
-
-void SyncManager::checkAutoCreate(uint32_t now)
-{
-  if (currentGroup.groupId != 0)
-    return;
-
-  if (autoCreateStartTime == 0)
-  {
-    autoCreateStartTime = now;
-    return;
-  }
-
-  // Check if timeout reached for creating a new group
-  if (now - autoCreateStartTime >= autoCreateTimeout)
-  {
-    Serial.println("[AutoCreate] Timeout reached, creating new group");
-    createGroup();
-    autoCreateStartTime = 0;
   }
 }
 
@@ -1216,54 +1264,48 @@ bool SyncManager::isEffectSyncEnabled() const
 // Preferences Management
 void SyncManager::loadPreferences()
 {
-  // Load auto-join preferences
-  autoJoinEnabled = preferences.getBool("sync_aj_en", false);
-  autoJoinTimeout = preferences.getUInt("sync_aj_to", 10000);
-
-  // Load auto-create preferences
-  autoCreateEnabled = preferences.getBool("sync_ac_en", false);
-  autoCreateTimeout = preferences.getUInt("sync_ac_to", 30000);
+  // Load sync mode preference
+  uint8_t savedMode = preferences.getUChar("sync_mode", static_cast<int>(SyncMode::SOLO));
+  syncMode = static_cast<SyncMode>(savedMode);
 
   Serial.println("[SyncManager] Loaded preferences:");
-  Serial.println(String("  Auto-join: ") + (autoJoinEnabled ? "ENABLED" : "DISABLED") + " (timeout: " + String(autoJoinTimeout) + "ms)");
-  Serial.println(String("  Auto-create: ") + (autoCreateEnabled ? "ENABLED" : "DISABLED") + " (timeout: " + String(autoCreateTimeout) + "ms)");
+  Serial.println(String("  Sync Mode: ") + getSyncModeString());
 }
 
-void SyncManager::saveAutoJoinPreferences()
+void SyncManager::saveSyncModePreferences()
 {
-  preferences.putBool("sync_aj_en", autoJoinEnabled);
-  preferences.putUInt("sync_aj_to", autoJoinTimeout);
-  Serial.println("[SyncManager] Auto-join preferences saved");
+  preferences.putUChar("sync_mode", static_cast<int>(syncMode));
+  Serial.println(String("[SyncManager] Sync mode preferences saved: ") + getSyncModeString());
 }
 
-void SyncManager::saveAutoCreatePreferences()
+void SyncManager::printSyncModeInfo()
 {
-  preferences.putBool("sync_ac_en", autoCreateEnabled);
-  preferences.putUInt("sync_ac_to", autoCreateTimeout);
-  Serial.println("[SyncManager] Auto-create preferences saved");
-}
+  Serial.println(F("\n=== SYNC MODE INFO ==="));
+  Serial.println(String("Current Mode: ") + getSyncModeString());
 
-void SyncManager::printAutoSettings() const
-{
-  Serial.println(F("\n=== AUTO SETTINGS ==="));
-
-  Serial.println(F("Auto-Join:"));
-  Serial.println(String(F("  Enabled: ")) + (autoJoinEnabled ? "YES" : "NO"));
-  Serial.println(String(F("  Timeout: ")) + String(autoJoinTimeout) + F("ms"));
-  if (autoJoinEnabled && autoJoinStartTime > 0)
+  switch (syncMode)
   {
-    uint32_t elapsed = millis() - autoJoinStartTime;
-    Serial.println(String(F("  Running for: ")) + String(elapsed) + F("ms"));
+  case SyncMode::SOLO:
+    Serial.println(F("  - No group interaction"));
+    Serial.println(F("  - Won't host or join groups"));
+    break;
+  case SyncMode::JOIN:
+    Serial.println(F("  - Looking for groups to join"));
+    Serial.println(String(F("  - Discovered groups: ")) + String(discoveredGroups.size()));
+    break;
+  case SyncMode::HOST:
+    Serial.println(F("  - Hosting mode"));
+    if (currentGroup.groupId != 0 && currentGroup.isMaster)
+    {
+      Serial.println(String(F("  - Currently hosting group: 0x")) + String(currentGroup.groupId, HEX));
+      Serial.println(String(F("  - Group members: ")) + String(currentGroup.members.size()));
+    }
+    else
+    {
+      Serial.println(F("  - Ready to create group"));
+    }
+    break;
   }
 
-  Serial.println(F("\nAuto-Create:"));
-  Serial.println(String(F("  Enabled: ")) + (autoCreateEnabled ? "YES" : "NO"));
-  Serial.println(String(F("  Timeout: ")) + String(autoCreateTimeout) + F("ms"));
-  if (autoCreateEnabled && autoCreateStartTime > 0)
-  {
-    uint32_t elapsed = millis() - autoCreateStartTime;
-    Serial.println(String(F("  Running for: ")) + String(elapsed) + F("ms"));
-  }
-
-  Serial.println(F("======================"));
+  Serial.println(F("======================="));
 }

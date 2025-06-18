@@ -74,7 +74,7 @@ void SequenceBase::reset()
   started = false;
   startTime = 0;
   VReset();
-  Serial.println("Sequence reset: " + name);
+  // Serial.println("Sequence reset: " + name);
 }
 
 void SequenceBase::VReset()

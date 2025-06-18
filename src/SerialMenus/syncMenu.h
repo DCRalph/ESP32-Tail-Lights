@@ -22,3 +22,4 @@ void showAvailableGroups();
 void createNewGroup();
 void joinGroupByNumber(int groupNumber);
 void listKnownDevices();
+void setSyncMode();

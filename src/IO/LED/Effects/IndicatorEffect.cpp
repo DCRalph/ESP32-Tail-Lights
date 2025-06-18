@@ -20,6 +20,9 @@ IndicatorEffect::IndicatorEffect(Side side, uint8_t priority, bool transparent)
   baseR = 255;
   baseG = 120;
   baseB = 0;
+
+  onTime = 0;
+  blockTime = 1000;
 }
 
 void IndicatorEffect::setOtherIndicator(IndicatorEffect *otherIndicator)
@@ -44,6 +47,7 @@ void IndicatorEffect::setActive(bool active)
 
   if (active)
   {
+    onTime = millis();
     blinkCycle = 3000;
     // If another indicator exists and is active, sync start times.
     if (otherIndicator != nullptr && otherIndicator->isActive())
@@ -61,6 +65,15 @@ void IndicatorEffect::setActive(bool active)
     // Clear fade factor if the indicator is turned off.
     fadeFactor = 0.0f;
     activatedTime = 0;
+
+    if (millis() - onTime > 1000)
+    {
+      onTime = 0;
+    }
+    else
+    {
+      onTime = millis();
+    }
 
     if (synced == true)
     {
@@ -90,7 +103,7 @@ void IndicatorEffect::syncWithOtherIndicator()
 
 void IndicatorEffect::update(LEDStrip *strip)
 {
-  if (!indicatorActive)
+  if (!indicatorActive && onTime == 0)
   {
     // Ensure fade factor remains 0 if not active.
     fadeFactor = 0.0f;
@@ -131,8 +144,13 @@ void IndicatorEffect::update(LEDStrip *strip)
 void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
 {
   // Do nothing if the indicator is inactive or the fade factor is 0.
-  if (!indicatorActive)
+  if (!indicatorActive && onTime == 0)
     return;
+
+  if (millis() - onTime > blockTime)
+  {
+    onTime = 0;
+  }
 
   uint16_t regionLength = strip->getNumLEDs() / 5;
 
@@ -144,6 +162,22 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
   if (regionLength <= 1)
   {
     // Handle error or simply return
+    return;
+  }
+
+  if (onTime > 0 && !indicatorActive)
+  {
+    for (uint16_t i = 0; i < regionLength; i++)
+    {
+      if (side == LEFT)
+      {
+        buffer[i] = Color(0, 0, 0);
+      }
+      else
+      {
+        buffer[strip->getNumLEDs() - i - 1] = Color(0, 0, 0);
+      }
+    }
     return;
   }
 

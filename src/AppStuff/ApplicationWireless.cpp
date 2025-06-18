@@ -23,10 +23,8 @@ constexpr uint8_t CMD_SYNC_JOIN_GROUP = 0xeb;
 constexpr uint8_t CMD_SYNC_LEAVE_GROUP = 0xec;
 constexpr uint8_t CMD_SYNC_CREATE_GROUP = 0xed;
 constexpr uint8_t CMD_SYNC_GET_STATUS = 0xee;
-constexpr uint8_t CMD_SYNC_SET_AUTO_JOIN = 0xef;
-constexpr uint8_t CMD_SYNC_GET_AUTO_JOIN = 0xf0;
-constexpr uint8_t CMD_SYNC_SET_AUTO_CREATE = 0xf1;
-constexpr uint8_t CMD_SYNC_GET_AUTO_CREATE = 0xf2;
+constexpr uint8_t CMD_SYNC_SET_MODE = 0xef;
+constexpr uint8_t CMD_SYNC_GET_MODE = 0xf0;
 
 // Struct definitions for wireless communication
 struct PingCmd
@@ -170,18 +168,12 @@ struct SyncDetailedStatus
   uint8_t memberCount;
   uint8_t discoveredDeviceCount;
   uint8_t discoveredGroupCount;
-  bool autoJoinEnabled;
-  bool autoCreateEnabled;
+  int syncMode; // 0=SOLO, 1=JOIN, 2=HOST
 };
 
-struct SyncAutoJoinCmd
+struct SyncModeCmd
 {
-  bool enabled;
-};
-
-struct SyncAutoCreateCmd
-{
-  bool enabled;
+  uint8_t mode; // 0=SOLO, 1=JOIN, 2=HOST
 };
 
 // Setup wireless communication handlers
@@ -703,8 +695,7 @@ void Application::setupWireless()
                              response.memberCount = groupInfo.members.size();
                              response.discoveredDeviceCount = std::min((size_t)255, discoveredDevices.size());
                              response.discoveredGroupCount = std::min((size_t)255, discoveredGroups.size());
-                             response.autoJoinEnabled = syncMgr->isAutoJoinEnabled();
-                             response.autoCreateEnabled = syncMgr->isAutoCreateEnabled();
+                             response.syncMode = static_cast<int>(syncMgr->getSyncMode());
 
                              pTX.len = sizeof(response);
                              memcpy(pTX.data, &response, sizeof(response));
@@ -713,79 +704,40 @@ void Application::setupWireless()
                              //
                            });
 
-  // Set auto-join (0xef)
-  wireless.addOnReceiveFor(CMD_SYNC_SET_AUTO_JOIN, [this](fullPacket *fp)
+  // Set sync mode (0xef)
+  wireless.addOnReceiveFor(CMD_SYNC_SET_MODE, [this](fullPacket *fp)
                            {
                              lastRemotePing = millis();
 
-                             SyncAutoJoinCmd cmd = {0};
+                             SyncModeCmd cmd = {0};
                              memcpy(&cmd, fp->p.data, sizeof(cmd));
 
                              SyncManager *syncMgr = SyncManager::getInstance();
-                             syncMgr->enableAutoJoin(cmd.enabled);
+                             syncMgr->setSyncMode(static_cast<SyncMode>(cmd.mode));
 
                              // Send back confirmation
                              data_packet pTX = {0};
-                             pTX.type = CMD_SYNC_SET_AUTO_JOIN;
-                             pTX.len = sizeof(bool);
-                             bool currentState = syncMgr->isAutoJoinEnabled();
-                             memcpy(pTX.data, &currentState, sizeof(currentState));
+                             pTX.type = CMD_SYNC_SET_MODE;
+                             pTX.len = sizeof(uint8_t);
+                             uint8_t currentMode = static_cast<int>(syncMgr->getSyncMode());
+                             memcpy(pTX.data, &currentMode, sizeof(currentMode));
 
                              wireless.send(&pTX, fp->mac);
                              //
                            });
 
-  // Get auto-join status (0xf0)
-  wireless.addOnReceiveFor(CMD_SYNC_GET_AUTO_JOIN, [this](fullPacket *fp)
+  // Get sync mode (0xf0)
+  wireless.addOnReceiveFor(CMD_SYNC_GET_MODE, [this](fullPacket *fp)
                            {
                              lastRemotePing = millis();
 
                              SyncManager *syncMgr = SyncManager::getInstance();
 
                              data_packet pTX = {0};
-                             pTX.type = CMD_SYNC_GET_AUTO_JOIN;
-                             pTX.len = sizeof(bool);
-                             bool enabled = syncMgr->isAutoJoinEnabled();
-                             memcpy(pTX.data, &enabled, sizeof(enabled));
-
-                             wireless.send(&pTX, fp->mac);
-                             //
-                           });
-
-  // Set auto-create (0xf1)
-  wireless.addOnReceiveFor(CMD_SYNC_SET_AUTO_CREATE, [this](fullPacket *fp)
-                           {
-                             lastRemotePing = millis();
-
-                             SyncAutoCreateCmd cmd = {0};
-                             memcpy(&cmd, fp->p.data, sizeof(cmd));
-
-                             SyncManager *syncMgr = SyncManager::getInstance();
-                             syncMgr->enableAutoCreate(cmd.enabled);
-
-                             // Send back confirmation
-                             data_packet pTX = {0};
-                             pTX.type = CMD_SYNC_SET_AUTO_CREATE;
-                             pTX.len = sizeof(bool);
-                             bool currentState = syncMgr->isAutoCreateEnabled();
-                             memcpy(pTX.data, &currentState, sizeof(currentState));
-
-                             wireless.send(&pTX, fp->mac);
-                             //
-                           });
-
-  // Get auto-create status (0xf2)
-  wireless.addOnReceiveFor(CMD_SYNC_GET_AUTO_CREATE, [this](fullPacket *fp)
-                           {
-                             lastRemotePing = millis();
-
-                             SyncManager *syncMgr = SyncManager::getInstance();
-
-                             data_packet pTX = {0};
-                             pTX.type = CMD_SYNC_GET_AUTO_CREATE;
-                             pTX.len = sizeof(bool);
-                             bool enabled = syncMgr->isAutoCreateEnabled();
-                             memcpy(pTX.data, &enabled, sizeof(enabled));
+                             pTX.type = CMD_SYNC_GET_MODE;
+                             pTX.len = sizeof(uint8_t);
+                             uint8_t mode = static_cast<int>(syncMgr->getSyncMode());
+                             memcpy(pTX.data, &mode, sizeof(mode));
 
                              wireless.send(&pTX, fp->mac);
                              //
