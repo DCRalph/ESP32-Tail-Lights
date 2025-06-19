@@ -212,31 +212,34 @@ void SyncManager::leaveGroup()
   if (currentGroup.groupId == 0)
     return;
 
-  // If we're not the master, notify the master that we're leaving
-  if (!currentGroup.isMaster && discoveredGroups.find(currentGroup.groupId) != discoveredGroups.end())
+  // Prepare the leave/disband packet
+  data_packet pkt;
+  pkt.type = SYNC_MSG_TYPE;
+  pkt.data[0] = SYNC_GROUP_LEAVE;
+
+  GroupLeaveCmd leaveCmd;
+  leaveCmd.groupId   = currentGroup.groupId;
+  leaveCmd.deviceId  = ourDeviceId;
+  memcpy(&pkt.data[1], &leaveCmd, sizeof(leaveCmd));
+  pkt.len = 1 + sizeof(leaveCmd);
+
+  if (currentGroup.isMaster)
   {
-    const auto &groupAdv = discoveredGroups[currentGroup.groupId];
-
-    data_packet pkt;
-    pkt.type = SYNC_MSG_TYPE;
-    pkt.data[0] = SYNC_GROUP_LEAVE;
-
-    GroupLeaveCmd leaveCmd;
-    leaveCmd.groupId = currentGroup.groupId;
-    leaveCmd.deviceId = ourDeviceId;
-
-    memcpy(&pkt.data[1], &leaveCmd, sizeof(leaveCmd));
-    pkt.len = 1 + sizeof(leaveCmd);
+    // Master is disbanding the group: broadcast to all slaves
+    wireless.send(&pkt, BROADCAST_MAC);
+    Serial.println("[GroupLeave] Master disbanding group, notifying all slaves");
+  }
+  else
+  {
+    // Slave is leaving: notify the master only
+    auto &groupAdv = discoveredGroups[currentGroup.groupId];
     wireless.send(&pkt, (uint8_t *)groupAdv.masterMac);
-
     Serial.println("[GroupLeave] Notified master of group departure");
   }
 
-  // Clear sync state
+  // Clear local group state on this device
   timeSynced = false;
   timeOffset = 0;
-
-  // Clear group info including sync state
   currentGroup = {};
 
   if (onGroupLeft)
@@ -868,29 +871,49 @@ void SyncManager::processGroupInfo(fullPacket *fp)
 
 void SyncManager::processGroupLeave(fullPacket *fp)
 {
-  // Only masters should process leave messages
-  if (!currentGroup.isMaster)
-    return;
   if (fp->p.len < 1 + sizeof(GroupLeaveCmd))
     return;
 
   GroupLeaveCmd leaveCmd;
   memcpy(&leaveCmd, &fp->p.data[1], sizeof(leaveCmd));
 
-  // Verify it's for our group
+  // Ignore if not for our current group
   if (leaveCmd.groupId != currentGroup.groupId)
     return;
 
-  // Find and remove the leaving member
-  std::string macStr = macToString(fp->mac);
-  auto memberIt = currentGroup.members.find(macStr);
-  if (memberIt != currentGroup.members.end())
+  if (currentGroup.isMaster)
   {
-    Serial.println("[GroupLeave] Device 0x" + String(leaveCmd.deviceId, HEX) + " left the group");
-    currentGroup.members.erase(memberIt);
-
-    // Broadcast updated group info to remaining members
-    sendGroupInfo();
+    // We're the master: a slave is leaving
+    std::string macStr = macToString(fp->mac);
+    auto memberIt = currentGroup.members.find(macStr);
+    if (memberIt != currentGroup.members.end())
+    {
+      Serial.println("[GroupLeave] Device 0x" +
+                     String(leaveCmd.deviceId, HEX) +
+                     " left the group");
+      currentGroup.members.erase(memberIt);
+      // Broadcast updated group info to remaining members
+      sendGroupInfo();
+    }
+  }
+  else
+  {
+    // We're a slave: check if master is disbanding
+    if (leaveCmd.deviceId == currentGroup.masterDeviceId)
+    {
+      Serial.println("[GroupDisband] Master 0x" +
+                     String(leaveCmd.deviceId, HEX) +
+                     " disbanded the group. Leaving group...");
+      // Clear sync & group info
+      timeSynced = false;
+      timeOffset = 0;
+      uint32_t gid = currentGroup.groupId;
+      currentGroup = {};
+      // Remove the now-dead group from discovery
+      discoveredGroups.erase(gid);
+      if (onGroupLeft)
+        onGroupLeft();
+    }
   }
 }
 
