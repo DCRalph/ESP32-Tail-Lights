@@ -213,6 +213,11 @@ void Application::begin()
   ledManager->setBrightness(255);
 }
 
+ApplicationMode Application::getMode()
+{
+  return mode;
+}
+
 void Application::updateInputs()
 {
   accOnInput.update();
@@ -278,6 +283,7 @@ void Application::loop()
   {
     // turn off all effects
     LEDEffect::disableAllEffects();
+    SyncManager::getInstance()->setSyncMode(SyncMode::SOLO);
   }
   break;
   }

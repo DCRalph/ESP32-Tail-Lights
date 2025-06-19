@@ -111,6 +111,8 @@ public:
   void setupEffects();
   void setupSequences();
 
+  ApplicationMode getMode();
+
   // Main loop function to be called from loop()
   void loop();
 

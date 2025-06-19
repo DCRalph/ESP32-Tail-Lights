@@ -7,6 +7,7 @@
 #include "IO/GPIO.h"
 #include "IO/StatusLed.h"
 #include "IO/TimeProfiler.h"
+#include "Application.h"
 
 SyncManager *SyncManager::getInstance()
 {
@@ -615,6 +616,13 @@ void SyncManager::updateSyncedLED()
   bool fastBlink = (currentTime % 250) < 125;       // 4Hz fast blink
   bool slowBlink = (currentTime % 1000) < 500;      // 1Hz slow blink
   bool verySlowBlink = (currentTime % 2000) < 1000; // 0.5Hz very slow blink
+
+  // if app mode is off, turn off the led
+  if (Application::getInstance()->getMode() == ApplicationMode::OFF)
+  {
+    statusLed2.setColor(0, 0, 0);
+    return;
+  }
 
   // Use synchronized time for blinking when available
   if (timeSynced && currentGroup.groupId != 0)
