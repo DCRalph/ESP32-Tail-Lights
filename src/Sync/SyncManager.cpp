@@ -218,8 +218,8 @@ void SyncManager::leaveGroup()
   pkt.data[0] = SYNC_GROUP_LEAVE;
 
   GroupLeaveCmd leaveCmd;
-  leaveCmd.groupId   = currentGroup.groupId;
-  leaveCmd.deviceId  = ourDeviceId;
+  leaveCmd.groupId = currentGroup.groupId;
+  leaveCmd.deviceId = ourDeviceId;
   memcpy(&pkt.data[1], &leaveCmd, sizeof(leaveCmd));
   pkt.len = 1 + sizeof(leaveCmd);
 

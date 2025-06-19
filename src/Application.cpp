@@ -108,7 +108,7 @@ void Application::begin()
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
 
-  ledManager->startTask();
+  // ledManager->startTask();
 
   if (ledConfig.headlightsEnabled)
   {
@@ -307,7 +307,7 @@ void Application::loop()
   LEDStripManager::getInstance()->updateEffects();
   timeProfiler.stop("updateEffects");
 
-  // LEDStripManager::getInstance()->draw();
+  LEDStripManager::getInstance()->draw();
 
   timeProfiler.stop("appLoop");
 }
@@ -365,6 +365,21 @@ void Application::handleTestEffects()
 
 void Application::handleRemoteEffects()
 {
+  SyncManager *syncMgr = SyncManager::getInstance();
+  bool isSyncing = syncMgr->isInGroup() && syncMgr->getGroupInfo().members.size() > 1;
+  bool isMaster = syncMgr->isGroupMaster();
+
+  if (isMaster && syncMgr->isEffectSyncEnabled())
+  {
+    EffectSyncState effectState = {};
+
+    effectState.rgbSyncData = rgbEffect->getSyncData();
+    effectState.nightRiderSyncData = nightriderEffect->getSyncData();
+    effectState.policeSyncData = policeEffect->getSyncData();
+    effectState.solidColorSyncData = solidColorEffect->getSyncData();
+
+    syncMgr->setEffectSyncState(effectState);
+  }
 }
 
 void Application::handleSyncedEffects(const EffectSyncState &effectState)
