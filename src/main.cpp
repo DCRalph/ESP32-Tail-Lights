@@ -14,7 +14,6 @@
 
 #include "Screens/StartUp.h"
 #include "Screens/Home.h"
-#include "Screens/ProvisioningRequired.h"
 
 Application *app;
 
@@ -51,7 +50,6 @@ void setup()
 
   timeProfiler.begin();
 
-  // Initialize display and screen manager only if OLED is enabled
   if (deviceInfo.oledEnabled)
   {
     display.init();
@@ -84,31 +82,17 @@ void setup()
     display.display();
   }
 
-  if (isDeviceProvisioned())
+  wireless.setup();
+
+  app = Application::getInstance();
+
+  if (!app)
   {
-    Serial.println("[INFO] [CONFIG] Device is provisioned, starting normal operation");
-
-    wireless.setup();
-
-    app = Application::getInstance();
-
-    if (!app)
-    {
-      Serial.println("Failed to create Application instance.");
-      return;
-    }
-
-    app->begin();
+    Serial.println("Failed to create Application instance.");
+    return;
   }
-  else
-  {
-    Serial.println("[INFO] [CONFIG] Device not provisioned, limiting functionality");
 
-    statusLed1.setPulsingColor(0xFF0000); // Red to indicate provisioning mode
-    statusLed2.setPulsingColor(0xFF0000); // Red to indicate provisioning mode
-    statusLed1.setMode(RGB_MODE::Pulsing);
-    statusLed2.setMode(RGB_MODE::Pulsing);
-  }
+  app->begin();
 
   // Update screen display if OLED is enabled
   if (deviceInfo.oledEnabled)
@@ -117,31 +101,19 @@ void setup()
     display.display();
   }
 
-  if (isDeviceProvisioned())
+  statusLed1.setOverideColor(0, 0, 255);
+  statusLed2.setOverideColor(0, 0, 255);
+
+  vTaskDelay(300 / portTICK_PERIOD_MS);
+
+  statusLed1.goBackSteps(1);
+  statusLed2.goBackSteps(1);
+
+  // Set home screen if OLED is enabled
+  if (deviceInfo.oledEnabled)
   {
-    statusLed1.setOverideColor(0, 0, 255);
-    statusLed2.setOverideColor(0, 0, 255);
-
-    vTaskDelay(300 / portTICK_PERIOD_MS);
-
-    statusLed1.goBackSteps(1);
-    statusLed2.goBackSteps(1);
-
-    // Set home screen if OLED is enabled
-    if (deviceInfo.oledEnabled)
-    {
-      screenManager.setScreen(&HomeScreen);
-      display.display();
-    }
-  }
-  else
-  {
-    // Show provisioning required screen and keep red status LEDs
-    if (deviceInfo.oledEnabled)
-    {
-      screenManager.setScreen(&ProvisioningRequiredScreen);
-      display.display();
-    }
+    screenManager.setScreen(&HomeScreen);
+    display.display();
   }
 
   initSerialMenu();
@@ -156,7 +128,7 @@ void loop()
   timeProfiler.start("mainLoop", TimeUnit::MICROSECONDS);
   timeProfiler.increment("mainLoopFps");
 
-  wireless.loop(); // does nothing  
+  wireless.loop(); // does nothing
 
   if (millis() - batteryLoopMs > 500)
   {
@@ -166,8 +138,7 @@ void loop()
     timeProfiler.stop("batteryUpdate");
   }
 
-  if (isDeviceProvisioned())
-    app->loop(); // ~1000 us most of the time ~5000 sometimes
+  app->loop(); // ~1000 us most of the time ~5000 sometimes
 
   if (millis() - lastDraw > 35)
   {
@@ -194,8 +165,7 @@ void loop()
       //   BtnBoot.clicks = 0;
       // }
 
-      if (isDeviceProvisioned())
-        app->btnLoop();
+      app->btnLoop();
     }
   }
 

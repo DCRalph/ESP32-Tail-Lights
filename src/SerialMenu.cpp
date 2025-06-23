@@ -24,23 +24,7 @@ static SerialMenu *currentMenu = nullptr;
  ****************************************************/
 void initSerialMenu()
 {
-    if (isDeviceProvisioned())
-    {
         setMenu(&mainMenu);
-    }
-    else
-    {
-        Serial.println();
-        Serial.println(F("╔══════════════════════════════════════════════════════════════╗"));
-        Serial.println(F("║                    DEVICE NOT PROVISIONED                   ║"));
-        Serial.println(F("╠══════════════════════════════════════════════════════════════╣"));
-        Serial.println(F("║  This device must be provisioned before normal operation.   ║"));
-        Serial.println(F("║  Entering provisioning mode...                              ║"));
-        Serial.println(F("╚══════════════════════════════════════════════════════════════╝"));
-        Serial.println();
-        startProvisioning();
-        setMenu(&provisioningMenu);
-    }
 }
 
 /****************************************************
@@ -208,25 +192,18 @@ void processMenuInput(const String &input)
  ****************************************************/
 bool handleSpecialCommand(const String &input)
 {
-    // Emergency provisioning bypass (for debugging only)
-    if (input == F("provision:bypass"))
-    {
-        Serial.println(F("[WARNING] Bypassing provisioning check - DEBUG MODE ONLY"));
-        deviceInfo.provisioned = true;
-        saveDeviceInfo();
-        Serial.println(F("Device marked as provisioned. Restarting..."));
-        delay(1000);
-        restart();
-        return true;
-    }
+    // // Emergency provisioning bypass (for debugging only)
+    // if (input == F("provision:bypass"))
+    // {
+    //     Serial.println(F("[WARNING] Bypassing provisioning check - DEBUG MODE ONLY"));
+    //     deviceInfo.provisioned = true;
+    //     saveDeviceInfo();
+    //     Serial.println(F("Device marked as provisioned. Restarting..."));
+    //     delay(1000);
+    //     restart();
+    //     return true;
+    // }
 
-    // Force provisioning mode (for re-configuration)
-    if (input == F("provision:force"))
-    {
-        Serial.println(F("[INFO] Forcing provisioning mode"));
-        setMenu(&provisioningMenu);
-        return true;
-    }
 
     // Show provisioning status from any menu
     if (input == F("provision:status"))

@@ -16,6 +16,7 @@
 #include "IO/LED/Effects/PulseWaveEffect.h"
 #include "IO/LED/Effects/AuroraEffect.h"
 #include "IO/LED/Effects/SolidColorEffect.h"
+#include "IO/LED/Effects/ColorFadeEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -29,21 +30,7 @@
 #include "SerialMenu.h"
 #include "IO/Inputs.h"
 #include "Sync/SyncManager.h"
-
-// static void updateInput(HVInput input)
-// {
-//   input.update();
-// }
-
-// static bool getInput(HVInput input)
-// {
-//   return input.get();
-// }
-
-// static bool isEnabled(HVInput input)
-// {
-//   return input.isEnabled();
-// }
+#include "IO/BLE.h"
 
 #define NUM_MODES 4
 
@@ -99,11 +86,12 @@ struct AppStats
 
 class Application
 {
+  friend class BLEManager;
+
 public:
   static Application *getInstance();
 
   Application();
-  ~Application();
 
   // Call once to initialize the system.
   void begin();
@@ -132,39 +120,41 @@ public:
   HVInput brakeInput;          // Brake
   HVInput reverseInput;        // Reverse
 
-private:
-  void updateInputs();
-  void setupWireless();
-
   // Effect instances.
   IndicatorEffect *leftIndicatorEffect;
   IndicatorEffect *rightIndicatorEffect;
-  RGBEffect *rgbEffect;
-  NightRiderEffect *nightriderEffect;
 
   HeadlightEffect *headlightEffect;
   TaillightEffect *taillightEffect;
 
   BrakeLightEffect *brakeEffect;
   ReverseLightEffect *reverseLightEffect;
-  PoliceEffect *policeEffect;
 
-  // New effects
+  RGBEffect *rgbEffect;
+  NightRiderEffect *nightriderEffect;
+  PoliceEffect *policeEffect;
   PulseWaveEffect *pulseWaveEffect;
   AuroraEffect *auroraEffect;
   SolidColorEffect *solidColorEffect;
+  ColorFadeEffect *colorFadeEffect;
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;
   BothIndicatorsSequence *lockSequence;
   IndicatorFlickSequence *RGBFlickSequence;
   IndicatorFlickSequence *nightRiderFlickSequence;
-
   BrakeTapSequence *brakeTapSequence3;
 
   // Application Mode
   ApplicationMode mode;
   ApplicationMode prevMode;
+
+private:
+  void updateInputs();
+  void setupWireless();
+  void setupBLE();
+
+  
 
   bool appInitialized;
 
@@ -176,14 +166,6 @@ private:
   void handleTestEffects();
   void handleRemoteEffects();
   void handleSyncedEffects(const EffectSyncState &effectState);
-
-  // Menu system methods
-  void handleMenuNavigation();
-  void displayNormalMode();
-  void displayGroupInfo();
-  void displayGroupMenu();
-  void executeGroupMenuAction();
-  void updateSyncedLEDTiming();
 
   uint64_t lastRemotePing;
   AppStats stats;

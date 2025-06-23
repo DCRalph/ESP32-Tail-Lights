@@ -31,16 +31,8 @@ void printProvisioningMenu(const SerialMenu &menu)
   Serial.println(F("║                      DEVICE PROVISIONING                    ║"));
   Serial.println(F("╠══════════════════════════════════════════════════════════════╣"));
 
-  if (!deviceInfo.provisioned)
-  {
-    Serial.println(F("║  This device requires provisioning before it can be used.   ║"));
-    Serial.println(F("║  Please configure the device parameters below.              ║"));
-  }
-  else
-  {
-    Serial.println(F("║  Device is provisioned. You can reconfigure it below.      ║"));
-    Serial.println(F("║  Warning: Changes may require device restart.              ║"));
-  }
+  Serial.println(F("║  This device requires provisioning before it can be used.   ║"));
+  Serial.println(F("║  Please configure the device parameters below.              ║"));
 
   Serial.println(F("╚══════════════════════════════════════════════════════════════╝"));
   Serial.println();
@@ -52,22 +44,12 @@ void printProvisioningMenu(const SerialMenu &menu)
   Serial.println(F("4) Toggle Debug Mode"));
   Serial.println(F("5) Toggle OLED Display"));
 
-  if (!deviceInfo.provisioned)
-  {
-    Serial.println(F("6) Complete Provisioning"));
-  }
-  else
-  {
-    Serial.println(F("6) Mark as Unprovisioned"));
-  }
+  Serial.println(F("6) Complete Provisioning"));
 
   Serial.println(F("9) Factory Reset"));
   Serial.println(F("h) Help"));
 
-  if (deviceInfo.provisioned)
-  {
-    Serial.println(F("b) Back to Main Menu"));
-  }
+  Serial.println(F("b) Back to Main Menu"));
 
   Serial.println(F("Press Enter to re-print this menu"));
   Serial.println();
@@ -140,51 +122,30 @@ bool handleProvisioningMenuInput(SerialMenu &menu, const String &input)
   }
   else if (input == F("6"))
   {
-    if (!deviceInfo.provisioned)
+
+    // Complete provisioning
+    if (deviceInfo.serialNumber == 0 || deviceInfo.hardwareVersion == 0)
     {
-      // Complete provisioning
-      if (deviceInfo.serialNumber == 0 || deviceInfo.hardwareVersion == 0)
-      {
-        Serial.println(F("ERROR: Cannot complete provisioning!"));
-        Serial.println(F("Serial number and hardware version must be set first."));
-        return true;
-      }
+      Serial.println(F("ERROR: Cannot complete provisioning!"));
+      Serial.println(F("Serial number and hardware version must be set first."));
+      return true;
+    }
 
-      String confirm = promptUserInput(F("Are you sure you want to complete provisioning? (y/N)"), 10000);
-      confirm.toLowerCase();
+    String confirm = promptUserInput(F("Are you sure you want to complete provisioning? (y/N)"), 10000);
+    confirm.toLowerCase();
 
-      if (confirm.length() > 0 && (confirm == "y" || confirm == "yes"))
-      {
-        completeProvisioning();
-        Serial.println(F("Device provisioning completed! Restarting..."));
-        delay(2000);
-        restart();
-      }
-      else
-      {
-        Serial.println(F("Provisioning cancelled."));
-      }
+    if (confirm.length() > 0 && (confirm == "y" || confirm == "yes"))
+    {
+      completeProvisioning();
+      Serial.println(F("Device provisioning completed! Restarting..."));
+      delay(2000);
+      restart();
     }
     else
     {
-      // Mark as unprovisioned
-      Serial.println(F("WARNING: This will mark the device as unprovisioned!"));
-      String confirm = promptUserInput(F("Are you sure? (y/N)"), 10000);
-      confirm.toLowerCase();
-
-      if (confirm.length() > 0 && (confirm == "y" || confirm == "yes"))
-      {
-        deviceInfo.provisioned = false;
-        saveDeviceInfo();
-        Serial.println(F("Device marked as unprovisioned. Restarting..."));
-        delay(2000);
-        restart();
-      }
-      else
-      {
-        Serial.println(F("Operation cancelled."));
-      }
+      Serial.println(F("Provisioning cancelled."));
     }
+
     return true;
   }
   else if (input == F("9"))
@@ -225,17 +186,9 @@ bool handleProvisioningMenuInput(SerialMenu &menu, const String &input)
   }
   else if (input == F("b"))
   {
-    if (deviceInfo.provisioned)
-    {
-      Serial.println(F("Returning to main menu..."));
-      setMenu(&mainMenu);
-      return true;
-    }
-    else
-    {
-      Serial.println(F("Cannot return to main menu - device not provisioned"));
-      return true;
-    }
+    Serial.println(F("Returning to main menu..."));
+    setMenu(&mainMenu);
+    return true;
   }
 
   // Not recognized
@@ -273,7 +226,6 @@ void enableDebugMode(bool enabled)
 
 void completeProvisioning()
 {
-  deviceInfo.provisioned = true;
   saveDeviceInfo();
   Serial.println(F("[INFO] [PROVISIONING] Device provisioning completed"));
 }
@@ -282,7 +234,6 @@ void showProvisioningStatus()
 {
   Serial.println();
   Serial.println(F("=== DEVICE STATUS ==="));
-  Serial.println(String(F("Provisioned: ")) + (deviceInfo.provisioned ? "YES" : "NO"));
   Serial.println(String(F("Serial Number: ")) + (deviceInfo.serialNumber == 0 ? "NOT SET" : String(deviceInfo.serialNumber)));
   Serial.println(String(F("Hardware Version: ")) + (deviceInfo.hardwareVersion == 0 ? "NOT SET" : String(deviceInfo.hardwareVersion)));
   Serial.println(String(F("Debug Mode: ")) + (deviceInfo.debugEnabled ? "ENABLED" : "DISABLED"));
@@ -292,22 +243,16 @@ void showProvisioningStatus()
                 deviceInfo.macAddress[3], deviceInfo.macAddress[4], deviceInfo.macAddress[5]);
   Serial.println();
 
-  if (!deviceInfo.provisioned)
+  Serial.println(F("STATUS: Device requires provisioning"));
+  if (deviceInfo.serialNumber == 0)
   {
-    Serial.println(F("STATUS: Device requires provisioning"));
-    if (deviceInfo.serialNumber == 0)
-    {
-      Serial.println(F("  - Serial number must be set"));
-    }
-    if (deviceInfo.hardwareVersion == 0)
-    {
-      Serial.println(F("  - Hardware version must be set"));
-    }
+    Serial.println(F("  - Serial number must be set"));
   }
-  else
+  if (deviceInfo.hardwareVersion == 0)
   {
-    Serial.println(F("STATUS: Device is fully provisioned"));
+    Serial.println(F("  - Hardware version must be set"));
   }
+
   Serial.println();
 }
 

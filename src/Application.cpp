@@ -45,6 +45,8 @@ Application::Application()
   policeEffect = nullptr;
   pulseWaveEffect = nullptr;
   auroraEffect = nullptr;
+  colorFadeEffect = nullptr;
+  solidColorEffect = nullptr;
 
   // Initialize sequence pointers to nullptr
   unlockSequence = nullptr;
@@ -53,41 +55,6 @@ Application::Application()
   nightRiderFlickSequence = nullptr;
 
   brakeTapSequence3 = nullptr;
-
-  appInitialized = false;
-}
-
-/*
- * Application destructor. Clean up dynamic allocations.
- * This is not necessary for this project, but is good practice.
- */
-Application::~Application()
-{
-  leftIndicatorEffect = nullptr;
-  rightIndicatorEffect = nullptr;
-  rgbEffect = nullptr;
-  nightriderEffect = nullptr;
-  taillightEffect = nullptr;
-  policeEffect = nullptr;
-  pulseWaveEffect = nullptr;
-  auroraEffect = nullptr;
-
-  delete taillightEffect;
-  delete policeEffect;
-  delete headlightEffect;
-  delete leftIndicatorEffect;
-  delete rightIndicatorEffect;
-  delete rgbEffect;
-  delete nightriderEffect;
-  delete pulseWaveEffect;
-  delete auroraEffect;
-
-  delete unlockSequence;
-  delete lockSequence;
-  delete RGBFlickSequence;
-  delete nightRiderFlickSequence;
-
-  delete brakeTapSequence3;
 
   appInitialized = false;
 }
@@ -173,6 +140,7 @@ void Application::begin()
   setupEffects();
   setupSequences();
   setupWireless();
+  setupBLE();
 
   // Initialize SyncManager
   SyncManager *syncMgr = SyncManager::getInstance();
@@ -302,6 +270,12 @@ void Application::loop()
 
   timeProfiler.stop("updateSync");
 
+  // Update BLE
+  timeProfiler.start("updateBLE", TimeUnit::MICROSECONDS);
+  BLEManager *bleManager = BLEManager::getInstance();
+  bleManager->loop();
+  timeProfiler.stop("updateBLE");
+
   // Update and draw LED effects.
   timeProfiler.start("updateEffects", TimeUnit::MICROSECONDS);
   LEDStripManager::getInstance()->updateEffects();
@@ -388,4 +362,15 @@ void Application::handleSyncedEffects(const EffectSyncState &effectState)
   nightriderEffect->setSyncData(effectState.nightRiderSyncData);
   policeEffect->setSyncData(effectState.policeSyncData);
   solidColorEffect->setSyncData(effectState.solidColorSyncData);
+}
+
+void Application::setupBLE()
+{
+  Serial.println("Application: Setting up BLE...");
+
+  BLEManager *bleManager = BLEManager::getInstance();
+  bleManager->setApplication(this);
+  bleManager->begin();
+
+  Serial.println("Application: BLE setup complete");
 }

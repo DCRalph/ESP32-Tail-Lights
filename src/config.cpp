@@ -2,7 +2,6 @@
 
 DeviceInfo::DeviceInfo()
 {
-  provisioned = false;
   debugEnabled = false;
   oledEnabled = false;
   memset(macAddress, 0, sizeof(macAddress));
@@ -13,7 +12,6 @@ DeviceInfo::DeviceInfo()
 void DeviceInfo::print()
 {
   Serial.println("DeviceInfo:");
-  Serial.printf("Provisioned: %s\n", provisioned ? "true" : "false");
   Serial.printf("Debug Enabled: %s\n", debugEnabled ? "true" : "false");
   Serial.printf("OLED Enabled: %s\n", oledEnabled ? "true" : "false");
   Serial.printf("Mac Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
@@ -145,11 +143,6 @@ void loadDeviceInfo()
   esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
   memcpy(deviceInfo.macAddress, baseMac, 6);
   saveDeviceInfo();
-}
-
-bool isDeviceProvisioned()
-{
-  return deviceInfo.provisioned;
 }
 
 void saveLEDConfig()

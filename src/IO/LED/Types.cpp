@@ -21,10 +21,16 @@ String SolidColorSyncData::print()
   return String("Color Preset: " + String((int)colorPreset) + ", RGB: (" + String(customR) + "," + String(customG) + "," + String(customB) + "), Active: " + String(active));
 }
 
+String ColorFadeSyncData::print()
+{
+  return String("Hold Time: " + String(holdTime) + ", Fade Time: " + String(fadeTime) + ", Progress: " + String(progress) + ", Current Color Index: " + String(currentColorIndex) + ", In Fade Phase: " + String(inFadePhase) + ", Active: " + String(active));
+}
+
 void EffectSyncState::print()
 {
   Serial.println("RGB: " + rgbSyncData.print());
   Serial.println("Night Rider: " + nightRiderSyncData.print());
   Serial.println("Police: " + policeSyncData.print());
   Serial.println("Solid Color: " + solidColorSyncData.print());
+  Serial.println("Color Fade: " + colorFadeSyncData.print());
 }

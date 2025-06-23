@@ -24,7 +24,9 @@ void Application::handleNormalEffects()
   RGBFlickSequence->loop();
   nightRiderFlickSequence->loop();
 
-  if (accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000)
+  policeEffect->setActive(false); // ensure police effect is off
+
+  if (accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000) 
   {
     accOnInput.setLastActiveTime(0);
     unlockSequence->setActive(true);
@@ -46,7 +48,7 @@ void Application::handleNormalEffects()
   debugSync = true;
 #endif
 
-  if (accOnInput.get() == false && !debugSync) // acc is off
+  if (accOnInput.get() == false) // acc is off
   {
     // Since ACC is off, disable the other effects.
     leftIndicatorEffect->setActive(false);

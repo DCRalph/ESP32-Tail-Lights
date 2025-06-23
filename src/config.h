@@ -17,7 +17,6 @@
 
 struct DeviceInfo
 {
-  bool provisioned = false;
   bool debugEnabled = false;
   bool oledEnabled = false;
 
@@ -71,7 +70,6 @@ String formatBytes(size_t bytes, bool _short = false);
 
 void saveDeviceInfo();
 void loadDeviceInfo();
-bool isDeviceProvisioned();
 
 void saveLEDConfig();
 void loadLEDConfig();

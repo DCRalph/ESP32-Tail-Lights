@@ -14,7 +14,7 @@ HeadlightEffect::HeadlightEffect(uint8_t priority, bool transparent)
       T20(1.0f),          // 1 second for full brightness fill
       T13(0.8f),          // 0.8 seconds for transition from full to split
       T14(0.8f),          // 0.8 seconds for transition from split to full
-      headlight_size(20), // 10 LEDs from each edge by default
+      headlight_size(32), // 10 LEDs from each edge by default
       ledsStepSize(2),    // Default to 1 LED at a time
       phase_0_progress(0.0f),
       phase_0_single_led_index(0),

@@ -24,6 +24,7 @@ void Application::setupEffects()
   pulseWaveEffect = new PulseWaveEffect(5, false);
   auroraEffect = new AuroraEffect(5, false);
   solidColorEffect = new SolidColorEffect(5, false);
+  colorFadeEffect = new ColorFadeEffect(5, false);
 
   policeEffect = new PoliceEffect(4, false);
 
@@ -47,6 +48,7 @@ void Application::setupEffects()
     // headlightStrip->addEffect(pulseWaveEffect);
     // headlightStrip->addEffect(auroraEffect);
     headlightStrip->addEffect(solidColorEffect);
+    headlightStrip->addEffect(colorFadeEffect);
   }
 
   if (taillightStrip)
@@ -65,6 +67,7 @@ void Application::setupEffects()
     // taillightStrip->addEffect(pulseWaveEffect);
     // taillightStrip->addEffect(auroraEffect);
     taillightStrip->addEffect(solidColorEffect);
+    taillightStrip->addEffect(colorFadeEffect);
   }
 
   if (underglowStrip)
@@ -75,5 +78,6 @@ void Application::setupEffects()
     // taillightStrip->addEffect(pulseWaveEffect);
     // taillightStrip->addEffect(auroraEffect);
     taillightStrip->addEffect(solidColorEffect);
+    taillightStrip->addEffect(colorFadeEffect);
   }
 }

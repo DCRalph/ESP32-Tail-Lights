@@ -152,7 +152,7 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
     onTime = 0;
   }
 
-  uint16_t regionLength = strip->getNumLEDs() / 5;
+  uint16_t regionLength = 32;
 
   if (bigIndicator)
   {

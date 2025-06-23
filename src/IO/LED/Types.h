@@ -73,12 +73,25 @@ struct __attribute__((packed)) SolidColorSyncData
   String print();
 };
 
+struct __attribute__((packed)) ColorFadeSyncData
+{
+  bool active;
+  float holdTime;            // Time to hold each color (seconds)
+  float fadeTime;            // Time to fade between colors (seconds)
+  float progress;            // Current progress through the cycle [0.0, 1.0]
+  uint8_t currentColorIndex; // Index of the current color in the list
+  bool inFadePhase;          // true if currently fading, false if holding
+
+  String print();
+};
+
 struct __attribute__((packed)) EffectSyncState
 {
   RGBSyncData rgbSyncData;
   NightRiderSyncData nightRiderSyncData;
   PoliceSyncData policeSyncData;
   SolidColorSyncData solidColorSyncData;
+  ColorFadeSyncData colorFadeSyncData;
 
   void print();
 };
