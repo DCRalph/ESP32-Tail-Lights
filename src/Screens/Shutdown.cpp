@@ -1,4 +1,5 @@
 #include "Shutdown.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 #include "IO/ScreenManager.h"
@@ -119,3 +120,5 @@ const Screen2 ShutdownScreen = {
     ShutdownScreenNamespace::shutdownScreenUpdate,
     ShutdownScreenNamespace::shutdownScreenOnEnter,
     ShutdownScreenNamespace::shutdownScreenOnExit};
+
+#endif

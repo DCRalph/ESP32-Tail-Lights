@@ -1,4 +1,6 @@
 #include "Display.h"
+
+#ifdef ENABLE_DISPLAY
 #include "Wireless.h"
 #include "TimeProfiler.h"
 
@@ -203,3 +205,5 @@ void Display::drawNotification()
 }
 
 Display display;
+
+#endif

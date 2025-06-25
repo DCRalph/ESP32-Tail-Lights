@@ -1,6 +1,8 @@
 #pragma once
 
 #include "config.h"
+
+#ifdef ENABLE_DISPLAY
 #include <U8g2lib.h>
 #include "IO/Battery.h"
 
@@ -89,3 +91,5 @@ public:
 // };
 
 extern Display display;
+
+#endif

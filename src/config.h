@@ -87,6 +87,7 @@ void loadLEDConfig();
 
 // #define DEBUG_SYNC
 #define ENABLE_SYNC
+// #define ENABLE_DISPLAY
 
 #ifdef S3_V1
 #define LED_PIN 40 // make optinal

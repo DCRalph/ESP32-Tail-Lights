@@ -1,4 +1,6 @@
 #include "StartUp.h"
+#ifdef ENABLE_DISPLAY
+
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 
@@ -84,3 +86,5 @@ const Screen2 StartUpScreen = {
     StartUpScreenNamespace::startUpScreenUpdate,
     StartUpScreenNamespace::startUpScreenOnEnter,
     StartUpScreenNamespace::startUpScreenOnExit};
+
+#endif

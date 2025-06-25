@@ -1,4 +1,5 @@
 #include "ApplicationScreen.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 #include "IO/Menu.h"
@@ -402,3 +403,5 @@ const Screen2 ApplicationScreen = {
     ApplicationScreenNamespace::applicationScreenUpdate,
     ApplicationScreenNamespace::applicationScreenOnEnter,
     ApplicationScreenNamespace::applicationScreenOnExit};
+
+#endif

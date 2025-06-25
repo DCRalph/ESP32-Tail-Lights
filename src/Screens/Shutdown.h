@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/ScreenManager.h"
 
 enum ShutdownState
@@ -11,3 +12,5 @@ enum ShutdownState
 };
 
 extern const Screen2 ShutdownScreen;
+
+#endif

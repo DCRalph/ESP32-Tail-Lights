@@ -72,12 +72,12 @@ void Application::setupEffects()
 
   if (underglowStrip)
   {
-    taillightStrip->addEffect(rgbEffect);
-    taillightStrip->addEffect(nightriderEffect);
-    taillightStrip->addEffect(policeEffect);
-    // taillightStrip->addEffect(pulseWaveEffect);
-    // taillightStrip->addEffect(auroraEffect);
-    taillightStrip->addEffect(solidColorEffect);
-    taillightStrip->addEffect(colorFadeEffect);
+    underglowStrip->addEffect(rgbEffect);
+    underglowStrip->addEffect(nightriderEffect);
+    underglowStrip->addEffect(policeEffect);
+    // underglowStrip->addEffect(pulseWaveEffect);
+    // underglowStrip->addEffect(auroraEffect);
+    underglowStrip->addEffect(solidColorEffect);
+    underglowStrip->addEffect(colorFadeEffect);
   }
 }

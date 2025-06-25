@@ -29,13 +29,14 @@ TimeProfiler::TimeProfiler()
 void TimeProfiler::begin()
 {
   // Create FreeRTOS task to reset call counters every second
-  xTaskCreate(
-      callCounterResetTask,       // Task function
-      "TimeProfilerCallReset",    // Task name
-      2048,                       // Stack size (bytes)
-      this,                       // Parameter passed to task
-      1,                          // Task priority (low priority)
-      &callCounterResetTaskHandle // Task handle
+  xTaskCreatePinnedToCore(
+      callCounterResetTask,        // Task function
+      "TimeProfilerCallReset",     // Task name
+      2048,                        // Stack size (bytes)
+      this,                        // Parameter passed to task
+      1,                           // Task priority (low priority)
+      &callCounterResetTaskHandle, // Task handle
+      0                            // Core to run on
   );
 }
 

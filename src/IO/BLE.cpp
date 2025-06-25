@@ -3,6 +3,7 @@
 #include "LED/LEDStripManager.h"
 #include "TimeProfiler.h"
 #include <esp_system.h>
+#include "Battery.h"
 
 // Initialize static instance
 BLEManager *BLEManager::instance = nullptr;
@@ -171,7 +172,7 @@ BLEPingData BLEManager::preparePingData()
   data.underglow = ledManager->isStripEnabled(LEDStripType::UNDERGLOW);
   data.interior = ledManager->isStripEnabled(LEDStripType::INTERIOR);
   data.deviceId = (uint32_t)ESP.getEfuseMac();
-  data.batteryLevel = 100; // TODO: Add battery monitoring
+  data.batteryLevel = batteryGetPercentageSmooth();
   data.uptime = millis() / 1000;
 
   return data;

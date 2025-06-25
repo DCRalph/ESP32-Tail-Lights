@@ -75,7 +75,7 @@ void Application::begin()
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
 
-  // ledManager->startTask();
+  ledManager->startTask();
 
   if (ledConfig.headlightsEnabled)
   {
@@ -174,7 +174,6 @@ void Application::begin()
                                   Serial.println("Application: Effect sync received");
                                   handleSyncedEffects(effectState); });
 
-  Serial.println("Application: Auto-join enabled - devices will automatically pair");
 #endif
 
   // set brightness to 100
@@ -281,7 +280,7 @@ void Application::loop()
   LEDStripManager::getInstance()->updateEffects();
   timeProfiler.stop("updateEffects");
 
-  LEDStripManager::getInstance()->draw();
+  // LEDStripManager::getInstance()->draw();
 
   timeProfiler.stop("appLoop");
 }
@@ -323,18 +322,6 @@ void Application::enableOffMode()
 
 void Application::handleTestEffects()
 {
-
-  // Regular test mode controls (commented out)
-  // reverseLightEffect->setActive(true);
-  // headlightEffect->setActive(true);
-  // headlightEffect->setSplit(false);
-  // brakeEffect->setIsReversing(true);
-  // brakeEffect->setActive(io0.read());
-  // leftIndicatorEffect->setActive(io0.read());
-  // rightIndicatorEffect->setActive(io0.read());
-  // reverseLightEffect->setActive(io0.read());
-  // rgbEffect->setActive(io0.read());
-  // startupEffect->setActive(io0.read());
 }
 
 void Application::handleRemoteEffects()
@@ -351,6 +338,7 @@ void Application::handleRemoteEffects()
     effectState.nightRiderSyncData = nightriderEffect->getSyncData();
     effectState.policeSyncData = policeEffect->getSyncData();
     effectState.solidColorSyncData = solidColorEffect->getSyncData();
+    effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
 
     syncMgr->setEffectSyncState(effectState);
   }
@@ -362,6 +350,7 @@ void Application::handleSyncedEffects(const EffectSyncState &effectState)
   nightriderEffect->setSyncData(effectState.nightRiderSyncData);
   policeEffect->setSyncData(effectState.policeSyncData);
   solidColorEffect->setSyncData(effectState.solidColorSyncData);
+  colorFadeEffect->setSyncData(effectState.colorFadeSyncData);
 }
 
 void Application::setupBLE()

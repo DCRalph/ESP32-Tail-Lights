@@ -8,7 +8,10 @@
 #include "Application.h"
 #include "SerialMenu.h"
 #include "IO/StatusLed.h"
+#include "IO/Battery.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
+#endif
 #include "IO/ScreenManager.h"
 #include "IO/TimeProfiler.h"
 
@@ -50,6 +53,7 @@ void setup()
 
   timeProfiler.begin();
 
+#ifdef ENABLE_DISPLAY
   if (deviceInfo.oledEnabled)
   {
     display.init();
@@ -63,6 +67,7 @@ void setup()
   {
     Serial.println("[INFO] [CONFIG] OLED display disabled, skipping display initialization");
   }
+#endif
 
   WiFi.mode(WIFI_AP_STA);
 
@@ -76,11 +81,13 @@ void setup()
   Serial.println("[INFO] [CONFIG] Boot count: " + String(bootCount));
 
   // Update startup screen if OLED is enabled
+#ifdef ENABLE_DISPLAY
   if (deviceInfo.oledEnabled)
   {
     startUpScreenSetStage(2);
     display.display();
   }
+#endif
 
   wireless.setup();
 
@@ -95,11 +102,13 @@ void setup()
   app->begin();
 
   // Update screen display if OLED is enabled
+#ifdef ENABLE_DISPLAY
   if (deviceInfo.oledEnabled)
   {
     startUpScreenSetStage(3);
     display.display();
   }
+#endif
 
   statusLed1.setOverideColor(0, 0, 255);
   statusLed2.setOverideColor(0, 0, 255);
@@ -110,16 +119,19 @@ void setup()
   statusLed2.goBackSteps(1);
 
   // Set home screen if OLED is enabled
+#ifdef ENABLE_DISPLAY
   if (deviceInfo.oledEnabled)
   {
     screenManager.setScreen(&HomeScreen);
     display.display();
   }
+#endif
 
   initSerialMenu();
 }
 
 unsigned long batteryLoopMs = 0;
+unsigned long lastApp = 0;
 unsigned long lastDraw = 0;
 
 void loop()
@@ -130,7 +142,7 @@ void loop()
 
   wireless.loop(); // does nothing
 
-  if (millis() - batteryLoopMs > 500)
+  if (millis() - batteryLoopMs > 1000)
   {
     batteryLoopMs = millis();
     timeProfiler.start("batteryUpdate", TimeUnit::MICROSECONDS);
@@ -138,7 +150,11 @@ void loop()
     timeProfiler.stop("batteryUpdate");
   }
 
-  app->loop(); // ~1000 us most of the time ~5000 sometimes
+  if (millis() - lastApp > (10))
+  {
+    lastApp = millis();
+    app->loop(); // ~1000 us most of the time ~5000 sometimes
+  }
 
   if (millis() - lastDraw > 35)
   {
@@ -151,22 +167,15 @@ void loop()
     BtnNext.Update();
     timeProfiler.stop("btnUpdate");
 
+    app->btnLoop();
+
     // Only update display if screen is enabled
+#ifdef ENABLE_DISPLAY
     if (deviceInfo.oledEnabled)
     {
-      // display.display(); //  ~22000 us
+      display.display(); //  ~22000 us
     }
-    else
-    {
-      // if (BtnBoot.clicks == -1)
-      // {
-      //   deviceInfo.oledEnabled = true;
-      //   saveDeviceInfo();
-      //   BtnBoot.clicks = 0;
-      // }
-
-      app->btnLoop();
-    }
+#endif
   }
 
   if (Serial.available() > 0)

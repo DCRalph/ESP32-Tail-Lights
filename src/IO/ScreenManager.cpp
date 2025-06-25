@@ -1,4 +1,5 @@
 #include "ScreenManager.h"
+#ifdef ENABLE_DISPLAY
 #include "esp_log.h"
 
 static const char *TAG = "SCREEN_MANAGER";
@@ -148,3 +149,5 @@ bool ScreenManager::goToHistoryIndex(size_t index)
 }
 
 ScreenManager screenManager;
+
+#endif

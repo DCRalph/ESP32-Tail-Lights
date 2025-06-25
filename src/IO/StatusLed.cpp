@@ -71,7 +71,7 @@ uint8_t StatusLeds::getBrightness() const
 
 void StatusLeds::startShowTask()
 {
-  xTaskCreatePinnedToCore(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle, 0);
+  xTaskCreatePinnedToCore(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle, 1);
 }
 
 void StatusLeds::stopShowTask()

@@ -1,4 +1,5 @@
 #include "Menu.h"
+#ifdef ENABLE_DISPLAY
 
 static const char *TAG = "Menu";
 
@@ -610,3 +611,5 @@ void Menu::update()
     BtnPrev.clicks = 0;
   }
 }
+
+#endif

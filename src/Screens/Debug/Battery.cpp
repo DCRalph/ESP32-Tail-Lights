@@ -1,4 +1,5 @@
 #include "Battery.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 #include "IO/Battery.h"
@@ -51,3 +52,5 @@ const Screen2 BatteryScreen = {
     BatteryScreenNamespace::batteryScreenUpdate,
     BatteryScreenNamespace::batteryScreenOnEnter,
     BatteryScreenNamespace::batteryScreenOnExit};
+
+#endif

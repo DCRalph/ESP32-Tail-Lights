@@ -347,11 +347,11 @@ void LEDStrip::setFPS(uint16_t fps)
 {
   this->fps = fps;
   // If task is running, restart it to apply new FPS
-  if (running)
-  {
-    stop();
-    start();
-  }
+  // if (running)
+  // {
+  //   stop();
+  //   start();
+  // }
 }
 
 uint16_t LEDStrip::getFPS() const { return fps; }
@@ -376,11 +376,11 @@ uint8_t LEDStrip::getBrightness() const
 // Task control functions
 void LEDStrip::start()
 {
-  if (!running && taskHandle == nullptr)
-  {
-    running = true;
-    xTaskCreatePinnedToCore(ledTask, taskName.c_str(), 4096, this, 1, &taskHandle, 0);
-  }
+  // if (!running && taskHandle == nullptr)
+  // {
+  //   running = true;
+  //   xTaskCreatePinnedToCore(ledTask, taskName.c_str(), 4096, this, 1, &taskHandle, 1);
+  // }
 }
 
 void LEDStrip::stop()

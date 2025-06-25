@@ -1,6 +1,9 @@
 #pragma once
 
-#include "config.h"
+#include "config.h" 
+#ifdef ENABLE_DISPLAY
 #include "IO/ScreenManager.h"
 
 extern const Screen2 DebugScreen;
+
+#endif

@@ -1,4 +1,5 @@
 #include "ProvisioningRequired.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 
@@ -48,3 +49,5 @@ const Screen2 ProvisioningRequiredScreen = {
     ProvisioningRequiredScreenNamespace::provisioningRequiredScreenUpdate,
     ProvisioningRequiredScreenNamespace::provisioningRequiredScreenOnEnter,
     ProvisioningRequiredScreenNamespace::provisioningRequiredScreenOnExit};
+
+#endif

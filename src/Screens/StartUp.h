@@ -1,6 +1,7 @@
 #pragma once
 
-#include "config.h"
+#include "config.h" 
+#ifdef ENABLE_DISPLAY
 #include "IO/ScreenManager.h"
 
 enum StartUpState
@@ -11,3 +12,5 @@ enum StartUpState
 extern const Screen2 StartUpScreen;
 
 void startUpScreenSetStage(int _stage);
+
+#endif

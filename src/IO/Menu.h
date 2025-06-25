@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+#ifdef ENABLE_DISPLAY
 #include "Display.h"
 
 #include <vector>
@@ -508,3 +509,5 @@ public:
   void draw();
   void update();
 };
+
+#endif

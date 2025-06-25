@@ -1,4 +1,5 @@
 #include "IOTest.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 #include "IO/ScreenManager.h"
@@ -93,3 +94,5 @@ const Screen2 IOTestScreen = {
     IOTestScreenNamespace::ioTestScreenUpdate,
     IOTestScreenNamespace::ioTestScreenOnEnter,
     IOTestScreenNamespace::ioTestScreenOnExit};
+
+#endif

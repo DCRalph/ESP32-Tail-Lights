@@ -1,5 +1,6 @@
 #include "Home.h"
 
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/ScreenManager.h"
 
@@ -81,3 +82,5 @@ const Screen2 HomeScreen = {
     HomeScreenNamespace::homeScreenUpdate,
     HomeScreenNamespace::homeScreenOnEnter,
     HomeScreenNamespace::homeScreenOnExit};
+
+#endif

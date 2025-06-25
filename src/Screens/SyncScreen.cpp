@@ -1,4 +1,5 @@
 #include "SyncScreen.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/Display.h"
 #include "IO/GPIO.h"
 #include "IO/Menu.h"
@@ -558,3 +559,5 @@ const Screen2 SyncScreen = {
     SyncScreenNamespace::syncScreenUpdate,
     SyncScreenNamespace::syncScreenOnEnter,
     SyncScreenNamespace::syncScreenOnExit};
+
+#endif

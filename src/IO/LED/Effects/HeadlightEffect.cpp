@@ -7,7 +7,7 @@ HeadlightEffect::HeadlightEffect(uint8_t priority, bool transparent)
       mode(HeadlightEffectMode::Off),
       phase(-1),
       phase_start(0),
-      T0(10.0f),          // 10 seconds for half brightness fill
+      T0(15.0f),          // 10 seconds for half brightness fill
       T1(0.2f),           // 0.2 seconds delay
       T2(1.0f),           // 1 second for full brightness fill
       T10(1.0f),          // 1 second for full brightness fill
@@ -15,7 +15,7 @@ HeadlightEffect::HeadlightEffect(uint8_t priority, bool transparent)
       T13(0.8f),          // 0.8 seconds for transition from full to split
       T14(0.8f),          // 0.8 seconds for transition from split to full
       headlight_size(32), // 10 LEDs from each edge by default
-      ledsStepSize(2),    // Default to 1 LED at a time
+      ledsStepSize(3),    // Default to 1 LED at a time
       phase_0_progress(0.0f),
       phase_0_single_led_index(0),
       phase_0_single_led_progress(0.0f),
@@ -417,10 +417,10 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
 
     for (int i = 0; i < numLEDs; i++)
     {
-      if (i < effective_size)
+      if (i <= effective_size)
         buffer[i] = _getColor(strip, i, numLEDsHalf); // Left side
 
-      if (i >= numLEDs - effective_size)
+      if (i >= numLEDs - effective_size - 1)
         buffer[i] = buffer[numLEDs - 1 - i];
 
       if (i > effective_size && i < effective_size + (ledsToAnimateSide * p))

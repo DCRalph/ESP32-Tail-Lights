@@ -1,4 +1,5 @@
 #include "Menu.h"
+#ifdef ENABLE_DISPLAY
 
 static const char *TAG = "Menu";
 
@@ -650,3 +651,5 @@ void Menu::addMenuItem(MenuItem *_item)
   numItems = items.size();
   numItemsPerPage = numItems < maxItemsPerPage ? numItems : maxItemsPerPage;
 }
+
+#endif

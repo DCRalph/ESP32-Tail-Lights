@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+#ifdef ENABLE_DISPLAY
 #include "IO/GPIO.h"
 #include "IO/Display.h"
 #include <vector>
@@ -46,3 +47,5 @@ struct Screen2
 };
 
 extern ScreenManager screenManager;
+
+#endif
