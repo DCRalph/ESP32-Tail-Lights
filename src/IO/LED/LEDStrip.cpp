@@ -307,8 +307,11 @@ void LEDStrip::draw()
 
 void LEDStrip::show()
 {
-  controller->showLeds(brightness);
-  // FastLED.show();
+  if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
+  {
+    controller->showLeds(brightness);
+    xSemaphoreGive(fastledMutex);
+  }
 }
 
 CRGB *LEDStrip::getFastLEDBuffer() { return leds; }

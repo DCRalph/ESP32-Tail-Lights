@@ -7,6 +7,9 @@ StatusLeds::StatusLeds()
 {
   _initialized = false;
   _brightness = 255;
+  _taskRunning = false;
+  _showFPS = 50;
+  _showTaskHandle = NULL;
 }
 
 StatusLeds::~StatusLeds()
@@ -34,7 +37,11 @@ void StatusLeds::show()
 {
   if (_initialized)
   {
-    _controller->showLeds(_brightness);
+    if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
+    {
+      _controller->showLeds(_brightness);
+      xSemaphoreGive(fastledMutex);
+    }
   }
   else
   {
@@ -71,28 +78,147 @@ uint8_t StatusLeds::getBrightness() const
 
 void StatusLeds::startShowTask()
 {
-  xTaskCreatePinnedToCore(_showTask, "StatusLedShowTask", 4096, this, 1, &_showTaskHandle, 1);
+  if (_taskRunning)
+  {
+    ESP_LOGI(TAG, "StatusLeds: Show task already running");
+    return;
+  }
+
+  _taskRunning = true;
+
+  xTaskCreatePinnedToCore(
+      _showTask,           // Task function
+      "StatusLedShowTask", // Task name
+      4096,                // Stack size
+      this,                // Parameter passed to task
+      1,                   // Priority
+      &_showTaskHandle,    // Task handle
+      1                    // Core to run on
+  );
+
+  ESP_LOGI(TAG, "StatusLeds: Show task started");
 }
 
 void StatusLeds::stopShowTask()
 {
-  vTaskDelete(_showTaskHandle);
-  _showTaskHandle = NULL;
+  if (!_taskRunning)
+  {
+    ESP_LOGI(TAG, "StatusLeds: Show task not running");
+    return;
+  }
+
+  ESP_LOGI(TAG, "StatusLeds: Stopping show task...");
+
+  // Signal the task to stop
+  _taskRunning = false;
+
+  // Wait for the task to actually finish (with timeout)
+  if (_showTaskHandle != NULL)
+  {
+    // Give the task time to finish gracefully
+    TickType_t timeout = pdMS_TO_TICKS(1000); // 1 second timeout
+    TickType_t startTime = xTaskGetTickCount();
+
+    while (_showTaskHandle != NULL && (xTaskGetTickCount() - startTime) < timeout)
+    {
+      vTaskDelay(pdMS_TO_TICKS(10)); // Wait 10ms
+    }
+
+    // Force delete if task didn't finish gracefully
+    if (_showTaskHandle != NULL)
+    {
+      ESP_LOGI(TAG, "StatusLeds: Force deleting show task");
+      vTaskDelete(_showTaskHandle);
+      _showTaskHandle = NULL;
+    }
+  }
+
+  ESP_LOGI(TAG, "StatusLeds: Show task stopped");
 }
 
 bool StatusLeds::isShowTaskRunning()
 {
-  return _showTaskHandle != NULL;
+  return _taskRunning;
 }
+
 
 void StatusLeds::_showTask(void *pvParameters)
 {
   StatusLeds *statusLeds = (StatusLeds *)pvParameters;
-  while (true)
+
+  // Validate statusLeds pointer
+  if (!statusLeds)
   {
-    statusLeds->show();
-    vTaskDelay(pdMS_TO_TICKS(1000 / 30)); // 50fps
+    ESP_LOGE(TAG, "StatusLeds: Invalid statusLeds pointer in show task");
+    vTaskDelete(NULL);
+    return;
   }
+
+  const char *TASK_TAG = "StatusLedShowTask"; // For ESP-IDF logging
+
+  // Validate showFPS to prevent division by zero
+  if (statusLeds->_showFPS <= 0)
+  {
+    ESP_LOGE(TASK_TAG, "Invalid showFPS value: %d, setting to default 50", statusLeds->_showFPS);
+    statusLeds->_showFPS = 50;
+  }
+
+  // Calculate the desired period for each frame in milliseconds
+  TickType_t framePeriodTicks = pdMS_TO_TICKS(1000.0f / statusLeds->_showFPS);
+
+  // Prevent extremely short frame periods that could cause system instability
+  if (framePeriodTicks < pdMS_TO_TICKS(1))
+  {
+    framePeriodTicks = pdMS_TO_TICKS(1);
+    ESP_LOGW(TASK_TAG, "Frame period too short, clamped to 1ms");
+  }
+
+  ESP_LOGI(TASK_TAG, "StatusLeds: Show task loop started with FPS: %d", statusLeds->_showFPS);
+
+  // Use a local copy of taskRunning status to reduce race conditions
+  while (statusLeds->_taskRunning)
+  {
+    TickType_t startTime = xTaskGetTickCount();
+
+    statusLeds->show();
+
+    TickType_t endTime = xTaskGetTickCount();
+    TickType_t elapsedTime = endTime - startTime;
+
+    if (!statusLeds->_taskRunning)
+      break;
+
+    if (framePeriodTicks > 0)
+    {
+      TickType_t timeToDelay = framePeriodTicks - elapsedTime;
+
+      if (timeToDelay < 0)
+      {
+        ESP_LOGW(TASK_TAG, "Show took %.2fms, longer than frame period (%.2fms). Frame rate may drop.",
+                 (float)elapsedTime * (1000.0f / configTICK_RATE_HZ),
+                 (float)framePeriodTicks * (1000.0f / configTICK_RATE_HZ));
+
+        timeToDelay = pdMS_TO_TICKS(1);
+      }
+
+      if (timeToDelay > 0 && timeToDelay < pdMS_TO_TICKS(1000))
+        vTaskDelay(timeToDelay);
+      else
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+    else
+    {
+      vTaskDelay(pdMS_TO_TICKS(10)); // Longer delay if show failed to prevent tight loop
+    }
+
+    // Yield to watchdog and other tasks periodically
+    taskYIELD();
+  }
+
+  // Clean up when task ends
+  ESP_LOGI(TASK_TAG, "StatusLeds: Show task ending gracefully");
+  statusLeds->_showTaskHandle = NULL;
+  vTaskDelete(NULL);
 }
 
 // ================================
@@ -204,7 +330,7 @@ void StatusLed::_setMode(RGB_MODE newMode)
 {
   _mode = newMode;
 
-  ESP_LOGI(TAG, "Mode changed to %d", (int)_mode);
+  // ESP_LOGI(TAG, "Mode changed to %d", (int)_mode);
 
   // Stop all animations first
   _stopRainbow();
@@ -463,7 +589,7 @@ void StatusLed::goBackSteps(uint8_t steps)
   // Limit steps to available history
   uint8_t actualSteps = (steps > _modeHistory.size()) ? _modeHistory.size() : steps;
 
-  ESP_LOGI(TAG, "[HISTORY] Going back %d steps (requested %d)", actualSteps, steps);
+  // ESP_LOGI(TAG, "[HISTORY] Going back %d steps (requested %d)", actualSteps, steps);
 
   // Get the target mode (actualSteps back from the end)
   RGB_MODE targetMode = _modeHistory[_modeHistory.size() - actualSteps];

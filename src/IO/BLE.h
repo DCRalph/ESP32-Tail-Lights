@@ -10,7 +10,7 @@
 #include "IO/LED/Types.h"
 
 // BLE Service and Characteristic UUIDs
-#define TAILLIGHT_SERVICE_UUID "51afeb92-c5fe-4efb-bf6f-5b9baf50d87f"
+#define BLE_SERVICE_UUID "51afeb92-c5fe-4efb-bf6f-5b9baf50d87f"
 
 // Only 3 Characteristics
 #define PING_CHARACTERISTIC_UUID "7285c8f6-30eb-4266-b5c3-7a34ba69a8b7"
@@ -67,8 +67,8 @@ class Application;
 
 class BLEManager
 {
-  friend class TaillightBLEServerCallbacks;
-  friend class TaillightBLECharacteristicCallbacks;
+  friend class CarThingBLEServerCallbacks;
+  friend class CarThingBLECharacteristicCallbacks;
 
 public:
   static BLEManager *getInstance();
@@ -124,10 +124,10 @@ private:
 };
 
 // BLE Server Callbacks
-class TaillightBLEServerCallbacks : public BLEServerCallbacks
+class CarThingBLEServerCallbacks : public BLEServerCallbacks
 {
 public:
-  TaillightBLEServerCallbacks(BLEManager *manager);
+  CarThingBLEServerCallbacks(BLEManager *manager);
   void onConnect(BLEServer *pServer) override;
   void onDisconnect(BLEServer *pServer) override;
 
@@ -136,10 +136,10 @@ private:
 };
 
 // Generic BLE Characteristic Callbacks
-class TaillightBLECharacteristicCallbacks : public BLECharacteristicCallbacks
+class CarThingBLECharacteristicCallbacks : public BLECharacteristicCallbacks
 {
 public:
-  TaillightBLECharacteristicCallbacks(BLEManager *manager, const String &charName);
+  CarThingBLECharacteristicCallbacks(BLEManager *manager, const String &charName);
   void onWrite(BLECharacteristic *pCharacteristic) override;
   void onRead(BLECharacteristic *pCharacteristic) override;
 

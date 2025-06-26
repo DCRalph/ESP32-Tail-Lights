@@ -25,6 +25,8 @@ void setup()
   Serial.begin(115200);
   Serial.setTimeout(10);
 
+  fastledMutex = xSemaphoreCreateMutex();
+
   GpIO::initIO();
   statusLeds.begin();
   statusLeds.setBrightness(50);

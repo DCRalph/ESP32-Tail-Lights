@@ -26,6 +26,8 @@ Preferences preferences;
 
 DeviceInfo deviceInfo;
 
+SemaphoreHandle_t fastledMutex;
+
 LEDConfig::LEDConfig()
 {
   // Constructor initializes with default values as set in header

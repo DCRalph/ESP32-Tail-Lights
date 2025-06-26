@@ -63,7 +63,8 @@ extern Preferences preferences;
 extern DeviceInfo deviceInfo;
 extern LEDConfig ledConfig;
 
-
+// fastled mutex
+extern SemaphoreHandle_t fastledMutex;
 
 void restart();
 String formatBytes(size_t bytes, bool _short = false);

@@ -18,6 +18,7 @@
 #include "provisioningMenu.h"
 #include "ledConfigMenu.h"
 #include "hvInputMenu.h"
+#include "colorBufferMenu.h"
 #include "IO/TimeProfiler.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -46,6 +47,7 @@ void printMainMenu(const SerialMenu &menu)
     Serial.println(F("4) LED Configuration"));
     Serial.println(F("5) HV Input Status"));
     Serial.println(F("6) Time Profiler"));
+    Serial.println(F("7) Color Buffer Debug"));
     Serial.println(F("r) Reboot"));
     Serial.println(F("Press Enter to re-print this menu"));
 }
@@ -80,6 +82,11 @@ bool handleMainMenuInput(SerialMenu &menu, const String &input)
     else if (input == F("6"))
     {
         timeProfiler.printAll();
+        return true;
+    }
+    else if (input == F("7"))
+    {
+        setMenu(&colorBufferMenu);
         return true;
     }
 

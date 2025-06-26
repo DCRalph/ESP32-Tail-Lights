@@ -41,10 +41,10 @@ void BLEManager::begin()
 
   // Create BLE Server
   pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new TaillightBLEServerCallbacks(this));
+  pServer->setCallbacks(new CarThingBLEServerCallbacks(this));
 
   // Create BLE Service
-  pService = pServer->createService(TAILLIGHT_SERVICE_UUID);
+  pService = pServer->createService(BLE_SERVICE_UUID);
 
   setupCharacteristics();
   setupCallbacks();
@@ -54,7 +54,7 @@ void BLEManager::begin()
 
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(TAILLIGHT_SERVICE_UUID);
+  pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
   pAdvertising->setScanResponse(true);
   pAdvertising->setMinPreferred(0x06); // Functions that help with iPhone connections issue
   pAdvertising->setMinPreferred(0x12);
@@ -87,9 +87,9 @@ void BLEManager::setupCharacteristics()
 void BLEManager::setupCallbacks()
 {
   // Setup callbacks for the 3 characteristics
-  pPingCharacteristic->setCallbacks(new TaillightBLECharacteristicCallbacks(this, "Ping"));
-  pModeCharacteristic->setCallbacks(new TaillightBLECharacteristicCallbacks(this, "Mode"));
-  pEffectsCharacteristic->setCallbacks(new TaillightBLECharacteristicCallbacks(this, "Effects"));
+  pPingCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Ping"));
+  pModeCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Mode"));
+  pEffectsCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Effects"));
 }
 
 void BLEManager::loop()
@@ -340,19 +340,19 @@ void BLEManager::handleEffectsWrite(BLECharacteristic *pCharacteristic)
 }
 
 // BLE Server Callbacks
-TaillightBLEServerCallbacks::TaillightBLEServerCallbacks(BLEManager *manager)
+CarThingBLEServerCallbacks::CarThingBLEServerCallbacks(BLEManager *manager)
     : bleManager(manager)
 {
 }
 
-void TaillightBLEServerCallbacks::onConnect(BLEServer *pServer)
+void CarThingBLEServerCallbacks::onConnect(BLEServer *pServer)
 {
   bleManager->deviceConnected = true;
   bleManager->connectionCount++;
   Serial.printf("BLE Client connected (count: %d)\n", bleManager->connectionCount);
 }
 
-void TaillightBLEServerCallbacks::onDisconnect(BLEServer *pServer)
+void CarThingBLEServerCallbacks::onDisconnect(BLEServer *pServer)
 {
   bleManager->deviceConnected = false;
   if (bleManager->connectionCount > 0)
@@ -366,12 +366,12 @@ void TaillightBLEServerCallbacks::onDisconnect(BLEServer *pServer)
 }
 
 // BLE Characteristic Callbacks
-TaillightBLECharacteristicCallbacks::TaillightBLECharacteristicCallbacks(BLEManager *manager, const String &charName)
+CarThingBLECharacteristicCallbacks::CarThingBLECharacteristicCallbacks(BLEManager *manager, const String &charName)
     : bleManager(manager), characteristicName(charName)
 {
 }
 
-void TaillightBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteristic)
+void CarThingBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteristic)
 {
   Serial.println("BLE Write to " + characteristicName);
 
@@ -385,7 +385,7 @@ void TaillightBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteri
   }
 }
 
-void TaillightBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacteristic)
+void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacteristic)
 {
   Serial.println("BLE Read from " + characteristicName);
 

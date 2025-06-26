@@ -435,6 +435,7 @@ void Application::setupWireless()
                              pTX.type = CAR_CMD_GET_STATS;
 
                              AppStats stats = {0};
+                             stats.loopsPerSecond = timeProfiler.getCallsPerSecond("mainLoopFps");
                              stats.updateInputTime = timeProfiler.getTimeUs("updateInputs");
                              stats.updateModeTime = timeProfiler.getTimeUs("updateMode");
                              stats.updateSyncTime = timeProfiler.getTimeUs("updateSync");

@@ -132,9 +132,13 @@ private:
   bool _initialized;
   CRGB _leds[STATUS_LED_COUNT];
   CLEDController *_controller;
-  uint8_t _brightness = 255;
+  uint8_t _brightness;
 
+  // Task management
   xTaskHandle _showTaskHandle;
+  bool _taskRunning;
+  uint16_t _showFPS; // Default 50 FPS
+
   static void _showTask(void *pvParameters);
 };
 
