@@ -85,6 +85,18 @@ struct __attribute__((packed)) ColorFadeSyncData
   String print();
 };
 
+struct __attribute__((packed)) CommitSyncData
+{
+  float commitSpeed;           // Speed of commits in LED positions per second
+  float trailLength;           // Length of the fading trail in LED units
+  float commitInterval;        // Time between commits in seconds
+  uint8_t headR, headG, headB; // Color of the commit head
+  float timeSinceLastCommit;   // Time since last commit was spawned
+  bool active;
+
+  String print();
+};
+
 struct __attribute__((packed)) EffectSyncState
 {
   RGBSyncData rgbSyncData;
@@ -92,6 +104,7 @@ struct __attribute__((packed)) EffectSyncState
   PoliceSyncData policeSyncData;
   SolidColorSyncData solidColorSyncData;
   ColorFadeSyncData colorFadeSyncData;
+  CommitSyncData commitSyncData;
 
   void print();
 };

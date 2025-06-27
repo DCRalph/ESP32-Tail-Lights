@@ -26,6 +26,11 @@ String ColorFadeSyncData::print()
   return String("Hold Time: " + String(holdTime) + ", Fade Time: " + String(fadeTime) + ", Progress: " + String(progress) + ", Current Color Index: " + String(currentColorIndex) + ", In Fade Phase: " + String(inFadePhase) + ", Active: " + String(active));
 }
 
+String CommitSyncData::print()
+{
+  return String("Commit Speed: " + String(commitSpeed) + ", Trail Length: " + String(trailLength) + ", Commit Interval: " + String(commitInterval) + ", Head Color: (" + String(headR) + "," + String(headG) + "," + String(headB) + "), Time Since Last: " + String(timeSinceLastCommit) + ", Active: " + String(active));
+}
+
 void EffectSyncState::print()
 {
   Serial.println("RGB: " + rgbSyncData.print());
@@ -33,4 +38,5 @@ void EffectSyncState::print()
   Serial.println("Police: " + policeSyncData.print());
   Serial.println("Solid Color: " + solidColorSyncData.print());
   Serial.println("Color Fade: " + colorFadeSyncData.print());
+  Serial.println("Commit: " + commitSyncData.print());
 }

@@ -60,6 +60,7 @@ struct __attribute__((packed)) BLEEffectsData
   uint8_t solidColorG;
   uint8_t solidColorB;
   bool colorFade;
+  bool commit;
 };
 
 // Forward declarations

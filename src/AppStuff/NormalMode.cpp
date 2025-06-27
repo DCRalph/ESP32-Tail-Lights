@@ -26,7 +26,7 @@ void Application::handleNormalEffects()
 
   policeEffect->setActive(false); // ensure police effect is off
 
-  if (accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000) 
+  if (accOnInput.getLastActiveTime() != 0 && currentTime - accOnInput.getLastActiveTime() > 1 * 60 * 1000)
   {
     accOnInput.setLastActiveTime(0);
     unlockSequence->setActive(true);
@@ -65,6 +65,8 @@ void Application::handleNormalEffects()
     rgbEffect->setActive(false);
     nightriderEffect->setActive(false);
     solidColorEffect->setActive(false);
+    colorFadeEffect->setActive(false);
+    commitEffect->setActive(false);
   }
 
   if (accOnInput.getLast() != accOnInput.get() && accOnInput.get() == true) // acc just went on
@@ -77,7 +79,7 @@ void Application::handleNormalEffects()
   }
 
   if (accOnInput.get() == true) // acc is on
-  { 
+  {
     // Only apply physical input controls if we're the master
     // or we're not syncing with other devices
     if (!isSyncing || isMaster)
@@ -99,6 +101,8 @@ void Application::handleNormalEffects()
         effectState.nightRiderSyncData = nightriderEffect->getSyncData();
         effectState.policeSyncData = policeEffect->getSyncData();
         effectState.solidColorSyncData = solidColorEffect->getSyncData();
+        effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
+        effectState.commitSyncData = commitEffect->getSyncData();
 
         syncMgr->setEffectSyncState(effectState);
       }

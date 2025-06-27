@@ -70,6 +70,7 @@ struct EffectsCmd
   uint8_t solidColorG;
   uint8_t solidColorB;
   bool colorFade;
+  bool commit;
 };
 
 struct InputsCmd
@@ -294,6 +295,7 @@ void Application::setupWireless()
                              eCmd.solidColorPreset = solidColorEffect->getColorPreset();
                              solidColorEffect->getCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
                              eCmd.colorFade = colorFadeEffect->isActive();
+                             eCmd.commit = commitEffect->isActive();
 
                              pTX.len = sizeof(eCmd);
                              memcpy(pTX.data, &eCmd, sizeof(eCmd));
@@ -337,6 +339,7 @@ void Application::setupWireless()
                              solidColorEffect->setColorPreset(eCmd.solidColorPreset);
                              solidColorEffect->setCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
                              colorFadeEffect->setActive(eCmd.colorFade);
+                             commitEffect->setActive(eCmd.commit);
 
                              SyncManager *syncMgr = SyncManager::getInstance();
 
@@ -349,6 +352,7 @@ void Application::setupWireless()
                                effectState.policeSyncData = policeEffect->getSyncData();
                                effectState.solidColorSyncData = solidColorEffect->getSyncData();
                                effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
+                               effectState.commitSyncData = commitEffect->getSyncData();
 
                                syncMgr->setEffectSyncState(effectState);
                                syncMgr->sendEffectState();

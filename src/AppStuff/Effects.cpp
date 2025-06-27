@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "IO/LED/LEDStripManager.h"
+#include "IO/LED/Effects/CommitEffect.h"
 
 void Application::setupEffects()
 {
@@ -25,6 +26,7 @@ void Application::setupEffects()
   auroraEffect = new AuroraEffect(5, false);
   solidColorEffect = new SolidColorEffect(5, false);
   colorFadeEffect = new ColorFadeEffect(5, false);
+  commitEffect = new CommitEffect(5, false);
 
   policeEffect = new PoliceEffect(4, false);
 
@@ -49,6 +51,7 @@ void Application::setupEffects()
     // headlightStrip->addEffect(auroraEffect);
     headlightStrip->addEffect(solidColorEffect);
     headlightStrip->addEffect(colorFadeEffect);
+    headlightStrip->addEffect(commitEffect);
   }
 
   if (taillightStrip)
@@ -68,16 +71,18 @@ void Application::setupEffects()
     // taillightStrip->addEffect(auroraEffect);
     taillightStrip->addEffect(solidColorEffect);
     taillightStrip->addEffect(colorFadeEffect);
+    taillightStrip->addEffect(commitEffect);
   }
 
   if (underglowStrip)
   {
     underglowStrip->addEffect(rgbEffect);
     underglowStrip->addEffect(nightriderEffect);
-    underglowStrip->addEffect(policeEffect);
+    // underglowStrip->addEffect(policeEffect);
     // underglowStrip->addEffect(pulseWaveEffect);
     // underglowStrip->addEffect(auroraEffect);
     underglowStrip->addEffect(solidColorEffect);
     underglowStrip->addEffect(colorFadeEffect);
+    underglowStrip->addEffect(commitEffect);
   }
 }

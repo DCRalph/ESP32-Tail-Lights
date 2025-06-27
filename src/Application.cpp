@@ -339,6 +339,7 @@ void Application::handleRemoteEffects()
     effectState.policeSyncData = policeEffect->getSyncData();
     effectState.solidColorSyncData = solidColorEffect->getSyncData();
     effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
+    effectState.commitSyncData = commitEffect->getSyncData();
 
     syncMgr->setEffectSyncState(effectState);
   }
@@ -351,6 +352,7 @@ void Application::handleSyncedEffects(const EffectSyncState &effectState)
   policeEffect->setSyncData(effectState.policeSyncData);
   solidColorEffect->setSyncData(effectState.solidColorSyncData);
   colorFadeEffect->setSyncData(effectState.colorFadeSyncData);
+  commitEffect->setSyncData(effectState.commitSyncData);
 }
 
 void Application::setupBLE()

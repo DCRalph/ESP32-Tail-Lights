@@ -36,7 +36,7 @@ void BLEManager::begin()
   Serial.println("BLEManager: Initializing BLE...");
 
   // Initialize BLE Device
-  String deviceName = "ESP32-TailLights-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+  String deviceName = "ESP32-" + String(deviceInfo.serialNumber);
   BLEDevice::init(deviceName.c_str());
 
   // Create BLE Server
@@ -228,6 +228,7 @@ BLEEffectsData BLEManager::prepareEffectsData()
   data.aurora = app->auroraEffect ? app->auroraEffect->isActive() : false;
   data.solidColor = app->solidColorEffect ? app->solidColorEffect->isActive() : false;
   data.colorFade = app->colorFadeEffect ? app->colorFadeEffect->isActive() : false;
+  data.commit = app->commitEffect ? app->commitEffect->isActive() : false;
 
   if (app->solidColorEffect)
   {
@@ -337,6 +338,8 @@ void BLEManager::handleEffectsWrite(BLECharacteristic *pCharacteristic)
   }
   if (app->colorFadeEffect)
     app->colorFadeEffect->setActive(data->colorFade);
+  if (app->commitEffect)
+    app->commitEffect->setActive(data->commit);
 }
 
 // BLE Server Callbacks

@@ -17,6 +17,7 @@
 #include "IO/LED/Effects/AuroraEffect.h"
 #include "IO/LED/Effects/SolidColorEffect.h"
 #include "IO/LED/Effects/ColorFadeEffect.h"
+#include "IO/LED/Effects/CommitEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -137,6 +138,7 @@ public:
   AuroraEffect *auroraEffect;
   SolidColorEffect *solidColorEffect;
   ColorFadeEffect *colorFadeEffect;
+  CommitEffect *commitEffect;
 
   // Sequences
   BothIndicatorsSequence *unlockSequence;
@@ -153,8 +155,6 @@ private:
   void updateInputs();
   void setupWireless();
   void setupBLE();
-
-  
 
   bool appInitialized;
 
