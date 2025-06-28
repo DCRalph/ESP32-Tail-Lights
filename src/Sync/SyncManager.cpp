@@ -17,8 +17,7 @@ SyncManager *SyncManager::getInstance()
 
 SyncManager::SyncManager()
 {
-  ourDeviceId = generateDeviceId();
-  // clear initial group
+  ourDeviceId = 0;
   currentGroup = {};
 }
 
@@ -26,6 +25,8 @@ SyncManager::~SyncManager() {}
 
 void SyncManager::begin()
 {
+  ourDeviceId = generateDeviceId();
+
   wireless.addOnReceiveFor(
       SYNC_MSG_TYPE,
       [this](fullPacket *fp)
