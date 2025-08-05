@@ -101,7 +101,7 @@ void IndicatorEffect::syncWithOtherIndicator()
   otherIndicator->synced = true;
 }
 
-void IndicatorEffect::update(LEDStrip *strip)
+void IndicatorEffect::update(LEDSegment *segment)
 {
   if (!indicatorActive && onTime == 0)
   {
@@ -141,7 +141,7 @@ void IndicatorEffect::update(LEDStrip *strip)
   }
 }
 
-void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
+void IndicatorEffect::render(LEDSegment *segment, Color *buffer)
 {
   // Do nothing if the indicator is inactive or the fade factor is 0.
   if (!indicatorActive && onTime == 0)
@@ -156,7 +156,7 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
 
   if (bigIndicator)
   {
-    regionLength = (strip->getNumLEDs() / 2) - regionLength;
+    regionLength = (segment->getNumLEDs() / 2) - regionLength;
   }
 
   if (regionLength <= 1)
@@ -175,7 +175,7 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
       }
       else
       {
-        buffer[strip->getNumLEDs() - i - 1] = Color(0, 0, 0);
+        buffer[segment->getNumLEDs() - i - 1] = Color(0, 0, 0);
       }
     }
     return;
@@ -227,18 +227,18 @@ void IndicatorEffect::render(LEDStrip *strip, Color *buffer)
       }
       else
       {
-        buffer[strip->getNumLEDs() - i - 1] = Color(r, g, b);
+        buffer[segment->getNumLEDs() - i - 1] = Color(r, g, b);
       }
     }
     else
     {
       if (side == LEFT)
       {
-        buffer[strip->getNumLEDs() / 2 - regionLength + i] = Color(r, g, b);
+        buffer[segment->getNumLEDs() / 2 - regionLength + i] = Color(r, g, b);
       }
       else
       {
-        buffer[strip->getNumLEDs() / 2 + regionLength - i - 1] = Color(r, g, b);
+        buffer[segment->getNumLEDs() / 2 + regionLength - i - 1] = Color(r, g, b);
       }
     }
   }

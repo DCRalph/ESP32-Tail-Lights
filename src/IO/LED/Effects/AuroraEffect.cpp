@@ -77,7 +77,7 @@ float AuroraEffect::computeWave(float pos, float time, int waveIndex)
   }
 }
 
-void AuroraEffect::update(LEDStrip *strip)
+void AuroraEffect::update(LEDSegment *segment)
 {
   if (!active)
     return;
@@ -114,13 +114,13 @@ void AuroraEffect::update(LEDStrip *strip)
   }
 }
 
-void AuroraEffect::render(LEDStrip *strip, Color *buffer)
+void AuroraEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
-  bool isHeadlight = (strip->getType() == LEDStripType::HEADLIGHT);
+  uint16_t numLEDs = segment->getNumLEDs();
+  bool isHeadlight = (segment->getParentStrip()->getType() == LEDStripType::HEADLIGHT);
   uint16_t midPoint = numLEDs / 2;
 
   // For headlights, we'll only process the first half and mirror it

@@ -10,8 +10,8 @@ public:
   // Sends "commits" from the center of the strip to the edges with bright heads and fading trails
   CommitEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void update(LEDSegment *segment) override;
+  virtual void render(LEDSegment *segment, Color *buffer) override;
   virtual void onDisable() override;
 
   // Activate or disable the effect.
@@ -49,5 +49,5 @@ private:
 
   void spawnCommit();
   void updateCommits(float deltaTime, uint16_t numLEDs);
-  void renderCommit(const Commit &commit, LEDStrip *strip, Color *buffer, uint16_t numLEDs);
+  void renderCommit(const Commit &commit, LEDSegment *segment, Color *buffer);
 };

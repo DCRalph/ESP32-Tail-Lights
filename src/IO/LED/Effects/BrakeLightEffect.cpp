@@ -66,7 +66,7 @@ bool BrakeLightEffect::getIsReversing() const
   return isReversing;
 }
 
-void BrakeLightEffect::update(LEDStrip *strip)
+void BrakeLightEffect::update(LEDSegment *segment)
 {
   unsigned long currentTime = millis();
   if (lastUpdate == 0)
@@ -96,19 +96,19 @@ void BrakeLightEffect::update(LEDStrip *strip)
   }
 }
 
-void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
+void BrakeLightEffect::render(LEDSegment *segment, Color *buffer)
 {
 
   if (isReversing)
   {
     if (brakeActive)
     {
-      int numLeds = strip->getNumLEDs() / 5;
+      int stripPartSize = segment->getNumLEDs() / 5;
 
-      for (uint16_t i = 0; i < numLeds; i++)
+      for (uint16_t i = 0; i < stripPartSize; i++)
       {
         buffer[i] = Color(255, 0, 0);
-        buffer[strip->getNumLEDs() - i - 1] = Color(255, 0, 0);
+        buffer[segment->getNumLEDs() - i - 1] = Color(255, 0, 0);
       }
     }
 
@@ -117,7 +117,7 @@ void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
 
   if (brakeActive)
   {
-    for (uint16_t i = 0; i < strip->getNumLEDs(); i++)
+    for (uint16_t i = 0; i < segment->getNumLEDs(); i++)
     {
       buffer[i] = Color(255, 0, 0);
     }
@@ -132,7 +132,7 @@ void BrakeLightEffect::render(LEDStrip *strip, Color *buffer)
 
   // if reversing only light up the edges
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   uint16_t mid = numLEDs / 2;
 
   // Compute the fade factor using the ease‑in quadratic curve.

@@ -165,7 +165,7 @@ void HeadlightEffect::getColor(bool &r, bool &g, bool &b)
   b = blue;
 }
 
-void HeadlightEffect::update(LEDStrip *strip)
+void HeadlightEffect::update(LEDSegment *segment)
 {
   // if (!active)
   if (mode == HeadlightEffectMode::Off && phase == -1)
@@ -175,7 +175,7 @@ void HeadlightEffect::update(LEDStrip *strip)
   if (phase_start == 0)
     phase_start = now;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   uint16_t numLEDsHalf = numLEDs / 2;
   if (numLEDs % 2 == 1)
     numLEDsHalf += 1;
@@ -316,7 +316,7 @@ void HeadlightEffect::update(LEDStrip *strip)
   }
 }
 
-void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
+void HeadlightEffect::render(LEDSegment *segment, Color *buffer)
 {
   // if (!active)
   if (mode == HeadlightEffectMode::Off && phase == -1)
@@ -326,7 +326,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
 
   float halfBrightness = 0.35f; // Half brightness version
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   uint16_t numLEDsHalf = numLEDs / 2;
   if (numLEDs % 2 == 1)
     numLEDsHalf += 1;
@@ -344,7 +344,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     {
       for (int i = 0; i < phase_0_single_led_index; i++)
       {
-        buffer[effective_size - i - 1] = _getColor(strip, effective_size - i - 1, numLEDsHalf) * halfBrightness;
+        buffer[effective_size - i - 1] = _getColor(segment, effective_size - i - 1, numLEDsHalf) * halfBrightness;
         buffer[numLEDs - 1 - (effective_size - i - 1)] = buffer[effective_size - i - 1];
       }
     }
@@ -355,7 +355,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
       int ledIndex = single_led_to_light + i;
       if (ledIndex < effective_size)
       {
-        buffer[ledIndex] = _getColor(strip, ledIndex, numLEDsHalf) * halfBrightness;
+        buffer[ledIndex] = _getColor(segment, ledIndex, numLEDsHalf) * halfBrightness;
         buffer[numLEDs - 1 - ledIndex] = buffer[ledIndex];
       }
     }
@@ -365,7 +365,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     // fill with half brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf) * halfBrightness;
+      buffer[i] = _getColor(segment, i, numLEDsHalf) * halfBrightness;
       buffer[numLEDs - 1 - i] = buffer[i];
     }
   }
@@ -374,7 +374,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     // First, set all LEDs that should be at half brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf) * halfBrightness; // Left side
+      buffer[i] = _getColor(segment, i, numLEDsHalf) * halfBrightness; // Left side
       buffer[numLEDs - 1 - i] = buffer[i];                           // Right side
     }
 
@@ -385,7 +385,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     // Fill left side from the edge inward with full brightness
     for (int i = 0; i < leftLeds; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf);
+      buffer[i] = _getColor(segment, i, numLEDsHalf);
     }
 
     // Fill right side from the edge inward with full brightness
@@ -399,7 +399,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     // Set all headlight LEDs to full brightness
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf); // Left side
+      buffer[i] = _getColor(segment, i, numLEDsHalf); // Left side
       buffer[numLEDs - 1 - i] = buffer[i];          // Right side
     }
   }
@@ -418,13 +418,13 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
     for (int i = 0; i < numLEDs; i++)
     {
       if (i <= effective_size)
-        buffer[i] = _getColor(strip, i, numLEDsHalf); // Left side
+        buffer[i] = _getColor(segment, i, numLEDsHalf); // Left side
 
       if (i >= numLEDs - effective_size - 1)
         buffer[i] = buffer[numLEDs - 1 - i];
 
       if (i > effective_size && i < effective_size + (ledsToAnimateSide * p))
-        buffer[i] = _getColor(strip, i, numLEDsHalf);
+        buffer[i] = _getColor(segment, i, numLEDsHalf);
 
       if (i > numLEDs - effective_size - ledsToAnimateSide && i > numLEDs - effective_size - (ledsToAnimateSide * p))
         buffer[i] = buffer[numLEDs - 1 - i];
@@ -434,7 +434,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
   {
     for (int i = 0; i < numLEDsHalf; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf);
+      buffer[i] = _getColor(segment, i, numLEDsHalf);
       buffer[numLEDs - 1 - i] = buffer[i];
     }
   }
@@ -442,7 +442,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
   {
     for (int i = 0; i < effective_size; i++)
     {
-      buffer[i] = _getColor(strip, i, numLEDsHalf);
+      buffer[i] = _getColor(segment, i, numLEDsHalf);
       buffer[numLEDs - 1 - i] = buffer[i];
     }
   }
@@ -462,7 +462,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
       if (i < effective_size)
       {
         // Keep headlight section on
-        buffer[i] = _getColor(strip, i, numLEDsHalf);
+        buffer[i] = _getColor(segment, i, numLEDsHalf);
       }
       else if (i >= numLEDsHalf - ledsToTurnOff)
       {
@@ -472,7 +472,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
       else
       {
         // Keep remaining middle section on until its turn
-        buffer[i] = _getColor(strip, i, numLEDsHalf);
+        buffer[i] = _getColor(segment, i, numLEDsHalf);
       }
 
       // Mirror to right side
@@ -495,12 +495,12 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
       if (i < effective_size)
       {
         // Keep headlight section on
-        buffer[i] = _getColor(strip, i, numLEDsHalf);
+        buffer[i] = _getColor(segment, i, numLEDsHalf);
       }
       else if (i < effective_size + ledsToTurnOn)
       {
         // Turn on middle section progressively from headlight outward
-        buffer[i] = _getColor(strip, i, numLEDsHalf);
+        buffer[i] = _getColor(segment, i, numLEDsHalf);
       }
       else
       {
@@ -540,7 +540,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
           }
           else
           {
-            buffer[i] = _getColor(strip, i, numLEDsHalf);
+            buffer[i] = _getColor(segment, i, numLEDsHalf);
           }
         }
         // Right side headlight section
@@ -553,7 +553,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
           }
           else
           {
-            buffer[i] = _getColor(strip, i, numLEDsHalf);
+            buffer[i] = _getColor(segment, i, numLEDsHalf);
           }
         }
         // Middle section remains off when split is true
@@ -579,7 +579,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
         }
         else
         {
-          buffer[i] = _getColor(strip, i, numLEDsHalf);
+          buffer[i] = _getColor(segment, i, numLEDsHalf);
           buffer[numLEDs - 1 - i] = buffer[i];
         }
       }
@@ -594,7 +594,7 @@ void HeadlightEffect::render(LEDStrip *strip, Color *buffer)
   }
 }
 
-Color HeadlightEffect::_getColor(LEDStrip *strip, int i, int size)
+Color HeadlightEffect::_getColor(LEDSegment *segment, int i, int size)
 {
   Color color;
   color.r = red ? 255 : 0;
@@ -608,7 +608,7 @@ Color HeadlightEffect::_getColor(LEDStrip *strip, int i, int size)
   if (color == Color(0, 0, 0))
     color = Color(255, 255, 255);
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
 
   if (rainbow)
   {

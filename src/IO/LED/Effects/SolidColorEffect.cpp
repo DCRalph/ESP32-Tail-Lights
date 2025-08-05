@@ -119,7 +119,7 @@ Color SolidColorEffect::presetToColor(SolidColorPreset preset) const
   }
 }
 
-void SolidColorEffect::update(LEDStrip *strip)
+void SolidColorEffect::update(LEDSegment *segment)
 {
   // Solid color effect doesn't need complex updates - it's static
   // Just return if not active
@@ -127,13 +127,13 @@ void SolidColorEffect::update(LEDStrip *strip)
     return;
 }
 
-void SolidColorEffect::render(LEDStrip *strip, Color *buffer)
+void SolidColorEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
   Color currentColor = getCurrentColor();
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
 
   // Fill all LEDs with the current color
   for (uint16_t i = 0; i < numLEDs; i++)

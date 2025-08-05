@@ -15,8 +15,8 @@ class HeadlightEffect : public LEDEffect
 public:
   HeadlightEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void update(LEDSegment *segment) override;
+  virtual void render(LEDSegment *segment, Color *buffer) override;
   virtual void onDisable() override;
 
 
@@ -92,7 +92,7 @@ private:
 
   bool split;
 
-  Color _getColor(LEDStrip *strip, int i, int size);
+  Color _getColor(LEDSegment *segment, int i, int size);
 
   // Rainbow mode variables
   float baseHueCenter; // Base hue at center (0-360)

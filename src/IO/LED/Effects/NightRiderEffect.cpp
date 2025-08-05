@@ -57,7 +57,7 @@ NightRiderSyncData NightRiderEffect::getSyncData()
   };
 }
 
-void NightRiderEffect::update(LEDStrip *strip)
+void NightRiderEffect::update(LEDSegment *segment)
 {
   if (!active)
     return;
@@ -105,12 +105,12 @@ void NightRiderEffect::update(LEDStrip *strip)
   }
 }
 
-void NightRiderEffect::render(LEDStrip *strip, Color *buffer)
+void NightRiderEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   if (numLEDs < 2)
     return;
 

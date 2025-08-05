@@ -62,7 +62,7 @@ CommitSyncData CommitEffect::getSyncData()
   };
 }
 
-void CommitEffect::update(LEDStrip *strip)
+void CommitEffect::update(LEDSegment *segment)
 {
   if (!active)
     return;
@@ -79,7 +79,7 @@ void CommitEffect::update(LEDStrip *strip)
   float deltaTime = dtMillis / 1000.0f;
   lastUpdateTime = currentTime;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   if (numLEDs < 3) // Need at least 3 LEDs for center + edges
     return;
 
@@ -97,12 +97,12 @@ void CommitEffect::update(LEDStrip *strip)
   updateCommits(deltaTime, numLEDs);
 }
 
-void CommitEffect::render(LEDStrip *strip, Color *buffer)
+void CommitEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   if (numLEDs < 3)
     return;
 
@@ -115,7 +115,7 @@ void CommitEffect::render(LEDStrip *strip, Color *buffer)
   // Render all commits
   for (const auto &commit : commits)
   {
-    renderCommit(commit, strip, buffer, numLEDs);
+    renderCommit(commit, segment, buffer);
   }
 }
 
@@ -175,8 +175,9 @@ void CommitEffect::updateCommits(float deltaTime, uint16_t numLEDs)
       commits.end());
 }
 
-void CommitEffect::renderCommit(const Commit &commit, LEDStrip *strip, Color *buffer, uint16_t numLEDs)
+void CommitEffect::renderCommit(const Commit &commit, LEDSegment *segment, Color *buffer)
 {
+  uint16_t numLEDs = segment->getNumLEDs();
   float centerPos = (numLEDs - 1) / 2.0f;
 
   // Render left-moving commit

@@ -48,7 +48,7 @@ RGBSyncData RGBEffect::getSyncData()
       .active = active};
   return syncData;
 }
-void RGBEffect::update(LEDStrip *strip)
+void RGBEffect::update(LEDSegment *segment)
 {
   // Return if the effect is not active.
   if (!active)
@@ -90,12 +90,12 @@ void RGBEffect::update(LEDStrip *strip)
   // Serial.print(" Hue Offset: ");
   // Serial.println(hueOffset);
 }
-void RGBEffect::render(LEDStrip *strip, Color *buffer)
+void RGBEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t num = strip->getNumLEDs();
+  uint16_t num = segment->getNumLEDs();
   uint16_t mid = num / 2;
 
   // For every LED, compute the normalized distance from the center.

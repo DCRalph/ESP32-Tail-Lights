@@ -49,7 +49,7 @@ float PulseWaveEffect::computeWave(float pos, float phase, float frequency)
   return value * edgeFade;
 }
 
-void PulseWaveEffect::update(LEDStrip *strip)
+void PulseWaveEffect::update(LEDSegment *segment)
 {
   if (!active)
     return;
@@ -82,15 +82,15 @@ void PulseWaveEffect::update(LEDStrip *strip)
   }
 }
 
-void PulseWaveEffect::render(LEDStrip *strip, Color *buffer)
+void PulseWaveEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   bool isMirrored = false;
 
-  if (strip->getType() == LEDStripType::TAILLIGHT)
+  if (segment->getParentStrip()->getType() == LEDStripType::TAILLIGHT)
   {
     isMirrored = true;
   }

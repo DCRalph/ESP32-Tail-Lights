@@ -96,6 +96,117 @@ const Color Color::YELLOW = Color(255, 255, 0);
 const Color Color::CYAN = Color(0, 255, 255);
 const Color Color::MAGENTA = Color(255, 0, 255);
 
+LEDSegment::LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, uint16_t numLEDs)
+    : name(name), startIndex(startIndex), numLEDs(numLEDs), parentStrip(parentStrip), isEnabled(true)
+{
+  if (startIndex >= parentStrip->numLEDs)
+  {
+    Serial.println("LEDSegment: startIndex >= parentStrip->numLEDs");
+    return;
+  }
+
+  if (startIndex + numLEDs - 1 > parentStrip->numLEDs)
+  {
+    Serial.println("LEDSegment: startIndex + numLEDs - 1 > parentStrip->numLEDs");
+    return;
+  }
+
+  for (auto segment : parentStrip->segments)
+  {
+    if (segment->name == name)
+    {
+      Serial.println("LEDSegment: name already exists");
+      return;
+    }
+    // if (segment->startIndex <= startIndex && segment->startIndex + segment->numLEDs - 1 >= startIndex)
+    // {
+    //   Serial.println("LEDSegment: segment overlaps with existing segment");
+    //   return;
+    // }
+  }
+
+  // ledBuffer = parentStrip->getBuffer() + startIndex;
+  ledBuffer = new Color[numLEDs];
+  memset(ledBuffer, 0, numLEDs * sizeof(Color));
+  parentStrip->segments.push_back(this);
+  isEnabled = parentStrip->isEnabled;
+}
+
+LEDSegment::LEDSegment(LEDStrip *parentStrip, String name)
+    : name(name), startIndex(0), numLEDs(parentStrip->numLEDs), parentStrip(parentStrip), isEnabled(true)
+{
+
+  if (parentStrip->numLEDs == 0)
+  {
+    Serial.println("LEDSegment: parentStrip->numLEDs == 0");
+    return;
+  }
+
+  if (parentStrip->segments.size() > 0)
+  {
+    Serial.println("LEDSegment: parentStrip->segments.size() > 0");
+    return;
+  }
+
+  ledBuffer = new Color[numLEDs];
+  memset(ledBuffer, 0, numLEDs * sizeof(Color));
+  parentStrip->segments.push_back(this);
+  isEnabled = parentStrip->isEnabled;
+}
+
+LEDSegment::~LEDSegment()
+{
+  parentStrip->segments.erase(std::remove(parentStrip->segments.begin(), parentStrip->segments.end(), this), parentStrip->segments.end());
+  delete[] ledBuffer;
+}
+
+Color *LEDSegment::getBuffer()
+{
+  return ledBuffer;
+}
+
+uint16_t LEDSegment::getNumLEDs()
+{
+  return numLEDs;
+}
+
+LEDStrip *LEDSegment::getParentStrip()
+{
+  return parentStrip;
+}
+
+void LEDSegment::setEnabled(bool enabled)
+{
+  isEnabled = enabled;
+  if (!enabled)
+    clearBuffer();
+}
+
+bool LEDSegment::getEnabled()
+{
+  return isEnabled;
+}
+
+void LEDSegment::draw()
+{
+  if (!fliped)
+  { // Normal order. copy to parent strip
+    for (uint16_t i = 0; i < numLEDs; i++)
+      parentStrip->ledBuffer[startIndex + i] = ledBuffer[i];
+  }
+  else
+  { // Fliped order. copy to parent strip in reverse order
+    uint16_t endIndex = startIndex + numLEDs - 1;
+    for (uint16_t i = 0; i < numLEDs; i++)
+      parentStrip->ledBuffer[endIndex - i] = ledBuffer[i];
+  }
+}
+
+void LEDSegment::clearBuffer()
+{
+  memset(ledBuffer, 0, numLEDs * sizeof(Color));
+}
+
 LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
     : numLEDs(numLEDs),
       ledPin(ledPin),
@@ -242,7 +353,10 @@ void LEDStrip::updateEffects()
     for (auto effect : effects)
     {
       // Update the effect.
-      effect->update(this);
+      for (auto segment : segments)
+      {
+        effect->update(segment);
+      }
 
 #ifdef USE_2_BUFFERS
       // Clear temporary buffer to black before rendering this effect.
@@ -255,7 +369,10 @@ void LEDStrip::updateEffects()
       effect->render(tempBuffer);
 #else
       // Render the current effect directly into ledBuffer.
-      effect->render(this, ledBuffer);
+      for (auto segment : segments)
+      {
+        effect->render(segment, segment->getBuffer());
+      }
 #endif
 
 #ifdef USE_2_BUFFERS
@@ -291,6 +408,15 @@ void LEDStrip::draw()
 {
   if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
   {
+
+    if (!isEnabled)
+      return;
+
+    for (auto segment : segments)
+    {
+      segment->draw();
+    }
+
     if (!fliped)
     {
       for (uint16_t i = 0; i < numLEDs; i++)
@@ -301,6 +427,7 @@ void LEDStrip::draw()
       for (uint16_t i = 0; i < numLEDs; i++)
         leds[numLEDs - 1 - i] = CRGB(ledBuffer[i].r, ledBuffer[i].g, ledBuffer[i].b);
     }
+
     xSemaphoreGive(bufferMutex);
   }
 }
@@ -322,24 +449,30 @@ void LEDStrip::clearBuffer()
 {
   if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
   {
-    for (uint16_t i = 0; i < numLEDs; i++)
-    {
-      ledBuffer[i].r = 0;
-      ledBuffer[i].g = 0;
-      ledBuffer[i].b = 0;
-    }
+    // for (uint16_t i = 0; i < numLEDs; i++)
+    // {
+    //   ledBuffer[i].r = 0;
+    //   ledBuffer[i].g = 0;
+    //   ledBuffer[i].b = 0;
+    // }
+    memset(ledBuffer, 0, numLEDs * sizeof(Color));
+    for (auto segment : segments)
+      segment->clearBuffer();
     xSemaphoreGive(bufferMutex);
   }
 }
 
 void LEDStrip::clearBufferUnsafe()
 {
-  for (uint16_t i = 0; i < numLEDs; i++)
-  {
-    ledBuffer[i].r = 0;
-    ledBuffer[i].g = 0;
-    ledBuffer[i].b = 0;
-  }
+  // for (uint16_t i = 0; i < numLEDs; i++)
+  // {
+  //   ledBuffer[i].r = 0;
+  //   ledBuffer[i].g = 0;
+  //   ledBuffer[i].b = 0;
+  // }
+  memset(ledBuffer, 0, numLEDs * sizeof(Color));
+  for (auto segment : segments)
+    segment->clearBuffer();
 }
 
 LEDStripType LEDStrip::getType() const { return type; }
@@ -374,6 +507,35 @@ void LEDStrip::setBrightness(uint8_t brightness)
 uint8_t LEDStrip::getBrightness() const
 {
   return brightness;
+}
+
+LEDSegment *LEDStrip::getSegment(String name)
+{
+  for (auto segment : segments)
+  {
+    if (segment->name == name)
+      return segment;
+  }
+  return nullptr;
+}
+
+LEDSegment *LEDStrip::getSegment(uint16_t index)
+{
+  if (index >= segments.size())
+    return nullptr;
+  return segments[index];
+}
+
+void LEDStrip::setEnabled(bool enabled)
+{
+  isEnabled = enabled;
+  if (!enabled)
+    clearBuffer();
+}
+
+bool LEDStrip::getEnabled() const
+{
+  return isEnabled;
 }
 
 // Task control functions

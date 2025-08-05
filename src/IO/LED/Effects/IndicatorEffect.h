@@ -20,8 +20,8 @@ public:
   // All timing and color parameters are customizable.
   IndicatorEffect(Side side, uint8_t priority = 1, bool transparent = false);
 
-  virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void update(LEDSegment *segment) override;
+  virtual void render(LEDSegment *segment, Color *buffer) override;
   virtual void onDisable() override;
 
   void setOtherIndicator(IndicatorEffect *otherIndicator);

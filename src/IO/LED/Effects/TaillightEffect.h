@@ -16,8 +16,8 @@ class TaillightEffect : public LEDEffect
 public:
   TaillightEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void update(LEDSegment *segment) override;
+  virtual void render(LEDSegment *segment, Color *buffer) override;
   virtual void onDisable() override;
 
   bool isActive();
@@ -77,12 +77,12 @@ private:
 
   // Helper methods
   Color _getTaillightColor();
-  void _updateStartupEffect(LEDStrip *strip, float elapsed);
-  void _updateModeTransition(LEDStrip *strip, float elapsed);
+  void _updateStartupEffect(LEDSegment *segment, float elapsed);
+  void _updateModeTransition(LEDSegment *segment, float elapsed);
 
-  void _renderStartupEffect(LEDStrip *strip, Color *buffer);
-  void _renderDimEffect(LEDStrip *strip, Color *buffer);
-  void _renderModeTransition(LEDStrip *strip, Color *buffer);
+  void _renderStartupEffect(LEDSegment *segment, Color *buffer);
+  void _renderDimEffect(LEDSegment *segment, Color *buffer);
+  void _renderModeTransition(LEDSegment *segment, Color *buffer);
 
   // Easing functions
   float _easeInOut(float t);

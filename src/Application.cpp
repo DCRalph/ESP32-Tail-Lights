@@ -84,6 +84,8 @@ void Application::begin()
         new LEDStrip(ledConfig.headlightLedCount, OUTPUT_LED_1_PIN),
         "Headlights");
     headlights.strip->setFliped(ledConfig.headlightFlipped);
+    headlights.strip->setEnabled(ledConfig.headlightsEnabled);
+    LEDSegment *headlightsSegment = new LEDSegment(headlights.strip, "Headlights");
 
     ledManager->addLEDStrip(headlights);
 
@@ -99,6 +101,8 @@ void Application::begin()
         new LEDStrip(ledConfig.taillightLedCount, OUTPUT_LED_2_PIN),
         "Taillights");
     taillights.strip->setFliped(ledConfig.taillightFlipped);
+    taillights.strip->setEnabled(ledConfig.taillightsEnabled);
+    LEDSegment *taillightsSegment = new LEDSegment(taillights.strip, "Taillights");
 
     ledManager->addLEDStrip(taillights);
 
@@ -114,6 +118,11 @@ void Application::begin()
         new LEDStrip(ledConfig.underglowLedCount, OUTPUT_LED_3_PIN),
         "Underglow");
     underglow.strip->setFliped(ledConfig.underglowFlipped);
+    underglow.strip->setEnabled(ledConfig.underglowEnabled);
+    LEDSegment *underglowSegment = new LEDSegment(underglow.strip, "Underglow");
+    // LEDSegment *underglowSegmentL = new LEDSegment(underglow.strip, "Underglow-Left", 0, 102); // 0 - 101
+    // LEDSegment *underglowSegmentF = new LEDSegment(underglow.strip, "Underglow-Front", 102, 96); // 102 - 197
+    // LEDSegment *underglowSegmentR = new LEDSegment(underglow.strip, "Underglow-Right", 198, 102); // 198 - 299
 
     ledManager->addLEDStrip(underglow);
 
@@ -129,6 +138,8 @@ void Application::begin()
         new LEDStrip(ledConfig.interiorLedCount, OUTPUT_LED_4_PIN),
         "Interior");
     interior.strip->setFliped(ledConfig.interiorFlipped);
+    interior.strip->setEnabled(ledConfig.interiorEnabled);
+    LEDSegment *interiorSegment = new LEDSegment(interior.strip, "Interior");
 
     ledManager->addLEDStrip(interior);
 

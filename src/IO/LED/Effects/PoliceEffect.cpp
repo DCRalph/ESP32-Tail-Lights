@@ -74,7 +74,7 @@ PoliceMode PoliceEffect::getMode() const
   return mode;
 }
 
-void PoliceEffect::update(LEDStrip *strip)
+void PoliceEffect::update(LEDSegment *segment)
 {
   if (!active)
     return;
@@ -126,12 +126,12 @@ void PoliceEffect::update(LEDStrip *strip)
   }
 }
 
-void PoliceEffect::render(LEDStrip *strip, Color *buffer)
+void PoliceEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   uint16_t half = numLEDs / 2;
 
   if (mode == PoliceMode::SLOW)

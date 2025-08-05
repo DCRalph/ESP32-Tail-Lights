@@ -10,8 +10,8 @@ public:
   // tailLength: tail length in LED units (should be > 0).
   NightRiderEffect(uint8_t priority = 0, bool transparent = false);
 
-  virtual void update(LEDStrip *strip) override;
-  virtual void render(LEDStrip *strip, Color *buffer) override;
+  virtual void update(LEDSegment *segment) override;
+  virtual void render(LEDSegment *segment, Color *buffer) override;
   virtual void onDisable() override;
 
   // Activate or disable the effect.

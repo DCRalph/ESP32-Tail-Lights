@@ -140,7 +140,7 @@ bool TaillightEffect::isAnimating()
   return phase != -1 && mode == TaillightEffectMode::Startup;
 }
 
-void TaillightEffect::update(LEDStrip *strip)
+void TaillightEffect::update(LEDSegment *segment)
 {
   if (mode == TaillightEffectMode::Off && phase == -1)
     return;
@@ -159,7 +159,7 @@ void TaillightEffect::update(LEDStrip *strip)
   switch (mode)
   {
   case TaillightEffectMode::Startup:
-    _updateStartupEffect(strip, elapsed);
+    _updateStartupEffect(segment, elapsed);
     break;
 
   case TaillightEffectMode::CarOn:
@@ -170,7 +170,7 @@ void TaillightEffect::update(LEDStrip *strip)
   }
 }
 
-void TaillightEffect::_updateStartupEffect(LEDStrip *strip, float elapsed)
+void TaillightEffect::_updateStartupEffect(LEDSegment *segment, float elapsed)
 {
   if (phase == 0) // Red dot phase
   {
@@ -232,18 +232,18 @@ void TaillightEffect::_updateStartupEffect(LEDStrip *strip, float elapsed)
   }
 }
 
-void TaillightEffect::render(LEDStrip *strip, Color *buffer)
+void TaillightEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (mode == TaillightEffectMode::Off && phase == -1)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
 
   // Handle normal mode rendering
   switch (mode)
   {
   case TaillightEffectMode::Startup:
-    _renderStartupEffect(strip, buffer);
+    _renderStartupEffect(segment, buffer);
     break;
 
   case TaillightEffectMode::CarOn:
@@ -255,7 +255,7 @@ void TaillightEffect::render(LEDStrip *strip, Color *buffer)
     break;
 
   case TaillightEffectMode::Dim:
-    _renderDimEffect(strip, buffer);
+    _renderDimEffect(segment, buffer);
     break;
 
   case TaillightEffectMode::Off:
@@ -269,9 +269,9 @@ void TaillightEffect::render(LEDStrip *strip, Color *buffer)
   }
 }
 
-void TaillightEffect::_renderStartupEffect(LEDStrip *strip, Color *buffer)
+void TaillightEffect::_renderStartupEffect(LEDSegment *segment, Color *buffer)
 {
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   float center = numLEDs / 2.0f;
   Color color = _getTaillightColor();
 
@@ -363,9 +363,9 @@ void TaillightEffect::_renderStartupEffect(LEDStrip *strip, Color *buffer)
   }
 }
 
-void TaillightEffect::_renderDimEffect(LEDStrip *strip, Color *buffer)
+void TaillightEffect::_renderDimEffect(LEDSegment *segment, Color *buffer)
 {
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
 
   // Dim red for all LEDs
   for (uint16_t i = 0; i < numLEDs; i++)

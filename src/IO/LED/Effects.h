@@ -5,6 +5,7 @@
 #include "Sync/SyncManager.h"
 
 struct Color;
+class LEDSegment;
 class LEDStrip;
 
 // Base class for LED effects.
@@ -16,10 +17,10 @@ public:
   virtual ~LEDEffect();
 
   // Called each update to change animation state.
-  virtual void update(LEDStrip *strip) = 0;
+  virtual void update(LEDSegment *segment) = 0;
 
   // Called to render the effect into the provided LED buffer.
-  virtual void render(LEDStrip *strip, Color *buffer) = 0;
+  virtual void render(LEDSegment *segment, Color *buffer) = 0;
 
   virtual void onDisable() = 0;
 

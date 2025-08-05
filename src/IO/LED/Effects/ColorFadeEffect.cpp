@@ -72,7 +72,7 @@ ColorFadeSyncData ColorFadeEffect::getSyncData()
   return syncData;
 }
 
-void ColorFadeEffect::update(LEDStrip *strip)
+void ColorFadeEffect::update(LEDSegment *segment)
 {
   // Return if the effect is not active
   if (!active)
@@ -113,12 +113,12 @@ void ColorFadeEffect::update(LEDStrip *strip)
   }
 }
 
-void ColorFadeEffect::render(LEDStrip *strip, Color *buffer)
+void ColorFadeEffect::render(LEDSegment *segment, Color *buffer)
 {
   if (!active)
     return;
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   Color currentColor;
 
   if (inFadePhase) {

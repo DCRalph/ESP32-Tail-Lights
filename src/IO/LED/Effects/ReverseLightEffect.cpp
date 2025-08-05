@@ -46,7 +46,7 @@ bool ReverseLightEffect::isAnimating() const
   return active || progress > 0.0f;
 }
 
-void ReverseLightEffect::update(LEDStrip *strip)
+void ReverseLightEffect::update(LEDSegment *segment)
 {
   // Get the current time in milliseconds.
   unsigned long currentTime = millis();
@@ -79,7 +79,7 @@ void ReverseLightEffect::update(LEDStrip *strip)
   }
 }
 
-void ReverseLightEffect::render(LEDStrip *strip, Color *buffer)
+void ReverseLightEffect::render(LEDSegment *segment, Color *buffer)
 {
   // If not active and progress is 0, do not modify the buffer.
   if (!active && progress <= 0.0f)
@@ -87,7 +87,7 @@ void ReverseLightEffect::render(LEDStrip *strip, Color *buffer)
     return;
   }
 
-  uint16_t numLEDs = strip->getNumLEDs();
+  uint16_t numLEDs = segment->getNumLEDs();
   // Compute the center index. This works for even or odd numbers,
   // though you might adjust if you need a more symmetrical behavior.
   float center = round(numLEDs / 2.0f);

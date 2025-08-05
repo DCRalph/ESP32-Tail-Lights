@@ -12,6 +12,9 @@
 //  #define USE_2_BUFFERS
 // ####################################
 
+class LEDEffect; // Forward declaration of effect class
+class LEDStrip;
+
 // Enum to identify different LED strip types
 enum class LEDStripType
 {
@@ -71,7 +74,32 @@ struct Color
   }
 };
 
-class LEDEffect; // Forward declaration of effect class
+class LEDSegment
+{
+private:
+  Color *ledBuffer;
+  uint16_t numLEDs;
+  LEDStrip *parentStrip;
+
+public:
+  LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, uint16_t numLEDs);
+  LEDSegment(LEDStrip *parentStrip, String name);
+  ~LEDSegment();
+
+  Color *getBuffer();
+  uint16_t getNumLEDs();
+  LEDStrip *getParentStrip();
+  void setEnabled(bool enabled);
+  bool getEnabled();
+
+  void draw();
+  void clearBuffer();
+
+  String name;
+  uint16_t startIndex;
+  bool isEnabled;
+  bool fliped;
+};
 
 class LEDStrip
 {
@@ -119,6 +147,12 @@ public:
   void setBrightness(uint8_t brightness);
   uint8_t getBrightness() const;
 
+  LEDSegment *getSegment(String name);
+  LEDSegment *getSegment(uint16_t index);
+
+  void setEnabled(bool enabled);
+  bool getEnabled() const;
+
   // Task control functions
   void start();
   void stop();
@@ -131,9 +165,13 @@ public:
 
 private:
   friend class LEDStripConfig;
+  friend class LEDSegment;
   LEDStripType type;
   uint16_t numLEDs;
   Color *ledBuffer;
+  std::vector<LEDSegment *> segments;
+
+  bool isEnabled;
 
   bool fliped;
   uint16_t fps;

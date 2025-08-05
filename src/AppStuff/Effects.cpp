@@ -78,9 +78,9 @@ void Application::setupEffects()
   {
     underglowStrip->addEffect(rgbEffect);
     underglowStrip->addEffect(nightriderEffect);
-    // underglowStrip->addEffect(policeEffect);
-    // underglowStrip->addEffect(pulseWaveEffect);
-    // underglowStrip->addEffect(auroraEffect);
+    underglowStrip->addEffect(policeEffect);
+    underglowStrip->addEffect(pulseWaveEffect);
+    underglowStrip->addEffect(auroraEffect);
     underglowStrip->addEffect(solidColorEffect);
     underglowStrip->addEffect(colorFadeEffect);
     underglowStrip->addEffect(commitEffect);
