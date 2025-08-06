@@ -94,7 +94,7 @@ void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
     return;
   }
 
-    // Add to the map of strips
+  // Add to the map of strips
   strips[config.type] = config;
   // strips[config.type].strip->clearBuffer();
   // Serial.println("LEDStripManager::addLEDStrip: Setting FPS to " + String(drawFPS));
@@ -134,14 +134,26 @@ void LEDStripManager::draw()
   {
     if (pair.second.strip && taskRunning) // Check if we should still be running
     {
+      timeProfiler.start("draw-" + pair.second.name, TimeUnit::MICROSECONDS);
+      timeProfiler.increment("draw-" + pair.second.name);
       pair.second.strip->draw();
+      timeProfiler.stop("draw-" + pair.second.name);
+
+      timeProfiler.start("show-" + pair.second.name, TimeUnit::MICROSECONDS);
+      timeProfiler.increment("show-" + pair.second.name);
       pair.second.strip->show();
+      timeProfiler.stop("show-" + pair.second.name);
     }
     else
     {
       Serial.println("LEDStripManager: Strip not running");
     }
   }
+
+  // timeProfiler.start("show", TimeUnit::MICROSECONDS);
+  // timeProfiler.increment("show");
+  // FastLED.show();
+  // timeProfiler.stop("show");
 
   timeProfiler.stop("ledFps");
 }
