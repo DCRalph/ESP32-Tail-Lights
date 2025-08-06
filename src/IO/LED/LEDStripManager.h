@@ -12,12 +12,12 @@ struct LEDStripConfig
 {
   LEDStripType type;
   LEDStrip *strip;  // Pointer to the LEDManager for this strip
-  std::string name; // Human-readable name for the strip
+  String name; // Human-readable name for the strip
 
   // Default constructor
   LEDStripConfig() : type(LEDStripType::NONE), strip(nullptr), name("") {}
 
-  LEDStripConfig(LEDStripType _type, LEDStrip *_strip, const std::string &_name) : type(_type),
+  LEDStripConfig(LEDStripType _type, LEDStrip *_strip, String _name) : type(_type),
                                                                                    strip(_strip),
                                                                                    name(_name)
   {
