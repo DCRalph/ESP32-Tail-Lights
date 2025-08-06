@@ -31,6 +31,33 @@ String CommitSyncData::print()
   return String("Commit Speed: " + String(commitSpeed) + ", Trail Length: " + String(trailLength) + ", Commit Interval: " + String(commitInterval) + ", Head Color: (" + String(headR) + "," + String(headG) + "," + String(headB) + "), Time Since Last: " + String(timeSinceLastCommit) + ", Active: " + String(active));
 }
 
+String ServiceLightsSyncData::print()
+{
+  String modeStr;
+  switch (mode)
+  {
+  case ServiceLightsMode::SLOW:
+    modeStr = "SLOW";
+    break;
+  case ServiceLightsMode::FAST:
+    modeStr = "FAST";
+    break;
+  case ServiceLightsMode::ALTERNATE:
+    modeStr = "ALTERNATE";
+    break;
+  case ServiceLightsMode::STROBE:
+    modeStr = "STROBE";
+    break;
+  case ServiceLightsMode::SCROLL:
+    modeStr = "SCROLL";
+    break;
+  default:
+    modeStr = "UNKNOWN";
+    break;
+  }
+  return String("Mode: " + modeStr + ", Progress: " + String(progress) + ", Cycle Progress: " + String(cycleProgress) + ", Current Flash: " + String(currentFlash) + ", Fast Speed: " + String(fastSpeed) + ", Slow Speed: " + String(slowSpeed) + ", Flashes Per Cycle: " + String(fastModeFlashesPerCycle) + ", Color: (" + String(colorR) + "," + String(colorG) + "," + String(colorB) + "), Active: " + String(active));
+}
+
 void EffectSyncState::print()
 {
   Serial.println("RGB: " + rgbSyncData.print());
@@ -39,4 +66,5 @@ void EffectSyncState::print()
   Serial.println("Solid Color: " + solidColorSyncData.print());
   Serial.println("Color Fade: " + colorFadeSyncData.print());
   Serial.println("Commit: " + commitSyncData.print());
+  Serial.println("Service Lights: " + serviceLightsSyncData.print());
 }

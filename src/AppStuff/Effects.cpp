@@ -6,7 +6,7 @@ void Application::setupEffects()
 {
   LEDStripManager *ledManager = LEDStripManager::getInstance();
 
-  // Set each effect's LED manager pointer.
+  // Core effects
   leftIndicatorEffect = new IndicatorEffect(IndicatorEffect::LEFT,
                                             10, true);
   rightIndicatorEffect = new IndicatorEffect(IndicatorEffect::RIGHT,
@@ -20,18 +20,18 @@ void Application::setupEffects()
   headlightEffect = new HeadlightEffect(4, false);
   taillightEffect = new TaillightEffect(4, false);
 
+  // Other effects
   rgbEffect = new RGBEffect(5, false);
   nightriderEffect = new NightRiderEffect(5, false);
   pulseWaveEffect = new PulseWaveEffect(5, false);
   auroraEffect = new AuroraEffect(5, false);
   solidColorEffect = new SolidColorEffect(5, false);
   colorFadeEffect = new ColorFadeEffect(5, false);
-  commitEffect = new CommitEffect(5, false);
-
   policeEffect = new PoliceEffect(4, false);
+  commitEffect = new CommitEffect(5, false);
+  serviceLightsEffect = new ServiceLightsEffect(5, false);
 
   // Add effects to the LED manager.
-
   auto headlightStrip = ledManager->getStrip(LEDStripType::HEADLIGHT);
   auto taillightStrip = ledManager->getStrip(LEDStripType::TAILLIGHT);
   auto underglowStrip = ledManager->getStrip(LEDStripType::UNDERGLOW);
@@ -52,6 +52,7 @@ void Application::setupEffects()
     headlightStrip->addEffect(solidColorEffect);
     headlightStrip->addEffect(colorFadeEffect);
     headlightStrip->addEffect(commitEffect);
+    headlightStrip->addEffect(serviceLightsEffect);
   }
 
   if (taillightStrip)
@@ -72,10 +73,15 @@ void Application::setupEffects()
     taillightStrip->addEffect(solidColorEffect);
     taillightStrip->addEffect(colorFadeEffect);
     taillightStrip->addEffect(commitEffect);
+    taillightStrip->addEffect(serviceLightsEffect);
   }
 
   if (underglowStrip)
   {
+    LEDSegment *segmentL = underglowStrip->getSegment(1);
+    LEDSegment *segmentF = underglowStrip->getSegment(2);
+    LEDSegment *segmentR = underglowStrip->getSegment(3);
+
     underglowStrip->addEffect(rgbEffect);
     underglowStrip->addEffect(nightriderEffect);
     underglowStrip->addEffect(policeEffect);
@@ -84,5 +90,8 @@ void Application::setupEffects()
     underglowStrip->addEffect(solidColorEffect);
     underglowStrip->addEffect(colorFadeEffect);
     underglowStrip->addEffect(commitEffect);
+    underglowStrip->addEffect(serviceLightsEffect);
   }
+
+  LEDEffect::disableAllEffects();
 }

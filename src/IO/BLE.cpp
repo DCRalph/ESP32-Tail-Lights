@@ -172,7 +172,8 @@ BLEPingData BLEManager::preparePingData()
   data.underglow = ledManager->isStripEnabled(LEDStripType::UNDERGLOW);
   data.interior = ledManager->isStripEnabled(LEDStripType::INTERIOR);
   data.deviceId = (uint32_t)ESP.getEfuseMac();
-  data.batteryLevel = batteryGetPercentageSmooth();
+  data.batteryLevel = batteryGetPercentage();
+  data.batteryVoltage = batteryGetVoltage();
   data.uptime = millis() / 1000;
 
   return data;
@@ -229,6 +230,8 @@ BLEEffectsData BLEManager::prepareEffectsData()
   data.solidColor = app->solidColorEffect ? app->solidColorEffect->isActive() : false;
   data.colorFade = app->colorFadeEffect ? app->colorFadeEffect->isActive() : false;
   data.commit = app->commitEffect ? app->commitEffect->isActive() : false;
+  data.serviceLights = app->serviceLightsEffect ? app->serviceLightsEffect->isActive() : false;
+  data.serviceLightsMode = app->serviceLightsEffect ? static_cast<uint8_t>(app->serviceLightsEffect->getMode()) : 0;
 
   if (app->solidColorEffect)
   {
@@ -340,6 +343,12 @@ void BLEManager::handleEffectsWrite(BLECharacteristic *pCharacteristic)
     app->colorFadeEffect->setActive(data->colorFade);
   if (app->commitEffect)
     app->commitEffect->setActive(data->commit);
+
+  if (app->serviceLightsEffect)
+  {
+    app->serviceLightsEffect->setActive(data->serviceLights);
+    app->serviceLightsEffect->setMode(static_cast<ServiceLightsMode>(data->serviceLightsMode));
+  }
 }
 
 // BLE Server Callbacks

@@ -94,8 +94,9 @@ void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
     return;
   }
 
-  // Add to the map of strips
+    // Add to the map of strips
   strips[config.type] = config;
+  // strips[config.type].strip->clearBuffer();
   // Serial.println("LEDStripManager::addLEDStrip: Setting FPS to " + String(drawFPS));
   strips[config.type].strip->setFPS(drawFPS);
   strips[config.type].strip->setBrightness(255);
@@ -125,7 +126,7 @@ void LEDStripManager::updateEffects()
 
 void LEDStripManager::draw()
 {
-  timeProfiler.start("drawEffects", TimeUnit::MICROSECONDS);
+  timeProfiler.start("ledFps", TimeUnit::MICROSECONDS);
   timeProfiler.increment("ledFps");
 
   // Draw all strips with safety checks
@@ -142,7 +143,7 @@ void LEDStripManager::draw()
     }
   }
 
-  timeProfiler.stop("drawEffects");
+  timeProfiler.stop("ledFps");
 }
 
 // Task management functions

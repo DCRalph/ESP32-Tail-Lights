@@ -87,6 +87,7 @@ void SequenceBase::trigger()
   {
     callback();
   }
+  reset();
 }
 
 bool SequenceBase::update()

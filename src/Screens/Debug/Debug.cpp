@@ -155,7 +155,7 @@ namespace DebugScreenNamespace
     updateModeTime = timeProfiler.getTimeUs("updateMode");
     updateSyncTime = timeProfiler.getTimeUs("updateSync");
     updateEffectsTime = timeProfiler.getTimeUs("updateEffects");
-    drawEffectsTime = timeProfiler.getTimeUs("drawEffects");
+    drawEffectsTime = timeProfiler.getTimeUs("ledFps");
     syncManagerLoopTime = timeProfiler.getTimeUs("syncManagerLoop");
     handleSyncPacketTime = timeProfiler.getTimeUs("handleSyncPacket");
 

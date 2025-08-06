@@ -87,12 +87,36 @@ struct __attribute__((packed)) ColorFadeSyncData
 
 struct __attribute__((packed)) CommitSyncData
 {
-  float commitSpeed;           // Speed of commits in LED positions per second
-  float trailLength;           // Length of the fading trail in LED units
-  float commitInterval;        // Time between commits in seconds
-  uint8_t headR, headG, headB; // Color of the commit head
-  float timeSinceLastCommit;   // Time since last commit was spawned
+  uint32_t commitSpeed;         // Speed of commits in LED positions per second * 1000 (fixed point)
+  uint16_t trailLength;         // Length of the fading trail in LED units * 1000 (fixed point)
+  uint32_t commitInterval;      // Time between commits in milliseconds
+  uint8_t headR, headG, headB;  // Color of the commit head
+  uint32_t timeSinceLastCommit; // Time since last commit was spawned in milliseconds
   bool active;
+
+  String print();
+};
+
+enum class ServiceLightsMode
+{
+  SLOW,
+  FAST,
+  ALTERNATE,
+  STROBE,
+  SCROLL,
+};
+
+struct __attribute__((packed)) ServiceLightsSyncData
+{
+  bool active;
+  ServiceLightsMode mode;
+  float progress;                   // flashProgress for timing sync
+  float cycleProgress;              // cycleProgress for pattern sync
+  uint16_t currentFlash;            // current flash count for FAST mode
+  float fastSpeed;                  // timing configuration for fast mode
+  float slowSpeed;                  // timing configuration for slow/alternate/scroll modes
+  uint16_t fastModeFlashesPerCycle; // number of flashes per cycle in fast mode
+  uint8_t colorR, colorG, colorB;   // color synchronization
 
   String print();
 };
@@ -105,6 +129,7 @@ struct __attribute__((packed)) EffectSyncState
   SolidColorSyncData solidColorSyncData;
   ColorFadeSyncData colorFadeSyncData;
   CommitSyncData commitSyncData;
+  ServiceLightsSyncData serviceLightsSyncData;
 
   void print();
 };

@@ -36,26 +36,6 @@ Application::Application()
 
 #endif
 
-  // Initialize effect pointers to nullptr
-  leftIndicatorEffect = nullptr;
-  rightIndicatorEffect = nullptr;
-  rgbEffect = nullptr;
-  nightriderEffect = nullptr;
-  taillightEffect = nullptr;
-  policeEffect = nullptr;
-  pulseWaveEffect = nullptr;
-  auroraEffect = nullptr;
-  colorFadeEffect = nullptr;
-  solidColorEffect = nullptr;
-
-  // Initialize sequence pointers to nullptr
-  unlockSequence = nullptr;
-  lockSequence = nullptr;
-  RGBFlickSequence = nullptr;
-  nightRiderFlickSequence = nullptr;
-
-  brakeTapSequence3 = nullptr;
-
   appInitialized = false;
 }
 
@@ -74,6 +54,8 @@ void Application::begin()
 
   LEDStripManager *ledManager = LEDStripManager::getInstance();
   ledManager->begin();
+
+  ledManager->setBrightness(255);
 
   ledManager->startTask();
 
@@ -119,16 +101,31 @@ void Application::begin()
         "Underglow");
     underglow.strip->setFliped(ledConfig.underglowFlipped);
     underglow.strip->setEnabled(ledConfig.underglowEnabled);
-    LEDSegment *underglowSegment = new LEDSegment(underglow.strip, "Underglow");
-    // LEDSegment *underglowSegmentL = new LEDSegment(underglow.strip, "Underglow-Left", 0, 102); // 0 - 101
-    // LEDSegment *underglowSegmentF = new LEDSegment(underglow.strip, "Underglow-Front", 102, 96); // 102 - 197
-    // LEDSegment *underglowSegmentR = new LEDSegment(underglow.strip, "Underglow-Right", 198, 102); // 198 - 299
+    LEDSegment *underglowSegmentL = new LEDSegment(underglow.strip, "Underglow-Left", 0, 102);    // 0 - 101
+    LEDSegment *underglowSegmentF = new LEDSegment(underglow.strip, "Underglow-Front", 102, 96);  // 102 - 197
+    LEDSegment *underglowSegmentR = new LEDSegment(underglow.strip, "Underglow-Right", 198, 102); // 198 - 299
 
     ledManager->addLEDStrip(underglow);
 
     underglow.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
     underglow.strip->getBuffer()[0] = Color(0, 0, 0);
+
+    // underglow.strip->getBuffer()[101] = Color(255, 0, 0);
+
+    // underglow.strip->getBuffer()[197] = Color(255, 0, 0);
+
+    // underglow.strip->getBuffer()[299] = Color(255, 0, 0);
+    // underglow.strip->getBuffer()[300] = Color(0, 0, 255);
+
+    // for (int i = 0; i < underglowSegmentL->getNumLEDs(); i++) // quick test segments
+    //   underglowSegmentL->getBuffer()[i] = Color(255, 0, 0);
+    // for (int i = 0; i < underglowSegmentF->getNumLEDs(); i++)
+    //   underglowSegmentF->getBuffer()[i] = Color(0, 255, 0);
+    // for (int i = 0; i < underglowSegmentR->getNumLEDs(); i++)
+    //   underglowSegmentR->getBuffer()[i] = Color(0, 0, 255);
+    // while (true)
+    //   ;
   }
 
   if (ledConfig.interiorEnabled)
@@ -187,8 +184,11 @@ void Application::begin()
 
 #endif
 
-  // set brightness to 100
-  ledManager->setBrightness(255);
+  // unlockSequence->trigger(); // car is most likely unlocked when device is powered on
+  unlockSequence->setActive(false);
+
+  // serviceLightsEffect->setActive(true);
+  // serviceLightsEffect->setMode(ServiceLightsMode::STROBE);
 }
 
 ApplicationMode Application::getMode()
@@ -364,6 +364,7 @@ void Application::handleSyncedEffects(const EffectSyncState &effectState)
   solidColorEffect->setSyncData(effectState.solidColorSyncData);
   colorFadeEffect->setSyncData(effectState.colorFadeSyncData);
   commitEffect->setSyncData(effectState.commitSyncData);
+  serviceLightsEffect->setSyncData(effectState.serviceLightsSyncData);
 }
 
 void Application::setupBLE()

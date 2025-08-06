@@ -1,15 +1,14 @@
 #include "CommitEffect.h"
-#include <cmath>
 #include <algorithm>
 
 CommitEffect::CommitEffect(uint8_t priority, bool transparent)
     : LEDEffect(priority, transparent),
       active(false),
-      commitSpeed(20.0f),             // LEDs per second
-      trailLength(15.0f),             // 15 LED trail length as requested
-      commitInterval(1.2f),           // New commit every 0.8 seconds
+      commitSpeed(20000),             // LEDs per second * 1000 (20.0 * 1000)
+      trailLength(15000),             // 15 LED trail length * 1000 (15.0 * 1000)
+      commitInterval(1200),           // New commit every 1200 milliseconds (1.2 seconds)
       headR(0), headG(0), headB(255), // Bright green for commits
-      timeSinceLastCommit(0.0f),
+      timeSinceLastCommit(0),
       lastUpdateTime(0),
       syncEnabled(true)
 {
@@ -26,7 +25,7 @@ void CommitEffect::setActive(bool _active)
   {
     // Reset state
     commits.clear();
-    timeSinceLastCommit = 0.0f;
+    timeSinceLastCommit = 0;
     lastUpdateTime = SyncManager::syncMillis();
   }
 }
@@ -74,27 +73,24 @@ void CommitEffect::update(LEDSegment *segment)
     return;
   }
 
-  // Calculate elapsed time in seconds
-  unsigned long dtMillis = currentTime - lastUpdateTime;
-  float deltaTime = dtMillis / 1000.0f;
+  // Calculate elapsed time in milliseconds
+  uint32_t deltaTimeMillis = currentTime - lastUpdateTime;
   lastUpdateTime = currentTime;
 
   uint16_t numLEDs = segment->getNumLEDs();
-  if (numLEDs < 3) // Need at least 3 LEDs for center + edges
-    return;
 
   // Update time since last commit
-  timeSinceLastCommit += deltaTime;
+  timeSinceLastCommit += deltaTimeMillis;
 
   // Spawn new commit if interval has passed
   if (timeSinceLastCommit >= commitInterval)
   {
     spawnCommit();
-    timeSinceLastCommit = 0.0f;
+    timeSinceLastCommit = 0;
   }
 
   // Update existing commits
-  updateCommits(deltaTime, numLEDs);
+  updateCommits(deltaTimeMillis, numLEDs);
 }
 
 void CommitEffect::render(LEDSegment *segment, Color *buffer)
@@ -103,14 +99,13 @@ void CommitEffect::render(LEDSegment *segment, Color *buffer)
     return;
 
   uint16_t numLEDs = segment->getNumLEDs();
-  if (numLEDs < 3)
-    return;
 
   // Clear the buffer
-  for (uint16_t i = 0; i < numLEDs; i++)
-  {
-    buffer[i] = Color(0, 0, 0);
-  }
+  // for (uint16_t i = 0; i < numLEDs; i++)
+  // {
+  //   buffer[i] = Color(0, 0, 0);
+  // }
+  memset(buffer, 0, numLEDs * sizeof(Color));
 
   // Render all commits
   for (const auto &commit : commits)
@@ -127,28 +122,32 @@ void CommitEffect::onDisable()
 void CommitEffect::spawnCommit()
 {
   Commit newCommit;
-  newCommit.positionLeft = 0.0f;  // Start at center
-  newCommit.positionRight = 0.0f; // Start at center
-  newCommit.age = 0.0f;
+  newCommit.positionLeft = 0;  // Start at center (fixed point 0)
+  newCommit.positionRight = 0; // Start at center (fixed point 0)
+  newCommit.age = 0;
   newCommit.activeLeft = true;
   newCommit.activeRight = true;
 
   commits.push_back(newCommit);
 }
 
-void CommitEffect::updateCommits(float deltaTime, uint16_t numLEDs)
+void CommitEffect::updateCommits(uint32_t deltaTimeMillis, uint16_t numLEDs)
 {
-  float centerPos = (numLEDs - 1) / 2.0f;
-  float maxDistance = centerPos; // Maximum distance from center to edge
+  uint32_t centerPos = ((numLEDs - 1) * 1000) / 2; // Fixed point center position
+  uint32_t maxDistance = centerPos;                // Maximum distance from center to edge
 
   // Update each commit
   for (auto &commit : commits)
   {
-    commit.age += deltaTime;
+    commit.age += deltaTimeMillis;
 
     if (commit.activeLeft)
     {
-      commit.positionLeft += commitSpeed * deltaTime;
+      // commitSpeed is in LED positions per second * 1000
+      // deltaTimeMillis is in milliseconds
+      // Position increment = (commitSpeed * deltaTimeMillis) / 1000
+      commit.positionLeft += (commitSpeed * deltaTimeMillis) / 1000;
+
       // Deactivate if it has moved beyond the edge plus trail length
       if (commit.positionLeft > maxDistance + trailLength)
       {
@@ -158,7 +157,9 @@ void CommitEffect::updateCommits(float deltaTime, uint16_t numLEDs)
 
     if (commit.activeRight)
     {
-      commit.positionRight += commitSpeed * deltaTime;
+      // Same calculation for right side
+      commit.positionRight += (commitSpeed * deltaTimeMillis) / 1000;
+
       // Deactivate if it has moved beyond the edge plus trail length
       if (commit.positionRight > maxDistance + trailLength)
       {
@@ -178,44 +179,34 @@ void CommitEffect::updateCommits(float deltaTime, uint16_t numLEDs)
 void CommitEffect::renderCommit(const Commit &commit, LEDSegment *segment, Color *buffer)
 {
   uint16_t numLEDs = segment->getNumLEDs();
-  float centerPos = (numLEDs - 1) / 2.0f;
+  uint32_t centerPos = ((numLEDs - 1) * 1000) / 2; // Fixed point center position
 
   // Render left-moving commit
   if (commit.activeLeft)
   {
-    float headPos = centerPos - commit.positionLeft;
-    int headIndex = static_cast<int>(roundf(headPos));
+    // headPos in fixed point (multiply by 1000)
+    int32_t headPos = (int32_t)centerPos - (int32_t)commit.positionLeft;
+    int headIndex = headPos / 1000; // Convert back to LED index
 
     // Draw head
     if (headIndex >= 0 && headIndex < static_cast<int>(numLEDs))
-    {
       buffer[headIndex] = Color(headR, headG, headB);
-    }
 
     // Draw trail
-    for (int i = 0; i < static_cast<int>(numLEDs); i++)
+    for (int i = 0; i < static_cast<int>(numLEDs / 2); i++)
     {
       if (i == headIndex)
         continue; // Skip head
 
-      float distance = headPos - i; // Distance behind the head
-      if (distance > 0 && distance <= trailLength)
+      // Distance in fixed point (multiply LED index by 1000 to match headPos scale)
+      int32_t distance = (i * 1000) - headPos; // Distance behind the head (trail to the right of head)
+      if (distance > 0 && distance <= (int32_t)trailLength)
       {
         // Brightness diminishes linearly with distance
-        float brightness = 1.0f - (distance / trailLength);
-        uint8_t trailR = static_cast<uint8_t>(headR * brightness);
-        uint8_t trailG = static_cast<uint8_t>(headG * brightness);
-        uint8_t trailB = static_cast<uint8_t>(headB * brightness);
+        // brightness = 1000 - (distance * 1000 / trailLength) (in fixed point with 1000 scale)
+        uint32_t brightness = 1000 - ((uint32_t)distance * 1000 / trailLength);
 
-        // Add to existing color (for blending)
-        uint16_t newR = buffer[i].r + trailR;
-        uint16_t newG = buffer[i].g + trailG;
-        uint16_t newBl = buffer[i].b + trailB;
-
-        buffer[i] = Color(
-            std::min(newR, (uint16_t)255),
-            std::min(newG, (uint16_t)255),
-            std::min(newBl, (uint16_t)255));
+        buffer[i] = Color(headR, headG, headB) * (brightness / 1000.0f);
       }
     }
   }
@@ -223,47 +214,28 @@ void CommitEffect::renderCommit(const Commit &commit, LEDSegment *segment, Color
   // Render right-moving commit
   if (commit.activeRight)
   {
-    float headPos = centerPos + commit.positionRight;
-    int headIndex = static_cast<int>(roundf(headPos));
+    // headPos in fixed point
+    int32_t headPos = (int32_t)centerPos + (int32_t)commit.positionRight;
+    int headIndex = headPos / 1000; // Convert back to LED index
 
     // Draw head
     if (headIndex >= 0 && headIndex < static_cast<int>(numLEDs))
-    {
-      // Add to existing color for blending
-      uint16_t newR = buffer[headIndex].r + headR;
-      uint16_t newG = buffer[headIndex].g + headG;
-      uint16_t newBl = buffer[headIndex].b + headB;
-
-      buffer[headIndex] = Color(
-          std::min(newR, (uint16_t)255),
-          std::min(newG, (uint16_t)255),
-          std::min(newBl, (uint16_t)255));
-    }
+      buffer[headIndex] = Color(headR, headG, headB);
 
     // Draw trail
-    for (int i = 0; i < static_cast<int>(numLEDs); i++)
+    for (int i = numLEDs / 2; i < static_cast<int>(numLEDs); i++)
     {
       if (i == headIndex)
         continue; // Skip head
 
-      float distance = i - headPos; // Distance behind the head
-      if (distance > 0 && distance <= trailLength)
+      // Distance in fixed point (multiply LED index by 1000 to match headPos scale)
+      int32_t distance = headPos - (i * 1000); // Distance behind the head (trail to the left of head)
+      if (distance > 0 && distance <= (int32_t)trailLength)
       {
         // Brightness diminishes linearly with distance
-        float brightness = 1.0f - (distance / trailLength);
-        uint8_t trailR = static_cast<uint8_t>(headR * brightness);
-        uint8_t trailG = static_cast<uint8_t>(headG * brightness);
-        uint8_t trailB = static_cast<uint8_t>(headB * brightness);
+        uint32_t brightness = 1000 - ((uint32_t)distance * 1000 / trailLength);
 
-        // Add to existing color (for blending)
-        uint16_t newR = buffer[i].r + trailR;
-        uint16_t newG = buffer[i].g + trailG;
-        uint16_t newBl = buffer[i].b + trailB;
-
-        buffer[i] = Color(
-            std::min(newR, (uint16_t)255),
-            std::min(newG, (uint16_t)255),
-            std::min(newBl, (uint16_t)255));
+        buffer[i] = Color(headR, headG, headB) * (brightness / 1000.0f);
       }
     }
   }

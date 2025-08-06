@@ -90,7 +90,8 @@ void PulseWaveEffect::render(LEDSegment *segment, Color *buffer)
   uint16_t numLEDs = segment->getNumLEDs();
   bool isMirrored = false;
 
-  if (segment->getParentStrip()->getType() == LEDStripType::TAILLIGHT)
+  if (segment->getParentStrip()->getType() == LEDStripType::TAILLIGHT ||
+      segment->getParentStrip()->getType() == LEDStripType::UNDERGLOW)
   {
     isMirrored = true;
   }

@@ -7,7 +7,6 @@
 LEDEffect::LEDEffect(uint8_t priority, bool transparent)
     : priority(priority), transparent(transparent)
 {
-
     effects.push_back(this);
 }
 

@@ -6,10 +6,12 @@
 #include <Arduino.h>
 #include "FastLED.h"
 #include "../TimeProfiler.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 // ####################################
 //  Uncomment this line to use double buffering for more complex transparent effects.
-//  #define USE_2_BUFFERS
+// #define USE_2_BUFFERS
 // ####################################
 
 class LEDEffect; // Forward declaration of effect class
@@ -41,7 +43,7 @@ struct Color
   static Color hsv2rgb(float h, float s, float v);
   static Color rgb2hsv(uint8_t r, uint8_t g, uint8_t b);
 
-  uint32_t to32Bit();
+  uint32_t to32Bit() const;
 
   static const Color WHITE;
   static const Color BLACK;
@@ -74,12 +76,29 @@ struct Color
   }
 };
 
+// [[gnu::always_inline]]
+// bool allBlack(const Color *colors, uint16_t numLEDs) noexcept
+// {
+//   const uint32_t black32 = Color::BLACK.to32Bit();
+
+//   for (uint16_t i = 0; i < numLEDs; ++i)
+//   {
+//     if (colors[i].to32Bit() != black32)
+//     {
+//       return false;
+//     }
+//   }
+//   return true; // every element was black
+// }
+
 class LEDSegment
 {
 private:
   Color *ledBuffer;
   uint16_t numLEDs;
   LEDStrip *parentStrip;
+
+  std::vector<LEDEffect *> effects;
 
 public:
   LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, uint16_t numLEDs);
@@ -92,13 +111,24 @@ public:
   void setEnabled(bool enabled);
   bool getEnabled();
 
+  void addEffect(LEDEffect *effect);
+  void removeEffect(LEDEffect *effect);
+  void updateEffects();
+
   void draw();
   void clearBuffer();
+
+  // Mutex for segment buffer access
+  SemaphoreHandle_t segmentMutex;
 
   String name;
   uint16_t startIndex;
   bool isEnabled;
   bool fliped;
+
+private:
+  // Private buffer clear without mutex (for internal use)
+  void clearBufferUnsafe();
 };
 
 class LEDStrip
@@ -147,6 +177,7 @@ public:
   void setBrightness(uint8_t brightness);
   uint8_t getBrightness() const;
 
+  LEDSegment *getMainSegment();
   LEDSegment *getSegment(String name);
   LEDSegment *getSegment(uint16_t index);
 
@@ -169,6 +200,7 @@ private:
   LEDStripType type;
   uint16_t numLEDs;
   Color *ledBuffer;
+  LEDSegment *mainSegment;
   std::vector<LEDSegment *> segments;
 
   bool isEnabled;
@@ -180,14 +212,16 @@ private:
   CRGB *leds;
   uint8_t brightness;
 
-  std::vector<LEDEffect *> effects;
+  void _initController();
+
+  // std::vector<LEDEffect *> effects;
 
   // Task-related members
   TaskHandle_t taskHandle;
   bool running;
   String taskName;
   static void ledTask(void *parameter);
-  void taskLoop();
+  void _taskLoop();
 
   // Private buffer clear without mutex (for internal use)
   void clearBufferUnsafe();

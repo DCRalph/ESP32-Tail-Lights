@@ -11,13 +11,13 @@
 #include "IO/LED/Effects/NightRiderEffect.h"
 #include "IO/LED/Effects/TaillightEffect.h"
 #include "IO/LED/Effects/HeadlightEffect.h"
-// #include "IO/LED/Effects/HeadlightStartupEffect.h"
 #include "IO/LED/Effects/PoliceEffect.h"
 #include "IO/LED/Effects/PulseWaveEffect.h"
 #include "IO/LED/Effects/AuroraEffect.h"
 #include "IO/LED/Effects/SolidColorEffect.h"
 #include "IO/LED/Effects/ColorFadeEffect.h"
 #include "IO/LED/Effects/CommitEffect.h"
+#include "IO/LED/Effects/ServiceLightsEffect.h"
 
 #include "Sequences/SequenceBase.h"
 #include "Sequences/BothIndicatorsSequence.h"
@@ -122,30 +122,33 @@ public:
   HVInput reverseInput;        // Reverse
 
   // Effect instances.
-  IndicatorEffect *leftIndicatorEffect;
-  IndicatorEffect *rightIndicatorEffect;
+  // Core effects
+  IndicatorEffect *leftIndicatorEffect = nullptr;
+  IndicatorEffect *rightIndicatorEffect = nullptr;
 
-  HeadlightEffect *headlightEffect;
-  TaillightEffect *taillightEffect;
+  HeadlightEffect *headlightEffect = nullptr;
+  TaillightEffect *taillightEffect = nullptr;
 
-  BrakeLightEffect *brakeEffect;
-  ReverseLightEffect *reverseLightEffect;
+  BrakeLightEffect *brakeEffect = nullptr;
+  ReverseLightEffect *reverseLightEffect = nullptr;
 
-  RGBEffect *rgbEffect;
-  NightRiderEffect *nightriderEffect;
-  PoliceEffect *policeEffect;
-  PulseWaveEffect *pulseWaveEffect;
-  AuroraEffect *auroraEffect;
-  SolidColorEffect *solidColorEffect;
-  ColorFadeEffect *colorFadeEffect;
-  CommitEffect *commitEffect;
+  // Other effects
+  RGBEffect *rgbEffect = nullptr;
+  NightRiderEffect *nightriderEffect = nullptr;
+  PoliceEffect *policeEffect = nullptr;
+  PulseWaveEffect *pulseWaveEffect = nullptr;
+  AuroraEffect *auroraEffect = nullptr;
+  SolidColorEffect *solidColorEffect = nullptr;
+  ColorFadeEffect *colorFadeEffect = nullptr;
+  CommitEffect *commitEffect = nullptr;
+  ServiceLightsEffect *serviceLightsEffect = nullptr;
 
   // Sequences
-  BothIndicatorsSequence *unlockSequence;
-  BothIndicatorsSequence *lockSequence;
-  IndicatorFlickSequence *RGBFlickSequence;
-  IndicatorFlickSequence *nightRiderFlickSequence;
-  BrakeTapSequence *brakeTapSequence3;
+  BothIndicatorsSequence *unlockSequence = nullptr;
+  BothIndicatorsSequence *lockSequence = nullptr;
+  IndicatorFlickSequence *RGBFlickSequence = nullptr;
+  IndicatorFlickSequence *nightRiderFlickSequence = nullptr;
+  BrakeTapSequence *brakeTapSequence3 = nullptr;
 
   // Application Mode
   ApplicationMode mode;

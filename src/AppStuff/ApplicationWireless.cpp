@@ -71,6 +71,8 @@ struct EffectsCmd
   uint8_t solidColorB;
   bool colorFade;
   bool commit;
+  bool serviceLights;
+  ServiceLightsMode serviceLightsMode;
 };
 
 struct InputsCmd
@@ -296,6 +298,8 @@ void Application::setupWireless()
                              solidColorEffect->getCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
                              eCmd.colorFade = colorFadeEffect->isActive();
                              eCmd.commit = commitEffect->isActive();
+                             eCmd.serviceLights = serviceLightsEffect->isActive();
+                             eCmd.serviceLightsMode = serviceLightsEffect->getMode();
 
                              pTX.len = sizeof(eCmd);
                              memcpy(pTX.data, &eCmd, sizeof(eCmd));
@@ -340,6 +344,8 @@ void Application::setupWireless()
                              solidColorEffect->setCustomColor(eCmd.solidColorR, eCmd.solidColorG, eCmd.solidColorB);
                              colorFadeEffect->setActive(eCmd.colorFade);
                              commitEffect->setActive(eCmd.commit);
+                             serviceLightsEffect->setActive(eCmd.serviceLights);
+                             serviceLightsEffect->setMode(eCmd.serviceLightsMode);
 
                              SyncManager *syncMgr = SyncManager::getInstance();
 
@@ -353,7 +359,8 @@ void Application::setupWireless()
                                effectState.solidColorSyncData = solidColorEffect->getSyncData();
                                effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
                                effectState.commitSyncData = commitEffect->getSyncData();
-
+                               effectState.serviceLightsSyncData = serviceLightsEffect->getSyncData();
+                               
                                syncMgr->setEffectSyncState(effectState);
                                syncMgr->sendEffectState();
                              }
@@ -444,7 +451,7 @@ void Application::setupWireless()
                              stats.updateModeTime = timeProfiler.getTimeUs("updateMode");
                              stats.updateSyncTime = timeProfiler.getTimeUs("updateSync");
                              stats.updateEffectsTime = timeProfiler.getTimeUs("updateEffects");
-                             stats.drawTime = timeProfiler.getTimeUs("drawEffects");
+                             stats.drawTime = timeProfiler.getTimeUs("ledFps");
 
                              pTX.len = sizeof(AppStats);
                              memcpy(pTX.data, &stats, sizeof(AppStats));

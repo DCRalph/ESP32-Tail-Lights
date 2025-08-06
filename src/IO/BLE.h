@@ -27,6 +27,7 @@ struct __attribute__((packed)) BLEPingData
   bool interior;
   uint32_t deviceId;
   uint8_t batteryLevel;
+  float batteryVoltage;
   uint32_t uptime;
 };
 
@@ -61,6 +62,8 @@ struct __attribute__((packed)) BLEEffectsData
   uint8_t solidColorB;
   bool colorFade;
   bool commit;
+  bool serviceLights;
+  uint8_t serviceLightsMode;
 };
 
 // Forward declarations
