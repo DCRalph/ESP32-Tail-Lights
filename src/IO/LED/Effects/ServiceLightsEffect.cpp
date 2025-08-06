@@ -375,7 +375,7 @@ void ServiceLightsEffect::renderScrollMode(LEDSegment *segment, Color *buffer)
 
   bool isMirrored = false;
 
-  if (segment->getParentStrip()->getType() == LEDStripType::TAILLIGHT ||
+  if (segment->getParentStrip()->getType() == LEDStripType::HEADLIGHT ||
       segment->getParentStrip()->getType() == LEDStripType::UNDERGLOW)
   {
     isMirrored = true;
