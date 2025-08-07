@@ -249,13 +249,13 @@ void Application::loop()
   timeProfiler.increment("appFps");
   timeProfiler.start("appLoop", TimeUnit::MICROSECONDS);
   // Update input states.
-  if (millis() - lastUpdateInputs > 50)
-  {
+  // if (millis() - lastUpdateInputs > 20)
+  // {
     timeProfiler.start("updateInputs", TimeUnit::MICROSECONDS);
-    lastUpdateInputs = millis();
+    // lastUpdateInputs = millis();
     updateInputs();
     timeProfiler.stop("updateInputs");
-  }
+  // }
 
   // handle remote dissconnection
   if (lastRemotePing != 0 && millis() - lastRemotePing > 2000)
