@@ -25,6 +25,7 @@ ColorFadeEffect::ColorFadeEffect(uint8_t priority, bool transparent)
       inFadePhase(false),
       lastUpdateTime(0)
 {
+  name = "ColorFade";
 }
 
 void ColorFadeEffect::setActive(bool _active)

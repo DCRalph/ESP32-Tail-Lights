@@ -144,13 +144,13 @@ void printStatusLEDBuffers()
   {
     Serial.println("[Status LED 1]");
     Serial.print("  RGB: ");
-    printColorValue(led1Ptr->r, led1Ptr->g, led1Ptr->b);
+    Color(led1Ptr->r, led1Ptr->g, led1Ptr->b).print();
     Serial.print("  Brightness: ");
     Serial.println(statusLeds.getBrightness());
 
     Serial.println("[Status LED 2]");
     Serial.print("  RGB: ");
-    printColorValue(led2Ptr->r, led2Ptr->g, led2Ptr->b);
+    Color(led2Ptr->r, led2Ptr->g, led2Ptr->b).print();
     Serial.print("  Brightness: ");
     Serial.println(statusLeds.getBrightness());
   }
@@ -201,18 +201,14 @@ void printLEDStripBuffers()
       {
         Serial.println("  LED Count: " + String(ledCount));
         Serial.println("  Brightness: " + String(strip->getBrightness()));
-        Serial.println("  FPS: " + String(strip->getFPS()));
+        // Serial.println("  FPS: " + String(strip->getFPS()));
         Serial.println("  Flipped: " + String(strip->getFliped() ? "Yes" : "No"));
 
         // Print first 10 LEDs (or all if less than 10)
         uint16_t printCount = min(ledCount, (uint16_t)10);
         Serial.println("  First " + String(printCount) + " LEDs:");
 
-        for (uint16_t j = 0; j < printCount; j++)
-        {
-          Serial.print("    LED " + String(j) + ": ");
-          printColorValue(buffer[j].r, buffer[j].g, buffer[j].b, buffer[j].w);
-        }
+        Color::print(buffer, printCount);
 
         if (ledCount > 10)
         {
@@ -276,58 +272,16 @@ void printSpecificLEDStripBuffer(const String &stripName)
   {
     Serial.println("LED Count: " + String(ledCount));
     Serial.println("Brightness: " + String(strip->getBrightness()));
-    Serial.println("FPS: " + String(strip->getFPS()));
+    // Serial.println("FPS: " + String(strip->getFPS()));
     Serial.println("Flipped: " + String(strip->getFliped() ? "Yes" : "No"));
     Serial.println();
 
     Serial.println("All LED Colors:");
-    for (uint16_t i = 0; i < ledCount; i++)
-    {
-      Serial.print("LED " + String(i) + ": ");
-      printColorValue(buffer[i].r, buffer[i].g, buffer[i].b, buffer[i].w);
-    }
+
+    Color::print(buffer, ledCount);
   }
   else
   {
     Serial.println("Error: Could not access buffer");
   }
-}
-
-/****************************************************
- * printColorValue()
- ****************************************************/
-void printColorValue(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
-{
-  Serial.print("R:");
-  Serial.print(String(r).length() == 1 ? "00" : String(r).length() == 2 ? "0"
-                                                                        : "");
-  Serial.print(r);
-  Serial.print(" G:");
-  Serial.print(String(g).length() == 1 ? "00" : String(g).length() == 2 ? "0"
-                                                                        : "");
-  Serial.print(g);
-  Serial.print(" B:");
-  Serial.print(String(b).length() == 1 ? "00" : String(b).length() == 2 ? "0"
-                                                                        : "");
-  Serial.print(b);
-
-  if (w > 0)
-  {
-    Serial.print(" W:");
-    Serial.print(String(w).length() == 1 ? "00" : String(w).length() == 2 ? "0"
-                                                                          : "");
-    Serial.print(w);
-  }
-
-  Serial.print(" [#");
-  if (r < 16)
-    Serial.print("0");
-  Serial.print(r, HEX);
-  if (g < 16)
-    Serial.print("0");
-  Serial.print(g, HEX);
-  if (b < 16)
-    Serial.print("0");
-  Serial.print(b, HEX);
-  Serial.println("]");
 }

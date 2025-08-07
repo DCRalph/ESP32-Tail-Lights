@@ -15,6 +15,7 @@ ReverseLightEffect::ReverseLightEffect(uint8_t priority, bool transparent)
       animationSpeed(1.0f), // default 2 seconds for a full animation cycle
       startTime(0)
 {
+  name = "ReverseLight";
   progress = 0.0f;
 }
 

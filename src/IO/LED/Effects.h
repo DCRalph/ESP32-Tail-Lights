@@ -15,6 +15,7 @@ public:
   // Each effect has a priority and may be "transparent" so that lower layers show
   LEDEffect(uint8_t priority = 0, bool transparent = false);
   virtual ~LEDEffect();
+  String name;
 
   // Called each update to change animation state.
   virtual void update(LEDSegment *segment) = 0;

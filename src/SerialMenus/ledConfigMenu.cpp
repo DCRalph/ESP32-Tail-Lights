@@ -212,7 +212,8 @@ bool handleLEDConfigMenuInput(SerialMenu &menu, const String &input)
   else if (input == F("17"))
   {
     saveLEDConfig();
-    Serial.println(F("LED configuration saved!"));
+    Serial.println(F("LED configuration saved! Restarting..."));
+    ESP.restart();
     return true;
   }
   else if (input == F("b"))

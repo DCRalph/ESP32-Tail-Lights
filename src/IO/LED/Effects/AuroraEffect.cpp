@@ -16,6 +16,7 @@ AuroraEffect::AuroraEffect(uint8_t priority, bool transparent)
       saturationMin(0.7f),
       saturationMax(1.0f)
 {
+  name = "Aurora";
 
   phaseOffsets[0] = 0.0f;
   amplitudes[0] = 1.0f;

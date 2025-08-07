@@ -16,6 +16,7 @@ PulseWaveEffect::PulseWaveEffect(uint8_t priority, bool transparent)
       colorSaturation(1.0f),  // Full saturation
       intensity(1.0f)         // Full brightness
 {
+  name = "PulseWave";
 }
 
 void PulseWaveEffect::setActive(bool _active)

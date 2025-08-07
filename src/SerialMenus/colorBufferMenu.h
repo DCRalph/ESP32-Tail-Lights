@@ -20,4 +20,4 @@ bool handleColorBufferMenuInput(SerialMenu &menu, const String &input);
 void printStatusLEDBuffers();
 void printLEDStripBuffers();
 void printSpecificLEDStripBuffer(const String &stripName);
-void printColorValue(uint8_t r, uint8_t g, uint8_t b, uint8_t w = 0);
+// void printColorValue(uint8_t r, uint8_t g, uint8_t b, uint8_t w = 0);

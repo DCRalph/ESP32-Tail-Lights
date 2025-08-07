@@ -20,6 +20,7 @@ BrakeLightEffect::BrakeLightEffect(uint8_t priority, bool transparent)
       // Fade-out duration in seconds (adjust as needed).
       fadeDuration(0.6f)
 {
+  name = "BrakeLight";
 }
 
 //

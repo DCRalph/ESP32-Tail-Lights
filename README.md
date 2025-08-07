@@ -1,5 +1,8 @@
 # ESP32 Custom LED Tail Lights
 
+# OUTDATED
+Will update someday
+
 This project implements a comprehensive LED lighting system for vehicles using ESP32 microcontrollers and WS2812B LED strips. The system supports multiple lighting configurations (headlights, taillights, underglow, interior), wireless communication, synchronized multi-device operation, and extensive visual effects.
 
 ## Features

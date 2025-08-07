@@ -10,6 +10,7 @@ RGBEffect::RGBEffect(uint8_t priority, bool transparent)
       hueOffset(0.0f),
       lastUpdateTime(0)
 {
+  name = "RGB";
   // Initialize the animated hues to the base values.
   hueCenter = baseHueCenter;
   hueEdge = baseHueEdge;

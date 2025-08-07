@@ -74,6 +74,11 @@ struct Color
   {
     return Color(r * scalar, g * scalar, b * scalar, w * scalar);
   }
+
+  void print() const;
+  static void print(const Color &color);
+  static void print(const Color *colors, uint16_t numLEDs);
+  static void print(const CRGB *colors, uint16_t numLEDs);
 };
 
 // [[gnu::always_inline]]
@@ -101,8 +106,8 @@ private:
   std::vector<LEDEffect *> effects;
 
 public:
-  LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, uint16_t numLEDs);
-  LEDSegment(LEDStrip *parentStrip, String name);
+  LEDSegment(LEDStrip *_parentStrip, String _name, uint16_t _startIndex, uint16_t _numLEDs);
+  LEDSegment(LEDStrip *_parentStrip, String _name);
   ~LEDSegment();
 
   Color *getBuffer();
@@ -135,41 +140,26 @@ class LEDStrip
 {
 
 public:
-  // Constructor that allocates an LED buffer based on the number of LEDs.
-  LEDStrip(uint16_t numLEDs, uint8_t ledPin);
+  LEDStrip(uint16_t _numLEDs, uint8_t _ledPin);
   virtual ~LEDStrip();
 
-  // Add an effect to the manager.
-  // Effects with higher priority override lower-priority ones.
   void addEffect(LEDEffect *effect);
-
-  // Remove an effect.
   void removeEffect(LEDEffect *effect);
 
-  // Update all effects (call update() and then render() for each effect)
   void updateEffects();
 
-  // draw the LED buffer to the physical LED strip
-  void draw();
-  void show();
+  void draw(); // copy the buffer to the FastLED buffer
+  void show(); // show the FastLED buffer
 
-  // Access the internal FastLED buffer.
+  String getName();
+
   CRGB *getFastLEDBuffer();
-
-  // Access the internal LED buffer.
   Color *getBuffer();
-
-  // Clear the LED buffer (set all LEDs to black/off)
   void clearBuffer();
 
-  // Get the type of the LED strip.
   LEDStripType getType() const;
 
-  // Get the total number of LEDs.
   uint16_t getNumLEDs() const;
-
-  void setFPS(uint16_t fps);
-  uint16_t getFPS() const;
 
   void setFliped(bool _fliped);
   bool getFliped();
@@ -180,14 +170,10 @@ public:
   LEDSegment *getMainSegment();
   LEDSegment *getSegment(String name);
   LEDSegment *getSegment(uint16_t index);
+  std::vector<LEDSegment *> getSegments();
 
   void setEnabled(bool enabled);
   bool getEnabled() const;
-
-  // Task control functions
-  void start();
-  void stop();
-  bool isRunning() const;
 
   // Public mutex for external buffer access
   SemaphoreHandle_t bufferMutex;
@@ -202,26 +188,17 @@ private:
   Color *ledBuffer;
   LEDSegment *mainSegment;
   std::vector<LEDSegment *> segments;
+  String name;
 
   bool isEnabled;
 
   bool fliped;
-  uint16_t fps;
 
   uint8_t ledPin;
   CRGB *leds;
   uint8_t brightness;
 
   void _initController();
-
-  // std::vector<LEDEffect *> effects;
-
-  // Task-related members
-  TaskHandle_t taskHandle;
-  bool running;
-  String taskName;
-  static void ledTask(void *parameter);
-  void _taskLoop();
 
   // Private buffer clear without mutex (for internal use)
   void clearBufferUnsafe();

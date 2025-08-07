@@ -47,7 +47,7 @@ void Application::setupEffects()
     headlightStrip->addEffect(rgbEffect);
     headlightStrip->addEffect(nightriderEffect);
     headlightStrip->addEffect(policeEffect);
-    // headlightStrip->addEffect(pulseWaveEffect);
+    headlightStrip->addEffect(pulseWaveEffect);
     // headlightStrip->addEffect(auroraEffect);
     headlightStrip->addEffect(solidColorEffect);
     headlightStrip->addEffect(colorFadeEffect);

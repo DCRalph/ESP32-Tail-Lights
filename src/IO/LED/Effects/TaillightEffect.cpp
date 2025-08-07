@@ -30,6 +30,7 @@ TaillightEffect::TaillightEffect(uint8_t priority, bool transparent)
       startup_split_progress(0.0f),
       transition_progress(0.0f)
 {
+  name = "Taillight";
 }
 
 bool TaillightEffect::isActive()

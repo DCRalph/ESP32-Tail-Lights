@@ -29,7 +29,7 @@ void setup()
 
   GpIO::initIO();
   statusLeds.begin();
-  statusLeds.setBrightness(20);
+  statusLeds.setBrightness(30);
   statusLed1.begin(&statusLeds, statusLeds.getLedPtr(0));
   statusLed2.begin(&statusLeds, statusLeds.getLedPtr(1));
   statusLeds.startShowTask();

@@ -37,6 +37,7 @@ HeadlightEffect::HeadlightEffect(uint8_t priority, bool transparent)
       rainbowSpeed(120.0f),
       lastUpdate(0)
 {
+  name = "Headlight";
 }
 
 bool HeadlightEffect::isActive()

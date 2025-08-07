@@ -21,6 +21,7 @@ ServiceLightsEffect::ServiceLightsEffect(uint8_t priority, bool transparent)
       color(Color::ORANGE),
       currentFlash(0)
 {
+  name = "ServiceLights";
 }
 
 void ServiceLightsEffect::setActive(bool a)

@@ -12,6 +12,7 @@ CommitEffect::CommitEffect(uint8_t priority, bool transparent)
       lastUpdateTime(0),
       syncEnabled(true)
 {
+  name = "Commit";
 }
 
 void CommitEffect::setActive(bool _active)

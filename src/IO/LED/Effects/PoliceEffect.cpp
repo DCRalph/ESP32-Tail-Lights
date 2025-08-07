@@ -22,6 +22,7 @@ PoliceEffect::PoliceEffect(uint8_t priority, bool transparent)
       redColor(Color(255, 0, 0)),
       currentFlash(0)
 {
+  name = "Police";
 }
 
 void PoliceEffect::setActive(bool a)

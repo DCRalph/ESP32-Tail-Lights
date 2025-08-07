@@ -11,6 +11,7 @@ IndicatorEffect::IndicatorEffect(Side side, uint8_t priority, bool transparent)
       blinkCycle(1200),
       fadeInTime(250)
 {
+  name = "Indicator";
   bigIndicator = false;
   activatedTime = 0;
   otherIndicator = nullptr;

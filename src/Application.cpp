@@ -142,6 +142,26 @@ void Application::begin()
     interior.strip->getBuffer()[0] = Color(0, 0, 0);
   }
 
+  for (auto &pair : ledManager->getStrips())
+  {
+    Serial.println("Strip: " + pair.second.name);
+    Serial.println("  Num LEDs: " + String(pair.second.strip->getNumLEDs()));
+    Serial.println("  Type: " + String(static_cast<int>(pair.second.strip->getType())));
+    Serial.println("  Enabled: " + String(pair.second.strip->getEnabled() ? "true" : "false"));
+    Serial.println("  Fliped: " + String(pair.second.strip->getFliped() ? "true" : "false"));
+    Serial.println("  Brightness: " + String(pair.second.strip->getBrightness()));
+
+    for (auto &segment : pair.second.strip->getSegments())
+    {
+      Serial.println("  Segment: " + segment->name);
+      Serial.println("    Num LEDs: " + String(segment->getNumLEDs()));
+      Serial.println("    Enabled: " + String(segment->getEnabled() ? "true" : "false"));
+      Serial.println("    Fliped: " + String(segment->fliped ? "true" : "false"));
+      Serial.println("    Start Index: " + String(segment->startIndex));
+      Serial.println("    Parent Strip: " + segment->getParentStrip()->getName());
+    }
+  }
+
   setupEffects();
   setupSequences();
   setupWireless();
@@ -283,12 +303,9 @@ void Application::loop()
   bleManager->loop();
   timeProfiler.stop("updateBLE");
 
-  // Update and draw LED effects.
   timeProfiler.start("updateEffects", TimeUnit::MICROSECONDS);
   LEDStripManager::getInstance()->updateEffects();
   timeProfiler.stop("updateEffects");
-
-  // LEDStripManager::getInstance()->draw();
 
   timeProfiler.stop("appLoop");
 }

@@ -11,6 +11,7 @@ NightRiderEffect::NightRiderEffect(uint8_t priority, bool transparent)
       lastUpdateTime(0),
       syncEnabled(true) // Enable sync by default
 {
+  name = "NightRider";
 }
 
 void NightRiderEffect::setActive(bool _active)

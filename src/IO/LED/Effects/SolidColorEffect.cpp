@@ -7,6 +7,7 @@ SolidColorEffect::SolidColorEffect(uint8_t priority, bool transparent)
       colorPreset(SolidColorPreset::WHITE),
       customColor(255, 255, 255)
 {
+  name = "SolidColor";
 }
 
 void SolidColorEffect::setActive(bool _active)

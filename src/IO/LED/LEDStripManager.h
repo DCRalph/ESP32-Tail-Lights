@@ -42,6 +42,7 @@ public:
 
   // Get a LEDManager instance by strip type
   LEDStrip *getStrip(LEDStripType type);
+  std::map<LEDStripType, LEDStripConfig> getStrips();
 
   // Get the LED buffer for a specific strip type
   Color *getStripBuffer(LEDStripType type);

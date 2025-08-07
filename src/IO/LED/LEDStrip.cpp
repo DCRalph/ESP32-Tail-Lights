@@ -89,6 +89,47 @@ uint32_t Color::to32Bit() const // wwrrggbb
   return v;
 }
 
+void Color::print() const
+{
+  char buffer[100];
+  int idx = 0;
+
+  idx += snprintf(buffer, sizeof(buffer), "R:%03d G:%03d B:%03d", r, g, b);
+
+  if (w != 0)
+    idx += snprintf(buffer + idx, sizeof(buffer) - idx, " W:%03d", w);
+
+  if (w == 0)
+    snprintf(buffer + idx, sizeof(buffer) - idx, " [#%02X%02X%02X]", r, g, b);
+  else
+    snprintf(buffer + idx, sizeof(buffer) - idx, " [#%02X%02X%02X%02X]", r, g, b, w);
+
+  Serial.println(buffer);
+}
+
+void Color::print(const Color &color)
+{
+  color.print();
+}
+
+void Color::print(const Color *colors, uint16_t numLEDs)
+{
+  for (uint16_t i = 0; i < numLEDs; i++)
+  {
+    Serial.printf("LED %03d: ", i);
+    colors[i].print();
+  }
+}
+
+void Color::print(const CRGB *colors, uint16_t numLEDs)
+{
+  for (uint16_t i = 0; i < numLEDs; i++)
+  {
+    Serial.printf("LED %03d: ", i);
+    Color::print(Color(colors[i].r, colors[i].g, colors[i].b));
+  }
+}
+
 const Color Color::WHITE = Color(255, 255, 255);
 const Color Color::BLACK = Color(0, 0, 0);
 const Color Color::RED = Color(255, 0, 0);
@@ -99,9 +140,15 @@ const Color Color::YELLOW = Color(255, 255, 0);
 const Color Color::CYAN = Color(0, 255, 255);
 const Color Color::MAGENTA = Color(255, 0, 255);
 
-LEDSegment::LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, uint16_t numLEDs)
-    : name(name), startIndex(startIndex), numLEDs(numLEDs), parentStrip(parentStrip), isEnabled(true)
+LEDSegment::LEDSegment(LEDStrip *_parentStrip, String _name, uint16_t _startIndex, uint16_t _numLEDs)
 {
+  name = _name;
+  startIndex = _startIndex;
+  numLEDs = _numLEDs;
+  parentStrip = _parentStrip;
+  isEnabled = true;
+  fliped = false;
+
   if (startIndex >= parentStrip->numLEDs)
   {
     Serial.println("LEDSegment: startIndex >= parentStrip->numLEDs");
@@ -128,20 +175,26 @@ LEDSegment::LEDSegment(LEDStrip *parentStrip, String name, uint16_t startIndex, 
     // }
   }
 
-  // Create mutex for segment buffer access
   segmentMutex = xSemaphoreCreateMutex();
 
-  // ledBuffer = parentStrip->getBuffer() + startIndex;
+  // ledBuffer = parentStrip->getBuffer() + startIndex; // this still might me better
   ledBuffer = new Color[numLEDs];
   memset(ledBuffer, 0, numLEDs * sizeof(Color));
 
   parentStrip->segments.push_back(this);
   isEnabled = parentStrip->isEnabled;
+
+  Serial.println("LEDSegment: " + name + " created");
 }
 
-LEDSegment::LEDSegment(LEDStrip *parentStrip, String name)
-    : name(name), startIndex(0), numLEDs(parentStrip->numLEDs), parentStrip(parentStrip), isEnabled(true)
+LEDSegment::LEDSegment(LEDStrip *_parentStrip, String _name)
 {
+  name = _name;
+  startIndex = 0;
+  numLEDs = _parentStrip->numLEDs;
+  parentStrip = _parentStrip;
+  isEnabled = true;
+  fliped = false;
 
   if (parentStrip->numLEDs == 0)
   {
@@ -155,7 +208,6 @@ LEDSegment::LEDSegment(LEDStrip *parentStrip, String name)
     return;
   }
 
-  // Create mutex for segment buffer access
   segmentMutex = xSemaphoreCreateMutex();
 
   ledBuffer = new Color[numLEDs];
@@ -163,6 +215,8 @@ LEDSegment::LEDSegment(LEDStrip *parentStrip, String name)
 
   parentStrip->segments.push_back(this);
   isEnabled = parentStrip->isEnabled;
+
+  Serial.println("LEDSegment: " + name + " created");
 }
 
 LEDSegment::~LEDSegment()
@@ -170,7 +224,6 @@ LEDSegment::~LEDSegment()
   parentStrip->segments.erase(std::remove(parentStrip->segments.begin(), parentStrip->segments.end(), this), parentStrip->segments.end());
   delete[] ledBuffer;
 
-  // Delete mutex
   if (segmentMutex != nullptr)
   {
     vSemaphoreDelete(segmentMutex);
@@ -221,10 +274,8 @@ void LEDSegment::removeEffect(LEDEffect *effect)
 
 void LEDSegment::updateEffects()
 {
-  // Take mutex before accessing buffer
   if (xSemaphoreTake(segmentMutex, portMAX_DELAY) == pdTRUE)
   {
-    // Start timing the update effects
     String profilerKey = name + "_UpdateEffectsSeg";
     timeProfiler.start(profilerKey);
 
@@ -237,13 +288,15 @@ void LEDSegment::updateEffects()
     for (auto effect : effects)
     {
 
+      // Serial.printf("    Updating effect: %s. segment: %s. strip: %s.\n", effect->name.c_str(), name.c_str(), parentStrip->name.c_str());
+
       effect->update(this);
 
 #ifdef USE_2_BUFFERS
       // Render the current effect into tempBuffer.
       effect->render(this, tempBuffer);
 #else
-      // Render the current effect directly into ledBuffer.
+
       effect->render(this, ledBuffer);
 #endif
 
@@ -298,6 +351,7 @@ void LEDSegment::draw()
           parentStrip->ledBuffer[endIndex - i] = ledBuffer[i];
       }
     }
+
     xSemaphoreGive(segmentMutex);
   }
 }
@@ -316,20 +370,16 @@ void LEDSegment::clearBufferUnsafe()
   memset(ledBuffer, 0, numLEDs * sizeof(Color));
 }
 
-LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
-    : numLEDs(numLEDs),
-      ledPin(ledPin),
-      fliped(false),
-      fps(100),
-      brightness(255),
-      taskHandle(nullptr),
-      running(false),
-      isEnabled(true)
+LEDStrip::LEDStrip(uint16_t _numLEDs, uint8_t _ledPin)
 {
-  // Create task name based on pin
-  taskName = "LED_P" + String(ledPin);
+  numLEDs = _numLEDs;
+  ledPin = _ledPin;
+  brightness = 255;
+  isEnabled = true;
+  name = "LED_P" + String(ledPin);
+  fliped = false;
+  type = LEDStripType::NONE;
 
-  // Create mutex for buffer access
   bufferMutex = xSemaphoreCreateMutex();
 
   leds = new CRGB[numLEDs];
@@ -341,16 +391,14 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
 
   setBrightness(255);
 
+  Serial.println("LEDStrip: " + name + " created");
+
   // Create main segment
-  mainSegment = new LEDSegment(this, taskName);
+  mainSegment = new LEDSegment(this, name);
 }
 
 LEDStrip::~LEDStrip()
 {
-  // Stop the task if it's running
-  stop();
-
-  // Clean up mutex
   if (bufferMutex != nullptr)
   {
     vSemaphoreDelete(bufferMutex);
@@ -386,7 +434,7 @@ void LEDStrip::updateEffects()
   if (xSemaphoreTake(bufferMutex, portMAX_DELAY) == pdTRUE)
   {
     // Start timing the update effects
-    String profilerKey = taskName + "_UpdateEffects";
+    String profilerKey = name + "_UpdateEffects";
     timeProfiler.start(profilerKey);
 
     clearBufferUnsafe();
@@ -435,9 +483,12 @@ void LEDStrip::show()
   if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
   {
     controller->showLeds(brightness);
+
     xSemaphoreGive(fastledMutex);
   }
 }
+
+String LEDStrip::getName() { return name; }
 
 CRGB *LEDStrip::getFastLEDBuffer() { return leds; }
 
@@ -462,19 +513,6 @@ void LEDStrip::clearBufferUnsafe()
 LEDStripType LEDStrip::getType() const { return type; }
 
 uint16_t LEDStrip::getNumLEDs() const { return numLEDs; }
-
-void LEDStrip::setFPS(uint16_t fps)
-{
-  this->fps = fps;
-  // If task is running, restart it to apply new FPS
-  // if (running)
-  // {
-  //   stop();
-  //   start();
-  // }
-}
-
-uint16_t LEDStrip::getFPS() const { return fps; }
 
 void LEDStrip::setFliped(bool _fliped)
 {
@@ -520,6 +558,11 @@ LEDSegment *LEDStrip::getSegment(uint16_t index)
   return segments[index];
 }
 
+std::vector<LEDSegment *> LEDStrip::getSegments()
+{
+  return segments;
+}
+
 void LEDStrip::setEnabled(bool enabled)
 {
   isEnabled = enabled;
@@ -530,79 +573,6 @@ void LEDStrip::setEnabled(bool enabled)
 bool LEDStrip::getEnabled() const
 {
   return isEnabled;
-}
-
-// Task control functions
-void LEDStrip::start()
-{
-  // if (!running && taskHandle == nullptr)
-  // {
-  //   running = true;
-  //   xTaskCreatePinnedToCore(ledTask, taskName.c_str(), 4096, this, 1, &taskHandle, 1);
-  // }
-}
-
-void LEDStrip::stop()
-{
-  if (running && taskHandle != nullptr)
-  {
-    running = false;
-    vTaskDelete(taskHandle);
-    taskHandle = nullptr;
-  }
-}
-
-bool LEDStrip::isRunning() const
-{
-  return running;
-}
-
-// Static task function
-void LEDStrip::ledTask(void *parameter)
-{
-  LEDStrip *strip = static_cast<LEDStrip *>(parameter);
-  strip->_taskLoop();
-}
-
-// Task loop implementation
-void LEDStrip::_taskLoop()
-{
-  TickType_t lastWakeTime = xTaskGetTickCount();
-  const TickType_t frameDelay = pdMS_TO_TICKS(1000 / fps);
-
-  // Serial.println("LEDStrip::_taskLoop: Starting task loop, delay: " + String(frameDelay) + " fps: " + String(fps));
-  // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-  while (running)
-  {
-    String frameProfilerKey = taskName + "_Frame";
-    String drawProfilerKey = taskName + "_Draw";
-    String showProfilerKey = taskName + "_Show";
-
-    // Start timing the entire frame
-    timeProfiler.start(frameProfilerKey);
-    timeProfiler.increment(taskName + "_FPS");
-
-    // Time the draw operation
-    timeProfiler.start(drawProfilerKey);
-    draw();
-    timeProfiler.stop(drawProfilerKey);
-
-    // Time the show operation
-    timeProfiler.start(showProfilerKey);
-    show();
-    timeProfiler.stop(showProfilerKey);
-
-    // Stop timing the entire frame
-    timeProfiler.stop(frameProfilerKey);
-
-    // Wait for next frame
-    // vTaskDelayUntil(&lastWakeTime, frameDelay);
-    vTaskDelay(frameDelay);
-  }
-
-  // Clean up task when stopping
-  vTaskDelete(nullptr);
 }
 
 // fucking stupid fastled init hack

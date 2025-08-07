@@ -62,6 +62,11 @@ LEDStrip *LEDStripManager::getStrip(LEDStripType type)
   return nullptr;
 }
 
+std::map<LEDStripType, LEDStripConfig> LEDStripManager::getStrips()
+{
+  return strips;
+}
+
 Color *LEDStripManager::getStripBuffer(LEDStripType type)
 {
   if (strips.find(type) != strips.end() && strips[type].strip)
@@ -98,7 +103,7 @@ void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
   strips[config.type] = config;
   // strips[config.type].strip->clearBuffer();
   // Serial.println("LEDStripManager::addLEDStrip: Setting FPS to " + String(drawFPS));
-  strips[config.type].strip->setFPS(drawFPS);
+  // strips[config.type].strip->setFPS(drawFPS);
   strips[config.type].strip->setBrightness(255);
   // strips[config.type].strip->start();
 }
@@ -114,12 +119,13 @@ void LEDStripManager::setBrightness(uint8_t brightness)
 
 void LEDStripManager::updateEffects()
 {
-
   for (auto &pair : strips)
   {
     if (pair.second.strip)
     {
       pair.second.strip->updateEffects();
+      // Serial.println("Updated effects for strip " + pair.second.name);
+      // Color::print(pair.second.strip->getBuffer(), pair.second.strip->getNumLEDs());
     }
   }
 }
@@ -129,10 +135,12 @@ void LEDStripManager::draw()
   timeProfiler.start("ledFps", TimeUnit::MICROSECONDS);
   timeProfiler.increment("ledFps");
 
+  // LEDStripManager::getInstance()->updateEffects();
+
   // Draw all strips with safety checks
   for (auto &pair : strips)
   {
-    if (pair.second.strip && taskRunning) // Check if we should still be running
+    if (pair.second.strip) // Check if we should still be running
     {
       timeProfiler.start("draw-" + pair.second.name, TimeUnit::MICROSECONDS);
       timeProfiler.increment("draw-" + pair.second.name);
@@ -144,10 +152,10 @@ void LEDStripManager::draw()
       pair.second.strip->show();
       timeProfiler.stop("show-" + pair.second.name);
     }
-    else
-    {
-      Serial.println("LEDStripManager: Strip not running");
-    }
+    // else
+    // {
+    //   Serial.println("LEDStripManager: Strip not running");
+    // }
   }
 
   // timeProfiler.start("show", TimeUnit::MICROSECONDS);
@@ -175,7 +183,7 @@ void LEDStripManager::startTask()
       "LEDStripTask", // Task name
       4096,           // Stack size
       this,           // Parameter passed to task
-      5,              // Priority (higher priority for LED updates)
+      10,             // Priority (higher priority for LED updates)
       &ledTaskHandle, // Task handle
       0               // Core to run on
   );
@@ -261,7 +269,7 @@ void LEDStripManager::ledTask(void *parameter)
   {
     TickType_t startTime = xTaskGetTickCount();
 
-    manager->draw();
+    manager->draw(); // draws buffers and shows them
 
     TickType_t endTime = xTaskGetTickCount();
     TickType_t elapsedTime = endTime - startTime;
