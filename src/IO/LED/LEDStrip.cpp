@@ -272,6 +272,11 @@ void LEDSegment::removeEffect(LEDEffect *effect)
   effects.erase(std::remove(effects.begin(), effects.end(), effect), effects.end());
 }
 
+uint16_t LEDSegment::effectCount()
+{
+  return effects.size();
+}
+
 void LEDSegment::updateEffects()
 {
   if (xSemaphoreTake(segmentMutex, portMAX_DELAY) == pdTRUE)
@@ -370,31 +375,30 @@ void LEDSegment::clearBufferUnsafe()
   memset(ledBuffer, 0, numLEDs * sizeof(Color));
 }
 
-LEDStrip::LEDStrip(uint16_t _numLEDs, uint8_t _ledPin)
+LEDStrip::LEDStrip(String _name, uint16_t _numLEDs, uint8_t _ledPin)
 {
+  name = _name;
   numLEDs = _numLEDs;
   ledPin = _ledPin;
   brightness = 255;
   isEnabled = true;
-  name = "LED_P" + String(ledPin);
+  isActive = false;
   fliped = false;
   type = LEDStripType::NONE;
 
   bufferMutex = xSemaphoreCreateMutex();
 
-  leds = new CRGB[numLEDs];
+  leds = new CRGB[numLEDs]; // fastled buffer
   memset(leds, 0, numLEDs * sizeof(CRGB));
-  ledBuffer = new Color[numLEDs];
+  ledBuffer = new Color[numLEDs]; // internal buffer
   memset(ledBuffer, 0, numLEDs * sizeof(Color));
 
   _initController();
 
-  setBrightness(255);
-
   Serial.println("LEDStrip: " + name + " created");
 
   // Create main segment
-  mainSegment = new LEDSegment(this, name);
+  mainSegment = new LEDSegment(this, "Main_" + name);
 }
 
 LEDStrip::~LEDStrip()
@@ -480,12 +484,12 @@ void LEDStrip::draw()
 
 void LEDStrip::show()
 {
-  if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
-  {
+  // if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
+  // {
     controller->showLeds(brightness);
 
-    xSemaphoreGive(fastledMutex);
-  }
+    // xSemaphoreGive(fastledMutex);
+  // }
 }
 
 String LEDStrip::getName() { return name; }
@@ -575,6 +579,20 @@ bool LEDStrip::getEnabled() const
   return isEnabled;
 }
 
+void LEDStrip::setActive(bool active)
+{
+  if (!isEnabled)
+    return;
+  isActive = active;
+  if (!active)
+    clearBuffer();
+}
+
+bool LEDStrip::getActive() const
+{
+  return isActive;
+}
+
 // fucking stupid fastled init hack
 // im probably too redarded to understand why this is good
 void LEDStrip::_initController()
@@ -612,7 +630,7 @@ void LEDStrip::_initController()
     controller = &FastLED.addLeds<WS2812B, 10, GRB>(leds, numLEDs);
     break;
   case 11:
-    controller = &FastLED.addLeds<WS2812B, 11, GRB>(leds, numLEDs);
+    controller = &FastLED.addLeds<WS2815, 11, GRB>(leds, numLEDs); 
     break;
   case 12:
     controller = &FastLED.addLeds<WS2812B, 12, GRB>(leds, numLEDs);

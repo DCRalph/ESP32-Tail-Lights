@@ -16,6 +16,7 @@
 #define PING_CHARACTERISTIC_UUID "7285c8f6-30eb-4266-b5c3-7a34ba69a8b7"
 #define MODE_CHARACTERISTIC_UUID "44969bf5-4a79-4fce-8acd-3b794f81c380"
 #define EFFECTS_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2900"
+#define STRIP_ACTIVE_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2901"
 
 // Simplified BLE Data Structures
 struct __attribute__((packed)) BLEPingData
@@ -66,6 +67,14 @@ struct __attribute__((packed)) BLEEffectsData
   uint8_t serviceLightsMode;
 };
 
+struct __attribute__((packed)) BLEStripActiveData
+{
+  bool headlight;
+  bool taillight;
+  bool underglow;
+  bool interior;
+};
+
 // Forward declarations
 class Application;
 
@@ -103,6 +112,7 @@ private:
   BLECharacteristic *pPingCharacteristic;
   BLECharacteristic *pModeCharacteristic;
   BLECharacteristic *pEffectsCharacteristic;
+  BLECharacteristic *pStripActiveCharacteristic;
 
   Application *app;
   bool deviceConnected;
@@ -120,11 +130,13 @@ private:
   // Simplified characteristic callback handlers
   void handleModeWrite(BLECharacteristic *pCharacteristic);
   void handleEffectsWrite(BLECharacteristic *pCharacteristic);
+  void handleStripActiveWrite(BLECharacteristic *pCharacteristic);
 
   // Simplified data preparation methods
   BLEPingData preparePingData();
   BLEModeData prepareModeData();
   BLEEffectsData prepareEffectsData();
+  BLEStripActiveData prepareStripActiveData();
 };
 
 // BLE Server Callbacks

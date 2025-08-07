@@ -11,17 +11,30 @@
 struct LEDStripConfig
 {
   LEDStripType type;
-  LEDStrip *strip;  // Pointer to the LEDManager for this strip
-  String name; // Human-readable name for the strip
+  LEDStrip *strip; // Pointer to the LEDManager for this strip
+  String name;     // Human-readable name for the strip
 
   // Default constructor
   LEDStripConfig() : type(LEDStripType::NONE), strip(nullptr), name("") {}
 
-  LEDStripConfig(LEDStripType _type, LEDStrip *_strip, String _name) : type(_type),
-                                                                                   strip(_strip),
-                                                                                   name(_name)
+  LEDStripConfig(LEDStripType _type, LEDStrip *_strip, String _name)
   {
-    _strip->type = type;
+    type = _type;
+    strip = _strip;
+    name = _name;
+
+    strip->type = type;
+    strip->name = name;
+    strip->mainSegment->name = "Main_" + name; 
+  }
+
+  LEDStripConfig(LEDStripType _type, String _name, uint16_t _numLEDs, uint8_t _ledPin)
+  {
+    type = _type;
+    strip = new LEDStrip(_name, _numLEDs, _ledPin);
+    name = _name;
+
+    strip->type = type;
   }
 };
 
@@ -52,6 +65,8 @@ public:
 
   // Check if a strip type is enabled
   bool isStripEnabled(LEDStripType type);
+  bool isStripActive(LEDStripType type);
+  void setStripActive(LEDStripType type, bool active);
 
   // Add an LED strip configuration
   void addLEDStrip(const LEDStripConfig &config);

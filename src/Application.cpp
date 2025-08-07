@@ -63,12 +63,14 @@ void Application::begin()
   {
     LEDStripConfig headlights(
         LEDStripType::HEADLIGHT,
-        new LEDStrip(ledConfig.headlightLedCount, OUTPUT_LED_1_PIN),
-        "Headlights");
+        // new LEDStrip(ledConfig.headlightLedCount, OUTPUT_LED_1_PIN),
+        "Headlights",
+        ledConfig.headlightLedCount,
+        OUTPUT_LED_1_PIN);
     headlights.strip->setFliped(ledConfig.headlightFlipped);
-    headlights.strip->setEnabled(ledConfig.headlightsEnabled);
 
     ledManager->addLEDStrip(headlights);
+    headlights.strip->setActive(true);
 
     headlights.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -79,12 +81,14 @@ void Application::begin()
   {
     LEDStripConfig taillights(
         LEDStripType::TAILLIGHT,
-        new LEDStrip(ledConfig.taillightLedCount, OUTPUT_LED_2_PIN),
-        "Taillights");
+        // new LEDStrip(ledConfig.taillightLedCount, OUTPUT_LED_2_PIN),
+        "Taillights",
+        ledConfig.taillightLedCount,
+        OUTPUT_LED_2_PIN);
     taillights.strip->setFliped(ledConfig.taillightFlipped);
-    taillights.strip->setEnabled(ledConfig.taillightsEnabled);
 
     ledManager->addLEDStrip(taillights);
+    taillights.strip->setActive(true);
 
     taillights.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -95,15 +99,18 @@ void Application::begin()
   {
     LEDStripConfig underglow(
         LEDStripType::UNDERGLOW,
-        new LEDStrip(ledConfig.underglowLedCount, OUTPUT_LED_3_PIN),
-        "Underglow");
-    underglow.strip->setFliped(ledConfig.underglowFlipped);
-    underglow.strip->setEnabled(ledConfig.underglowEnabled);
+        // new LEDStrip(ledConfig.underglowLedCount, OUTPUT_LED_3_PIN),
+        "Underglow",
+        ledConfig.underglowLedCount,
+        OUTPUT_LED_3_PIN);
     LEDSegment *underglowSegmentL = new LEDSegment(underglow.strip, "Underglow-Left", 0, 102);    // 0 - 101
     LEDSegment *underglowSegmentF = new LEDSegment(underglow.strip, "Underglow-Front", 102, 96);  // 102 - 197
     LEDSegment *underglowSegmentR = new LEDSegment(underglow.strip, "Underglow-Right", 198, 102); // 198 - 299
 
+    underglow.strip->setFliped(ledConfig.underglowFlipped);
+
     ledManager->addLEDStrip(underglow);
+    underglow.strip->setActive(false);
 
     underglow.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -130,42 +137,46 @@ void Application::begin()
   {
     LEDStripConfig interior(
         LEDStripType::INTERIOR,
-        new LEDStrip(ledConfig.interiorLedCount, OUTPUT_LED_4_PIN),
-        "Interior");
+        // new LEDStrip(ledConfig.interiorLedCount, OUTPUT_LED_4_PIN),
+        "Interior",
+        ledConfig.interiorLedCount,
+        OUTPUT_LED_4_PIN);
     interior.strip->setFliped(ledConfig.interiorFlipped);
-    interior.strip->setEnabled(ledConfig.interiorEnabled);
 
     ledManager->addLEDStrip(interior);
+    interior.strip->setActive(false);
 
     interior.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
     interior.strip->getBuffer()[0] = Color(0, 0, 0);
   }
 
-  for (auto &pair : ledManager->getStrips())
-  {
-    Serial.println("Strip: " + pair.second.name);
-    Serial.println("  Num LEDs: " + String(pair.second.strip->getNumLEDs()));
-    Serial.println("  Type: " + String(static_cast<int>(pair.second.strip->getType())));
-    Serial.println("  Enabled: " + String(pair.second.strip->getEnabled() ? "true" : "false"));
-    Serial.println("  Fliped: " + String(pair.second.strip->getFliped() ? "true" : "false"));
-    Serial.println("  Brightness: " + String(pair.second.strip->getBrightness()));
-
-    for (auto &segment : pair.second.strip->getSegments())
-    {
-      Serial.println("  Segment: " + segment->name);
-      Serial.println("    Num LEDs: " + String(segment->getNumLEDs()));
-      Serial.println("    Enabled: " + String(segment->getEnabled() ? "true" : "false"));
-      Serial.println("    Fliped: " + String(segment->fliped ? "true" : "false"));
-      Serial.println("    Start Index: " + String(segment->startIndex));
-      Serial.println("    Parent Strip: " + segment->getParentStrip()->getName());
-    }
-  }
-
   setupEffects();
   setupSequences();
   setupWireless();
   setupBLE();
+
+  for (auto &pair : ledManager->getStrips())
+  {
+    Serial.println("Strip: " + pair.second.name);
+    Serial.println(" | Num LEDs: " + String(pair.second.strip->getNumLEDs()));
+    Serial.println(" | Type: " + String(static_cast<int>(pair.second.strip->getType())));
+    Serial.println(" | Enabled: " + String(pair.second.strip->getEnabled() ? "true" : "false"));
+    Serial.println(" | Active: " + String(pair.second.strip->getActive() ? "true" : "false"));
+    Serial.println(" | Fliped: " + String(pair.second.strip->getFliped() ? "true" : "false"));
+    Serial.println(" | Brightness: " + String(pair.second.strip->getBrightness()));
+
+    for (auto &segment : pair.second.strip->getSegments())
+    {
+      Serial.println(" | Segment: " + segment->name);
+      Serial.println("    | Num LEDs: " + String(segment->getNumLEDs()));
+      Serial.println("    | Enabled: " + String(segment->getEnabled() ? "true" : "false"));
+      Serial.println("    | Fliped: " + String(segment->fliped ? "true" : "false"));
+      Serial.println("    | Start Index: " + String(segment->startIndex));
+      Serial.println("    | Parent Strip: " + segment->getParentStrip()->getName());
+      Serial.println("    | Effects: " + String(segment->effectCount()));
+    }
+  }
 
   // Initialize SyncManager
   SyncManager *syncMgr = SyncManager::getInstance();
@@ -227,6 +238,9 @@ void Application::updateInputs()
  * update():
  * Main loop update.
  */
+
+static uint32_t lastUpdateInputs = 0;
+
 void Application::loop()
 {
   if (!appInitialized)
@@ -235,9 +249,13 @@ void Application::loop()
   timeProfiler.increment("appFps");
   timeProfiler.start("appLoop", TimeUnit::MICROSECONDS);
   // Update input states.
-  timeProfiler.start("updateInputs", TimeUnit::MICROSECONDS);
-  updateInputs();
-  timeProfiler.stop("updateInputs");
+  if (millis() - lastUpdateInputs > 50)
+  {
+    timeProfiler.start("updateInputs", TimeUnit::MICROSECONDS);
+    lastUpdateInputs = millis();
+    updateInputs();
+    timeProfiler.stop("updateInputs");
+  }
 
   // handle remote dissconnection
   if (lastRemotePing != 0 && millis() - lastRemotePing > 2000)

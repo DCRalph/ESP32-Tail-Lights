@@ -14,6 +14,8 @@ constexpr uint8_t CAR_CMD_SET_INPUTS = 0xe4;
 constexpr uint8_t CAR_CMD_GET_INPUTS = 0xe5;
 constexpr uint8_t CAR_CMD_TRIGGER_SEQUENCE = 0xe6;
 constexpr uint8_t CAR_CMD_GET_STATS = 0xe7;
+constexpr uint8_t CAR_CMD_SET_STRIP_ACTIVE = 0xe8;
+constexpr uint8_t CAR_CMD_GET_STRIP_ACTIVE = 0xe9;
 
 // Sync management commands
 constexpr uint8_t CMD_SYNC_GET_DEVICES = 0xe8;
@@ -73,6 +75,14 @@ struct EffectsCmd
   bool commit;
   bool serviceLights;
   ServiceLightsMode serviceLightsMode;
+};
+
+struct StripActiveCmd
+{
+  bool headlight;
+  bool taillight;
+  bool underglow;
+  bool interior;
 };
 
 struct InputsCmd
@@ -360,11 +370,60 @@ void Application::setupWireless()
                                effectState.colorFadeSyncData = colorFadeEffect->getSyncData();
                                effectState.commitSyncData = commitEffect->getSyncData();
                                effectState.serviceLightsSyncData = serviceLightsEffect->getSyncData();
-                               
+
                                syncMgr->setEffectSyncState(effectState);
                                syncMgr->sendEffectState();
                              }
 
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_SET_STRIP_ACTIVE, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             StripActiveCmd sCmd = {0};
+                             memcpy(&sCmd, fp->p.data, sizeof(sCmd));
+
+                             LEDStripManager *ledManager = LEDStripManager::getInstance();
+                             ledManager->setStripActive(LEDStripType::HEADLIGHT, sCmd.headlight);
+                             ledManager->setStripActive(LEDStripType::TAILLIGHT, sCmd.taillight);
+                             ledManager->setStripActive(LEDStripType::UNDERGLOW, sCmd.underglow);
+                             ledManager->setStripActive(LEDStripType::INTERIOR, sCmd.interior);
+
+                             StripActiveCmd sCmdTX = {0};
+
+                             sCmd.headlight = ledManager->isStripActive(LEDStripType::HEADLIGHT);
+                             sCmd.taillight = ledManager->isStripActive(LEDStripType::TAILLIGHT);
+                             sCmd.underglow = ledManager->isStripActive(LEDStripType::UNDERGLOW);
+                             sCmd.interior = ledManager->isStripActive(LEDStripType::INTERIOR);
+
+                             data_packet pTX = {0};
+                             pTX.type = CAR_CMD_SET_STRIP_ACTIVE;
+                             pTX.len = sizeof(sCmdTX);
+                             memcpy(pTX.data, &sCmdTX, sizeof(sCmdTX));
+
+                             wireless.send(&pTX, fp->mac);
+                             //
+                           });
+
+  wireless.addOnReceiveFor(CAR_CMD_GET_STRIP_ACTIVE, [this](fullPacket *fp)
+                           {
+                             lastRemotePing = millis();
+
+                             StripActiveCmd sCmdTX = {0};
+                             LEDStripManager *ledManager = LEDStripManager::getInstance();
+                             sCmdTX.headlight = ledManager->isStripActive(LEDStripType::HEADLIGHT);
+                             sCmdTX.taillight = ledManager->isStripActive(LEDStripType::TAILLIGHT);
+                             sCmdTX.underglow = ledManager->isStripActive(LEDStripType::UNDERGLOW);
+                             sCmdTX.interior = ledManager->isStripActive(LEDStripType::INTERIOR);
+
+                             data_packet pTX = {0};
+                             pTX.type = CAR_CMD_GET_STRIP_ACTIVE;
+                             pTX.len = sizeof(sCmdTX);
+                             memcpy(pTX.data, &sCmdTX, sizeof(sCmdTX));
+
+                             wireless.send(&pTX, fp->mac);
                              //
                            });
 

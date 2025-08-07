@@ -90,6 +90,23 @@ bool LEDStripManager::isStripEnabled(LEDStripType type)
   return strips.count(type) > 0;
 }
 
+bool LEDStripManager::isStripActive(LEDStripType type)
+{
+  if (strips.find(type) != strips.end())
+  {
+    return strips[type].strip ? strips[type].strip->getActive() : false;
+  }
+  return false;
+}
+
+void LEDStripManager::setStripActive(LEDStripType type, bool active)
+{
+  if (strips.find(type) != strips.end())
+  {
+    strips[type].strip->setActive(active);
+  }
+}
+
 void LEDStripManager::addLEDStrip(const LEDStripConfig &config)
 {
 
@@ -134,8 +151,6 @@ void LEDStripManager::draw()
 {
   timeProfiler.start("ledFps", TimeUnit::MICROSECONDS);
   timeProfiler.increment("ledFps");
-
-  // LEDStripManager::getInstance()->updateEffects();
 
   // Draw all strips with safety checks
   for (auto &pair : strips)

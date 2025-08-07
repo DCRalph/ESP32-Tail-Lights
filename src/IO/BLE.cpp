@@ -24,6 +24,7 @@ BLEManager::BLEManager()
   pPingCharacteristic = nullptr;
   pModeCharacteristic = nullptr;
   pEffectsCharacteristic = nullptr;
+  pStripActiveCharacteristic = nullptr;
 }
 
 BLEManager::~BLEManager()
@@ -82,6 +83,12 @@ void BLEManager::setupCharacteristics()
       EFFECTS_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
   pEffectsCharacteristic->addDescriptor(new BLE2902());
+
+  // Strip Active Characteristic (Read/Write + Notify)
+  pStripActiveCharacteristic = pService->createCharacteristic(
+      STRIP_ACTIVE_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+  pStripActiveCharacteristic->addDescriptor(new BLE2902());
 }
 
 void BLEManager::setupCallbacks()
@@ -90,6 +97,7 @@ void BLEManager::setupCallbacks()
   pPingCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Ping"));
   pModeCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Mode"));
   pEffectsCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Effects"));
+  pStripActiveCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Strip Active"));
 }
 
 void BLEManager::loop()
@@ -246,6 +254,22 @@ BLEEffectsData BLEManager::prepareEffectsData()
   return data;
 }
 
+BLEStripActiveData BLEManager::prepareStripActiveData()
+{
+  BLEStripActiveData data = {};
+
+  if (!app)
+    return data;
+
+  LEDStripManager *ledManager = LEDStripManager::getInstance();
+  data.headlight = ledManager->isStripActive(LEDStripType::HEADLIGHT);
+  data.taillight = ledManager->isStripActive(LEDStripType::TAILLIGHT);
+  data.underglow = ledManager->isStripActive(LEDStripType::UNDERGLOW);
+  data.interior = ledManager->isStripActive(LEDStripType::INTERIOR);
+
+  return data;
+}
+
 // Characteristic callback handlers
 void BLEManager::handleModeWrite(BLECharacteristic *pCharacteristic)
 {
@@ -351,6 +375,32 @@ void BLEManager::handleEffectsWrite(BLECharacteristic *pCharacteristic)
   }
 }
 
+void BLEManager::handleStripActiveWrite(BLECharacteristic *pCharacteristic)
+{
+  if (!app)
+    return;
+
+  std::string value = pCharacteristic->getValue();
+  if (value.length() != sizeof(BLEStripActiveData))
+  {
+    Serial.println("BLE Strip Active: Invalid data size");
+    return;
+  }
+
+  BLEStripActiveData *data = (BLEStripActiveData *)value.data();
+  Serial.println("BLE Strip Active: Updating strip active");
+
+  LEDStripManager *ledManager = LEDStripManager::getInstance();
+  ledManager->setStripActive(LEDStripType::HEADLIGHT, data->headlight);
+  ledManager->setStripActive(LEDStripType::TAILLIGHT, data->taillight);
+  ledManager->setStripActive(LEDStripType::UNDERGLOW, data->underglow);
+  ledManager->setStripActive(LEDStripType::INTERIOR, data->interior);
+
+  BLEStripActiveData dataTX = prepareStripActiveData();
+  pStripActiveCharacteristic->setValue((uint8_t *)&dataTX, sizeof(dataTX));
+  pStripActiveCharacteristic->notify();
+}
+
 // BLE Server Callbacks
 CarThingBLEServerCallbacks::CarThingBLEServerCallbacks(BLEManager *manager)
     : bleManager(manager)
@@ -395,6 +445,10 @@ void CarThingBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteris
   {
     bleManager->handleEffectsWrite(pCharacteristic);
   }
+  else if (characteristicName == "Strip Active")
+  {
+    bleManager->handleStripActiveWrite(pCharacteristic);
+  }
 }
 
 void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacteristic)
@@ -415,6 +469,11 @@ void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacterist
   else if (characteristicName == "Effects")
   {
     BLEEffectsData data = bleManager->prepareEffectsData();
+    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
+  }
+  else if (characteristicName == "Strip Active")
+  {
+    BLEStripActiveData data = bleManager->prepareStripActiveData();
     pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
   }
 }

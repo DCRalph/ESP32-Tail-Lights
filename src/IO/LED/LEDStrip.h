@@ -118,6 +118,8 @@ public:
 
   void addEffect(LEDEffect *effect);
   void removeEffect(LEDEffect *effect);
+  uint16_t effectCount();
+
   void updateEffects();
 
   void draw();
@@ -140,7 +142,7 @@ class LEDStrip
 {
 
 public:
-  LEDStrip(uint16_t _numLEDs, uint8_t _ledPin);
+  LEDStrip(String _name, uint16_t _numLEDs, uint8_t _ledPin);
   virtual ~LEDStrip();
 
   void addEffect(LEDEffect *effect);
@@ -175,6 +177,9 @@ public:
   void setEnabled(bool enabled);
   bool getEnabled() const;
 
+  void setActive(bool active);
+  bool getActive() const;
+
   // Public mutex for external buffer access
   SemaphoreHandle_t bufferMutex;
 
@@ -190,7 +195,8 @@ private:
   std::vector<LEDSegment *> segments;
   String name;
 
-  bool isEnabled;
+  bool isEnabled; // led strip is enabled in the config
+  bool isActive;  // led strip is currently enabled. active can be set to false to disable/turn off the strip independently of the config. strip can not be set to active if it is not enabled in the config.
 
   bool fliped;
 

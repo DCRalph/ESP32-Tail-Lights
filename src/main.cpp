@@ -1,5 +1,5 @@
 // main.cpp
-
+#define FASTLED_OVERCLOCK 1.5
 // #include "secrets.h"
 #include "config.h"
 
@@ -155,7 +155,7 @@ void loop()
   if (millis() - lastApp > (10))
   {
     lastApp = millis();
-    app->loop(); // ~1000 us most of the time ~5000 sometimes
+    app->loop(); // ~2600 us
   }
 
   if (millis() - lastDraw > 35)
@@ -186,5 +186,5 @@ void loop()
     processMenuInput(input); // idk probably fuck all
   }
 
-  timeProfiler.stop("mainLoop"); // ~ 1300 us avg, slowest ~24000 us
+  timeProfiler.stop("mainLoop"); // < 100 us avg
 }
