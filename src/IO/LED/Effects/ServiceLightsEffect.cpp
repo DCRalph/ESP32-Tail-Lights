@@ -273,17 +273,17 @@ void ServiceLightsEffect::renderSlowMode(LEDSegment *segment, Color *buffer)
   uint16_t half = numLEDs / 2;
 
   // In SLOW mode: alternate between colors on each side with no fade
-  bool isRed = cycleProgress < 0.5f;
+  bool isRight = cycleProgress < 0.5f;
 
   for (uint16_t i = 0; i < numLEDs; i++)
   {
     if (i < half) // Left side
     {
-      buffer[i] = isRed ? color : Color();
+      buffer[i] = isRight ? color : Color();
     }
     else // Right side
     {
-      buffer[i] = isRed ? Color() : color;
+      buffer[i] = isRight ? Color() : color;
     }
   }
 }
@@ -294,7 +294,7 @@ void ServiceLightsEffect::renderFastMode(LEDSegment *segment, Color *buffer)
   uint16_t half = numLEDs / 2;
 
   // In FAST mode: flash one side for fastModeFlashesPerCycle times, then the other side
-  bool isRedCycle = cycleProgress < 0.5f;
+  bool isRightCycle = cycleProgress < 0.5f;
 
   // Flash intensity based on flash progress
   // 0-0.5: On, 0.5-1.0: Off
@@ -302,7 +302,7 @@ void ServiceLightsEffect::renderFastMode(LEDSegment *segment, Color *buffer)
 
   for (uint16_t i = 0; i < numLEDs; i++)
   {
-    if (isRedCycle)
+    if (isRightCycle)
     {
       // Red on left side
       if (i < half)

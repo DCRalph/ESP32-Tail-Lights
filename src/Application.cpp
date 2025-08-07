@@ -67,7 +67,6 @@ void Application::begin()
         "Headlights");
     headlights.strip->setFliped(ledConfig.headlightFlipped);
     headlights.strip->setEnabled(ledConfig.headlightsEnabled);
-    LEDSegment *headlightsSegment = new LEDSegment(headlights.strip, "Headlights");
 
     ledManager->addLEDStrip(headlights);
 
@@ -84,7 +83,6 @@ void Application::begin()
         "Taillights");
     taillights.strip->setFliped(ledConfig.taillightFlipped);
     taillights.strip->setEnabled(ledConfig.taillightsEnabled);
-    LEDSegment *taillightsSegment = new LEDSegment(taillights.strip, "Taillights");
 
     ledManager->addLEDStrip(taillights);
 
@@ -136,7 +134,6 @@ void Application::begin()
         "Interior");
     interior.strip->setFliped(ledConfig.interiorFlipped);
     interior.strip->setEnabled(ledConfig.interiorEnabled);
-    LEDSegment *interiorSegment = new LEDSegment(interior.strip, "Interior");
 
     ledManager->addLEDStrip(interior);
 

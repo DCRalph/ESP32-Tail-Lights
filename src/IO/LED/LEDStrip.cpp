@@ -323,7 +323,8 @@ LEDStrip::LEDStrip(uint16_t numLEDs, uint8_t ledPin)
       fps(100),
       brightness(255),
       taskHandle(nullptr),
-      running(false)
+      running(false),
+      isEnabled(true)
 {
   // Create task name based on pin
   taskName = "LED_P" + String(ledPin);
