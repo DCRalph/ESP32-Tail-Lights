@@ -17,6 +17,7 @@
 #define MODE_CHARACTERISTIC_UUID "44969bf5-4a79-4fce-8acd-3b794f81c380"
 #define EFFECTS_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2900"
 #define STRIP_ACTIVE_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2901"
+#define SYNC_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2902"
 
 // Simplified BLE Data Structures
 struct __attribute__((packed)) BLEPingData
@@ -75,6 +76,70 @@ struct __attribute__((packed)) BLEStripActiveData
   bool interior;
 };
 
+// Discovered device info for BLE
+struct __attribute__((packed)) BLEDiscoveredDevice
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+  uint32_t timeSinceLastSeen;
+  bool inCurrentGroup;
+  bool isGroupMaster;
+  bool isThisDevice;
+};
+
+// Discovered group info for BLE
+struct __attribute__((packed)) BLEDiscoveredGroup
+{
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  uint8_t masterMac[6];
+  uint32_t timeSinceLastSeen;
+  bool isCurrentGroup;
+  bool canJoin;
+};
+
+// Group member info for BLE
+struct __attribute__((packed)) BLEGroupMember
+{
+  uint32_t deviceId;
+  uint8_t mac[6];
+  bool isGroupMaster;
+  bool isThisDevice;
+  uint32_t lastHeartbeat;
+};
+
+struct __attribute__((packed)) BLESyncSendData
+{
+  uint8_t mode; // 0=SOLO, 1=JOIN, 2=HOST
+
+  // Device and group information
+  uint32_t deviceId;
+  uint32_t groupId;
+  uint32_t masterDeviceId;
+  bool isMaster;
+  bool timeSynced;
+  int32_t timeOffset;
+  uint32_t syncedTime;
+  uint8_t memberCount;
+  uint8_t discoveredDeviceCount;
+  uint8_t discoveredGroupCount;
+  uint32_t currentTime;
+
+  // Discovered devices (up to 4 for BLE packet size limits)
+  BLEDiscoveredDevice discoveredDevices[4];
+
+  // Discovered groups (up to 2 for BLE packet size limits)
+  BLEDiscoveredGroup discoveredGroups[2];
+
+  // Current group members (up to 4 for BLE packet size limits)
+  BLEGroupMember groupMembers[4];
+};
+
+struct __attribute__((packed)) BLESyncReceiveData
+{
+  uint8_t mode;
+};
+
 // Forward declarations
 class Application;
 
@@ -95,6 +160,7 @@ public:
 
   // Data update methods (called by Application)
   void updatePingData();
+  void updateSyncData();
 
   // Callbacks
   void setApplication(Application *app);
@@ -108,11 +174,12 @@ private:
   BLEServer *pServer;
   BLEService *pService;
 
-  // Only 3 characteristic pointers
+  // Characteristic pointers
   BLECharacteristic *pPingCharacteristic;
   BLECharacteristic *pModeCharacteristic;
   BLECharacteristic *pEffectsCharacteristic;
   BLECharacteristic *pStripActiveCharacteristic;
+  BLECharacteristic *pSyncCharacteristic;
 
   Application *app;
   bool deviceConnected;
@@ -123,6 +190,7 @@ private:
 
   // Timing
   uint32_t lastPingUpdate;
+  uint32_t lastSyncUpdate;
 
   void setupCharacteristics();
   void setupCallbacks();
@@ -131,12 +199,14 @@ private:
   void handleModeWrite(BLECharacteristic *pCharacteristic);
   void handleEffectsWrite(BLECharacteristic *pCharacteristic);
   void handleStripActiveWrite(BLECharacteristic *pCharacteristic);
+  void handleSyncWrite(BLECharacteristic *pCharacteristic);
 
   // Simplified data preparation methods
   BLEPingData preparePingData();
   BLEModeData prepareModeData();
   BLEEffectsData prepareEffectsData();
   BLEStripActiveData prepareStripActiveData();
+  BLESyncSendData prepareSyncData();
 };
 
 // BLE Server Callbacks

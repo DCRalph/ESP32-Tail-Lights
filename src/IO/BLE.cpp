@@ -4,6 +4,7 @@
 #include "TimeProfiler.h"
 #include <esp_system.h>
 #include "Battery.h"
+#include "../Sync/SyncManager.h"
 
 // Initialize static instance
 BLEManager *BLEManager::instance = nullptr;
@@ -18,13 +19,14 @@ BLEManager *BLEManager::getInstance()
 }
 
 BLEManager::BLEManager()
-    : pServer(nullptr), pService(nullptr), app(nullptr), deviceConnected(false), connectionCount(0), lastPingUpdate(0)
+    : pServer(nullptr), pService(nullptr), app(nullptr), deviceConnected(false), connectionCount(0), lastPingUpdate(0), lastSyncUpdate(0)
 {
   // Initialize characteristic pointers to nullptr
   pPingCharacteristic = nullptr;
   pModeCharacteristic = nullptr;
   pEffectsCharacteristic = nullptr;
   pStripActiveCharacteristic = nullptr;
+  pSyncCharacteristic = nullptr;
 }
 
 BLEManager::~BLEManager()
@@ -89,15 +91,22 @@ void BLEManager::setupCharacteristics()
       STRIP_ACTIVE_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
   pStripActiveCharacteristic->addDescriptor(new BLE2902());
+
+  // Sync Characteristic (Read/Write + Notify)
+  pSyncCharacteristic = pService->createCharacteristic(
+      SYNC_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+  pSyncCharacteristic->addDescriptor(new BLE2902());
 }
 
 void BLEManager::setupCallbacks()
 {
-  // Setup callbacks for the 3 characteristics
+  // Setup callbacks for all characteristics
   pPingCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Ping"));
   pModeCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Mode"));
   pEffectsCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Effects"));
   pStripActiveCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Strip Active"));
+  pSyncCharacteristic->setCallbacks(new CarThingBLECharacteristicCallbacks(this, "Sync"));
 }
 
 void BLEManager::loop()
@@ -114,6 +123,13 @@ void BLEManager::loop()
   {
     updatePingData();
     lastPingUpdate = now;
+  }
+
+  // Update sync data every 2000ms (less frequent to avoid overwhelming BLE)
+  if (now - lastSyncUpdate > 2000)
+  {
+    updateSyncData();
+    lastSyncUpdate = now;
   }
 }
 
@@ -270,6 +286,116 @@ BLEStripActiveData BLEManager::prepareStripActiveData()
   return data;
 }
 
+BLESyncSendData BLEManager::prepareSyncData()
+{
+  BLESyncSendData data = {};
+
+  if (!app)
+    return data;
+
+  SyncManager *syncMgr = SyncManager::getInstance();
+  const auto &groupInfo = syncMgr->getGroupInfo();
+  const auto &discoveredDevices = syncMgr->getDiscoveredDevices();
+  const auto discoveredGroups = syncMgr->getDiscoveredGroups();
+  uint32_t ourDeviceId = syncMgr->getDeviceId();
+  uint32_t now = millis();
+
+  // Basic sync information
+  data.mode = static_cast<uint8_t>(syncMgr->getSyncMode());
+  data.deviceId = ourDeviceId;
+  data.groupId = groupInfo.groupId;
+  data.masterDeviceId = groupInfo.masterDeviceId;
+  data.isMaster = groupInfo.isMaster;
+  data.timeSynced = syncMgr->isTimeSynced();
+  data.timeOffset = syncMgr->getTimeOffset();
+  data.syncedTime = syncMgr->getSyncedTime();
+  data.memberCount = std::min((size_t)255, groupInfo.members.size());
+  data.discoveredDeviceCount = std::min((size_t)255, discoveredDevices.size());
+  data.discoveredGroupCount = std::min((size_t)255, discoveredGroups.size());
+  data.currentTime = now;
+
+  // Fill discovered devices (up to 4 for BLE packet size limits)
+  int deviceIdx = 0;
+  for (const auto &devicePair : discoveredDevices)
+  {
+    if (deviceIdx >= 4)
+      break;
+
+    const auto &device = devicePair.second;
+    data.discoveredDevices[deviceIdx].deviceId = device.deviceId;
+    memcpy(data.discoveredDevices[deviceIdx].mac, device.mac, 6);
+    data.discoveredDevices[deviceIdx].timeSinceLastSeen = now - device.lastSeen;
+    data.discoveredDevices[deviceIdx].isThisDevice = (device.deviceId == ourDeviceId);
+
+    // Check if device is in our current group
+    data.discoveredDevices[deviceIdx].inCurrentGroup = false;
+    data.discoveredDevices[deviceIdx].isGroupMaster = false;
+
+    if (groupInfo.groupId != 0)
+    {
+      auto memberIt = groupInfo.members.find(devicePair.first);
+      if (memberIt != groupInfo.members.end())
+      {
+        data.discoveredDevices[deviceIdx].inCurrentGroup = true;
+        data.discoveredDevices[deviceIdx].isGroupMaster = (device.deviceId == groupInfo.masterDeviceId);
+      }
+    }
+
+    deviceIdx++;
+  }
+
+  // Fill discovered groups (up to 2 for BLE packet size limits)
+  for (int i = 0; i < std::min((size_t)2, discoveredGroups.size()); i++)
+  {
+    const auto &group = discoveredGroups[i];
+    data.discoveredGroups[i].groupId = group.groupId;
+    data.discoveredGroups[i].masterDeviceId = group.masterDeviceId;
+    memcpy(data.discoveredGroups[i].masterMac, group.masterMac, 6);
+    data.discoveredGroups[i].timeSinceLastSeen = now - group.lastSeen;
+    data.discoveredGroups[i].isCurrentGroup = (group.groupId == groupInfo.groupId);
+    data.discoveredGroups[i].canJoin = (groupInfo.groupId == 0 || group.groupId != groupInfo.groupId);
+  }
+
+  // Fill current group members (up to 4 for BLE packet size limits)
+  int memberIdx = 0;
+  for (const auto &memberPair : groupInfo.members)
+  {
+    if (memberIdx >= 4)
+      break;
+
+    const auto &member = memberPair.second;
+    data.groupMembers[memberIdx].deviceId = member.deviceId;
+    memcpy(data.groupMembers[memberIdx].mac, member.mac, 6);
+    data.groupMembers[memberIdx].isGroupMaster = (member.deviceId == groupInfo.masterDeviceId);
+    data.groupMembers[memberIdx].isThisDevice = (member.deviceId == ourDeviceId);
+
+    // Try to find heartbeat info from discovered devices
+    auto discoveredIt = discoveredDevices.find(memberPair.first);
+    if (discoveredIt != discoveredDevices.end())
+    {
+      data.groupMembers[memberIdx].lastHeartbeat = now - discoveredIt->second.lastSeen;
+    }
+    else
+    {
+      data.groupMembers[memberIdx].lastHeartbeat = 0; // Unknown
+    }
+
+    memberIdx++;
+  }
+
+  return data;
+}
+
+void BLEManager::updateSyncData()
+{
+  if (!deviceConnected || !pSyncCharacteristic)
+    return;
+
+  BLESyncSendData syncData = prepareSyncData();
+  pSyncCharacteristic->setValue((uint8_t *)&syncData, sizeof(syncData));
+  pSyncCharacteristic->notify();
+}
+
 // Characteristic callback handlers
 void BLEManager::handleModeWrite(BLECharacteristic *pCharacteristic)
 {
@@ -401,6 +527,30 @@ void BLEManager::handleStripActiveWrite(BLECharacteristic *pCharacteristic)
   pStripActiveCharacteristic->notify();
 }
 
+void BLEManager::handleSyncWrite(BLECharacteristic *pCharacteristic)
+{
+  if (!app)
+    return;
+
+  std::string value = pCharacteristic->getValue();
+  if (value.length() != sizeof(BLESyncReceiveData))
+  {
+    Serial.println("BLE Sync: Invalid data size");
+    return;
+  }
+
+  BLESyncReceiveData *data = (BLESyncReceiveData *)value.data();
+  Serial.println("BLE Sync: Received sync command");
+
+  // Handle sync mode changes
+  SyncManager *syncMgr = SyncManager::getInstance();
+  syncMgr->setSyncMode(static_cast<SyncMode>(data->mode));
+
+  BLESyncSendData dataTX = prepareSyncData();
+  pSyncCharacteristic->setValue((uint8_t *)&dataTX, sizeof(dataTX));
+  pSyncCharacteristic->notify();
+}
+
 // BLE Server Callbacks
 CarThingBLEServerCallbacks::CarThingBLEServerCallbacks(BLEManager *manager)
     : bleManager(manager)
@@ -449,6 +599,10 @@ void CarThingBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteris
   {
     bleManager->handleStripActiveWrite(pCharacteristic);
   }
+  else if (characteristicName == "Sync")
+  {
+    bleManager->handleSyncWrite(pCharacteristic);
+  }
 }
 
 void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacteristic)
@@ -474,6 +628,11 @@ void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacterist
   else if (characteristicName == "Strip Active")
   {
     BLEStripActiveData data = bleManager->prepareStripActiveData();
+    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
+  }
+  else if (characteristicName == "Sync")
+  {
+    BLESyncSendData data = bleManager->prepareSyncData();
     pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
   }
 }
