@@ -443,10 +443,11 @@ void LEDStrip::updateEffects()
 
     clearBufferUnsafe();
 
-    for (auto segment : segments)
-    {
-      segment->updateEffects();
-    }
+    if (isEnabled && isActive)
+      for (auto segment : segments)
+      {
+        segment->updateEffects();
+      }
 
     timeProfiler.stop(profilerKey);
 
@@ -462,10 +463,11 @@ void LEDStrip::draw()
     if (!isEnabled)
       return;
 
-    for (auto segment : segments)
-    {
-      segment->draw();
-    }
+    if (isActive)
+      for (auto segment : segments)
+      {
+        segment->draw();
+      }
 
     if (!fliped)
     {
@@ -486,9 +488,9 @@ void LEDStrip::show()
 {
   // if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
   // {
-    controller->showLeds(brightness);
+  controller->showLeds(brightness);
 
-    // xSemaphoreGive(fastledMutex);
+  // xSemaphoreGive(fastledMutex);
   // }
 }
 
@@ -630,7 +632,7 @@ void LEDStrip::_initController()
     controller = &FastLED.addLeds<WS2812B, 10, GRB>(leds, numLEDs);
     break;
   case 11:
-    controller = &FastLED.addLeds<WS2815, 11, GRB>(leds, numLEDs); 
+    controller = &FastLED.addLeds<WS2815, 11, GRB>(leds, numLEDs);
     break;
   case 12:
     controller = &FastLED.addLeds<WS2812B, 12, GRB>(leds, numLEDs);
