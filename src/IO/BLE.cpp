@@ -544,7 +544,23 @@ void BLEManager::handleSyncWrite(BLECharacteristic *pCharacteristic)
 
   // Handle sync mode changes
   SyncManager *syncMgr = SyncManager::getInstance();
-  syncMgr->setSyncMode(static_cast<SyncMode>(data->mode));
+
+  if (data->command == 0)
+  {
+    syncMgr->setSyncMode(static_cast<SyncMode>(data->mode));
+  }
+  else if (data->command == 1) // these are wip
+  {
+    // syncMgr->joinGroup(data->groupId);
+  }
+  else if (data->command == 2)
+  {
+    // syncMgr->createGroup(data->groupId);
+  }
+  else if (data->command == 3)
+  {
+    // syncMgr->leaveGroup(data->groupId);
+  }
 
   BLESyncSendData dataTX = prepareSyncData();
   pSyncCharacteristic->setValue((uint8_t *)&dataTX, sizeof(dataTX));

@@ -13,11 +13,11 @@
 #define BLE_SERVICE_UUID "51afeb92-c5fe-4efb-bf6f-5b9baf50d87f"
 
 // Only 3 Characteristics
-#define PING_CHARACTERISTIC_UUID         "7285c8f6-30eb-4266-b5c3-7a34ba69a8b7"
-#define MODE_CHARACTERISTIC_UUID         "44969bf5-4a79-4fce-8acd-3b794f81c380"
-#define EFFECTS_CHARACTERISTIC_UUID      "7645b13d-3f3b-4046-8929-05c1c72e2900"
+#define PING_CHARACTERISTIC_UUID "7285c8f6-30eb-4266-b5c3-7a34ba69a8b7"
+#define MODE_CHARACTERISTIC_UUID "44969bf5-4a79-4fce-8acd-3b794f81c380"
+#define EFFECTS_CHARACTERISTIC_UUID "7645b13d-3f3b-4046-8929-05c1c72e2900"
 #define STRIP_ACTIVE_CHARACTERISTIC_UUID "63caefc6-8a24-4da2-ac3d-367b3f7c6be3"
-#define SYNC_CHARACTERISTIC_UUID         "192c22a9-547e-4c4f-b0f1-0e197042ee9b"
+#define SYNC_CHARACTERISTIC_UUID "192c22a9-547e-4c4f-b0f1-0e197042ee9b"
 
 // Simplified BLE Data Structures
 struct __attribute__((packed)) BLEPingData
@@ -137,7 +137,9 @@ struct __attribute__((packed)) BLESyncSendData
 
 struct __attribute__((packed)) BLESyncReceiveData
 {
-  uint8_t mode;
+  uint8_t mode; // 0=SOLO, 1=JOIN, 2=HOST
+  uint32_t groupId;
+  uint8_t command; // 0=set_mode, 1=join_group, 2=create_group, 3=leave_group
 };
 
 // Forward declarations
