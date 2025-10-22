@@ -256,7 +256,7 @@ void LEDStripManager::ledTask(void *parameter)
   // Validate manager pointer
   if (!manager)
   {
-    ESP_LOGE("LEDTask", "Invalid manager pointer");
+    Serial.println("[LEDTask] ERROR: Invalid manager pointer");
     vTaskDelete(NULL);
     return;
   }
@@ -266,7 +266,9 @@ void LEDStripManager::ledTask(void *parameter)
   // Validate drawFPS to prevent division by zero
   if (manager->drawFPS <= 0)
   {
-    ESP_LOGE(TAG, "Invalid drawFPS value: %d, setting to default 60", manager->drawFPS);
+    Serial.print("[LEDTask] ERROR: Invalid drawFPS value: ");
+    Serial.print(manager->drawFPS);
+    Serial.println(", setting to default 60");
     manager->drawFPS = 60;
   }
 
@@ -275,10 +277,11 @@ void LEDStripManager::ledTask(void *parameter)
   if (framePeriodTicks < pdMS_TO_TICKS(1))
   {
     framePeriodTicks = pdMS_TO_TICKS(1);
-    ESP_LOGW(TAG, "Frame period too short, clamped to 1ms");
+    Serial.println("[LEDTask] WARNING: Frame period too short, clamped to 1ms");
   }
 
-  ESP_LOGI(TAG, "LEDStripManager: Task loop started with FPS: %d", manager->drawFPS);
+  Serial.print("[LEDTask] LEDStripManager: Task loop started with FPS: ");
+  Serial.println(manager->drawFPS);
 
   while (manager->taskRunning)
   {
@@ -300,9 +303,11 @@ void LEDStripManager::ledTask(void *parameter)
 
       if (timeToDelay < 0)
       {
-        ESP_LOGW(TAG, "Draw took %.2fms, longer than frame period (%.2fms). Frame rate may drop.",
-                 (float)elapsedTime * (1000.0f / configTICK_RATE_HZ),
-                 (float)framePeriodTicks * (1000.0f / configTICK_RATE_HZ));
+        Serial.print("[LEDTask] WARNING: Draw took ");
+        Serial.print((float)elapsedTime * (1000.0f / configTICK_RATE_HZ));
+        Serial.print("ms, longer than frame period (");
+        Serial.print((float)framePeriodTicks * (1000.0f / configTICK_RATE_HZ));
+        Serial.println("ms). Frame rate may drop.");
         timeToDelay = pdMS_TO_TICKS(1);
       }
 
@@ -321,7 +326,7 @@ void LEDStripManager::ledTask(void *parameter)
   }
 
   // Clean up when task ends
-  ESP_LOGI(TAG, "LED task ending gracefully");
+  Serial.println("[LEDTask] LED task ending gracefully");
   manager->ledTaskHandle = NULL;
   vTaskDelete(NULL);
 }

@@ -1,7 +1,7 @@
 #include "StatusLed.h"
-#include "esp_log.h"
+#include "TimeProfiler.h"
 
-static const char *TAG = "StatusLed";
+// #define STATUS_LED_DEBUG
 
 StatusLeds::StatusLeds()
 {
@@ -28,7 +28,11 @@ void StatusLeds::begin()
     _initialized = true;
 
     show();
-    ESP_LOGI(TAG, "StatusLeds initialized on pin %d with %d LEDs", OUTPUT_STATUS_LED_PIN, STATUS_LED_COUNT);
+    Serial.print("[StatusLed] StatusLeds initialized on pin ");
+    Serial.print(OUTPUT_STATUS_LED_PIN);
+    Serial.print(" with ");
+    Serial.print(STATUS_LED_COUNT);
+    Serial.println(" LEDs");
   }
 #endif
 }
@@ -37,15 +41,20 @@ void StatusLeds::show()
 {
   if (_initialized)
   {
+    timeProfiler.start("StatusLed_show", TimeUnit::MICROSECONDS);
+    timeProfiler.increment("StatusLed_show");
+
     if (xSemaphoreTake(fastledMutex, portMAX_DELAY) == pdPASS)
     {
       _controller->showLeds(_brightness);
       xSemaphoreGive(fastledMutex);
     }
+
+    timeProfiler.stop("StatusLed_show");
   }
   else
   {
-    ESP_LOGE(TAG, "StatusLeds::show() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLeds::show() called but not initialized");
   }
 }
 
@@ -53,13 +62,17 @@ CRGB *StatusLeds::getLedPtr(uint8_t index)
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLeds::getLedPtr() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLeds::getLedPtr() called but not initialized");
     return nullptr;
   }
 
   if (index >= STATUS_LED_COUNT)
   {
-    ESP_LOGE(TAG, "StatusLeds::getLedPtr() index %d out of range (max: %d)", index, STATUS_LED_COUNT - 1);
+    Serial.print("[StatusLed] ERROR: StatusLeds::getLedPtr() index ");
+    Serial.print(index);
+    Serial.print(" out of range (max: ");
+    Serial.print(STATUS_LED_COUNT - 1);
+    Serial.println(")");
     return nullptr;
   }
 
@@ -80,7 +93,7 @@ void StatusLeds::startShowTask()
 {
   if (_taskRunning)
   {
-    ESP_LOGI(TAG, "StatusLeds: Show task already running");
+    Serial.println("[StatusLed] StatusLeds: Show task already running");
     return;
   }
 
@@ -96,18 +109,18 @@ void StatusLeds::startShowTask()
       1                    // Core to run on
   );
 
-  ESP_LOGI(TAG, "StatusLeds: Show task started");
+  Serial.println("[StatusLed] StatusLeds: Show task started");
 }
 
 void StatusLeds::stopShowTask()
 {
   if (!_taskRunning)
   {
-    ESP_LOGI(TAG, "StatusLeds: Show task not running");
+    Serial.println("[StatusLed] StatusLeds: Show task not running");
     return;
   }
 
-  ESP_LOGI(TAG, "StatusLeds: Stopping show task...");
+  Serial.println("[StatusLed] StatusLeds: Stopping show task...");
 
   // Signal the task to stop
   _taskRunning = false;
@@ -127,20 +140,19 @@ void StatusLeds::stopShowTask()
     // Force delete if task didn't finish gracefully
     if (_showTaskHandle != NULL)
     {
-      ESP_LOGI(TAG, "StatusLeds: Force deleting show task");
+      Serial.println("[StatusLed] StatusLeds: Force deleting show task");
       vTaskDelete(_showTaskHandle);
       _showTaskHandle = NULL;
     }
   }
 
-  ESP_LOGI(TAG, "StatusLeds: Show task stopped");
+  Serial.println("[StatusLed] StatusLeds: Show task stopped");
 }
 
 bool StatusLeds::isShowTaskRunning()
 {
   return _taskRunning;
 }
-
 
 void StatusLeds::_showTask(void *pvParameters)
 {
@@ -149,7 +161,7 @@ void StatusLeds::_showTask(void *pvParameters)
   // Validate statusLeds pointer
   if (!statusLeds)
   {
-    ESP_LOGE(TAG, "StatusLeds: Invalid statusLeds pointer in show task");
+    Serial.println("[StatusLed] ERROR: StatusLeds: Invalid statusLeds pointer in show task");
     vTaskDelete(NULL);
     return;
   }
@@ -159,7 +171,9 @@ void StatusLeds::_showTask(void *pvParameters)
   // Validate showFPS to prevent division by zero
   if (statusLeds->_showFPS <= 0)
   {
-    ESP_LOGE(TASK_TAG, "Invalid showFPS value: %d, setting to default 50", statusLeds->_showFPS);
+    Serial.print("[StatusLedShowTask] ERROR: Invalid showFPS value: ");
+    Serial.print(statusLeds->_showFPS);
+    Serial.println(", setting to default 50");
     statusLeds->_showFPS = 50;
   }
 
@@ -170,20 +184,26 @@ void StatusLeds::_showTask(void *pvParameters)
   if (framePeriodTicks < pdMS_TO_TICKS(1))
   {
     framePeriodTicks = pdMS_TO_TICKS(1);
-    ESP_LOGW(TASK_TAG, "Frame period too short, clamped to 1ms");
+    Serial.println("[StatusLedShowTask] WARNING: Frame period too short, clamped to 1ms");
   }
 
-  ESP_LOGI(TASK_TAG, "StatusLeds: Show task loop started with FPS: %d", statusLeds->_showFPS);
+  Serial.print("[StatusLedShowTask] StatusLeds: Show task loop started with FPS: ");
+  Serial.println(statusLeds->_showFPS);
 
   // Use a local copy of taskRunning status to reduce race conditions
   while (statusLeds->_taskRunning)
   {
+    timeProfiler.start("StatusLed_showTask_loop", TimeUnit::MICROSECONDS);
+    timeProfiler.increment("StatusLed_showTask_loop");
+
     TickType_t startTime = xTaskGetTickCount();
 
     statusLeds->show();
 
     TickType_t endTime = xTaskGetTickCount();
     TickType_t elapsedTime = endTime - startTime;
+
+    timeProfiler.stop("StatusLed_showTask_loop");
 
     if (!statusLeds->_taskRunning)
       break;
@@ -194,9 +214,11 @@ void StatusLeds::_showTask(void *pvParameters)
 
       if (timeToDelay < 0)
       {
-        ESP_LOGW(TASK_TAG, "Show took %.2fms, longer than frame period (%.2fms). Frame rate may drop.",
-                 (float)elapsedTime * (1000.0f / configTICK_RATE_HZ),
-                 (float)framePeriodTicks * (1000.0f / configTICK_RATE_HZ));
+        Serial.print("[StatusLedShowTask] WARNING: Show took ");
+        Serial.print((float)elapsedTime * (1000.0f / configTICK_RATE_HZ));
+        Serial.print("ms, longer than frame period (");
+        Serial.print((float)framePeriodTicks * (1000.0f / configTICK_RATE_HZ));
+        Serial.println("ms). Frame rate may drop.");
 
         timeToDelay = pdMS_TO_TICKS(1);
       }
@@ -216,7 +238,7 @@ void StatusLeds::_showTask(void *pvParameters)
   }
 
   // Clean up when task ends
-  ESP_LOGI(TASK_TAG, "StatusLeds: Show task ending gracefully");
+  Serial.println("[StatusLedShowTask] StatusLeds: Show task ending gracefully");
   statusLeds->_showTaskHandle = NULL;
   vTaskDelete(NULL);
 }
@@ -260,7 +282,7 @@ void StatusLed::begin(StatusLeds *controller, CRGB *ledPtr)
     *_ledPtr = CRGB(0, 0, 0);
     // _show();
 
-    ESP_LOGI(TAG, "StatusLed initialized with controller");
+    Serial.println("[StatusLed] StatusLed initialized with controller");
   }
 }
 
@@ -272,19 +294,27 @@ void StatusLed::_setColor(uint8_t r, uint8_t g, uint8_t b)
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLed::_setColor() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLed::_setColor() called but not initialized");
     return;
   }
 
   if (!_ledPtr)
   {
-    ESP_LOGE(TAG, "StatusLed::_setColor() called but LED pointer is null");
+    Serial.println("[StatusLed] ERROR: StatusLed::_setColor() called but LED pointer is null");
     return;
   }
 
   *_ledPtr = CRGB(r, g, b);
   // _show();
-  ESP_LOGD(TAG, "Color set to %d %d %d", r, g, b);
+
+#ifdef STATUS_LED_DEBUG
+  Serial.print("[StatusLed] DEBUG: Color set to ");
+  Serial.print(r);
+  Serial.print(" ");
+  Serial.print(g);
+  Serial.print(" ");
+  Serial.println(b);
+#endif
 }
 
 void StatusLed::_setColor(uint32_t color)
@@ -535,7 +565,7 @@ void StatusLed::setMode(RGB_MODE mode)
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLed::setMode() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLed::setMode() called but not initialized");
     return;
   }
 
@@ -547,11 +577,12 @@ void StatusLed::setMode(RGB_MODE mode)
 
   if (_mode == RGB_MODE::Blink)
   {
-    ESP_LOGI(TAG, "Not changed because current mode is Blink");
+    Serial.println("[StatusLed] Not changed because current mode is Blink");
     return;
   }
 
-  ESP_LOGI(TAG, "Mode changed to %d", (int)mode);
+  Serial.print("[StatusLed] Mode changed to ");
+  Serial.println((int)mode);
   _updateModeHistory(_mode);
   _setMode(mode);
 }
@@ -560,12 +591,13 @@ void StatusLed::setPrevMode()
 {
   if (_modeHistory.size() == 0)
   {
-    ESP_LOGI(TAG, "SetPrevMode() called with no history");
+    Serial.println("[StatusLed] SetPrevMode() called with no history");
     _setMode(RGB_MODE::Manual);
     return;
   }
 
-  ESP_LOGI(TAG, "[PREV] Mode changed to %d", (int)_modeHistory.back());
+  Serial.print("[StatusLed] [PREV] Mode changed to ");
+  Serial.println((int)_modeHistory.back());
 
   _setMode(_modeHistory.back());
   _modeHistory.pop_back();
@@ -575,13 +607,13 @@ void StatusLed::goBackSteps(uint8_t steps)
 {
   if (steps == 0)
   {
-    ESP_LOGI(TAG, "goBackSteps() called with 0 steps");
+    Serial.println("[StatusLed] goBackSteps() called with 0 steps");
     return;
   }
 
   if (_modeHistory.size() == 0)
   {
-    ESP_LOGI(TAG, "goBackSteps() called with no history");
+    Serial.println("[StatusLed] goBackSteps() called with no history");
     _setMode(RGB_MODE::Manual);
     return;
   }
@@ -606,7 +638,9 @@ void StatusLed::goBackSteps(uint8_t steps)
 
 void StatusLed::clearHistory()
 {
-  ESP_LOGI(TAG, "History cleared (%d entries)", _modeHistory.size());
+  Serial.print("[StatusLed] History cleared (");
+  Serial.print(_modeHistory.size());
+  Serial.println(" entries)");
   _modeHistory.clear();
 }
 
@@ -619,7 +653,11 @@ RGB_MODE StatusLed::getHistoryAt(uint8_t index)
 {
   if (index >= _modeHistory.size())
   {
-    ESP_LOGW(TAG, "getHistoryAt() index %d out of range (size: %d)", index, _modeHistory.size());
+    Serial.print("[StatusLed] WARNING: getHistoryAt() index ");
+    Serial.print(index);
+    Serial.print(" out of range (size: ");
+    Serial.print(_modeHistory.size());
+    Serial.println(")");
     return RGB_MODE::Manual; // Default fallback
   }
 
@@ -651,7 +689,7 @@ void StatusLed::setColor(uint8_t r, uint8_t g, uint8_t b)
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLed::setColor() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLed::setColor() called but not initialized");
     return;
   }
 
@@ -659,11 +697,20 @@ void StatusLed::setColor(uint8_t r, uint8_t g, uint8_t b)
 
   if (_mode != RGB_MODE::Manual)
   {
-    ESP_LOGD(TAG, "SetColor() called while not in Manual mode");
+#ifdef STATUS_LED_DEBUG
+    Serial.println("[StatusLed] DEBUG: SetColor() called while not in Manual mode");
+#endif
     return;
   }
 
-  ESP_LOGD(TAG, "Color set to %d %d %d", r, g, b);
+#ifdef STATUS_LED_DEBUG
+  Serial.print("[StatusLed] DEBUG: Color set to ");
+  Serial.print(r);
+  Serial.print(" ");
+  Serial.print(g);
+  Serial.print(" ");
+  Serial.println(b);
+#endif
   _setColor(r, g, b);
 }
 
@@ -686,7 +733,7 @@ void StatusLed::off()
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLed::off() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLed::off() called but not initialized");
     return;
   }
 
@@ -694,7 +741,9 @@ void StatusLed::off()
 
   if (_mode != RGB_MODE::Manual)
   {
-    ESP_LOGD(TAG, "Off() called while not in Manual mode");
+#ifdef STATUS_LED_DEBUG
+    Serial.println("[StatusLed] DEBUG: Off() called while not in Manual mode");
+#endif
     return;
   }
 
@@ -719,13 +768,13 @@ void StatusLed::blink(uint32_t color, uint8_t speed, uint8_t count)
 {
   if (!_initialized)
   {
-    ESP_LOGE(TAG, "StatusLed::blink() called but not initialized");
+    Serial.println("[StatusLed] ERROR: StatusLed::blink() called but not initialized");
     return;
   }
 
   if (_mode == RGB_MODE::Blink)
   {
-    ESP_LOGI(TAG, "Blink() called while already in Blink mode");
+    Serial.println("[StatusLed] Blink() called while already in Blink mode");
     return;
   }
 

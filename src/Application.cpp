@@ -70,7 +70,7 @@ void Application::begin()
     headlights.strip->setFliped(ledConfig.headlightFlipped);
 
     ledManager->addLEDStrip(headlights);
-    headlights.strip->setActive(true);
+    headlights.strip->setActive(true); // default to active so that the strip is visible when the app is started
 
     headlights.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -88,7 +88,7 @@ void Application::begin()
     taillights.strip->setFliped(ledConfig.taillightFlipped);
 
     ledManager->addLEDStrip(taillights);
-    taillights.strip->setActive(true);
+    taillights.strip->setActive(true); // default to active so that the strip is visible when the app is started
 
     taillights.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -110,7 +110,7 @@ void Application::begin()
     underglow.strip->setFliped(ledConfig.underglowFlipped);
 
     ledManager->addLEDStrip(underglow);
-    underglow.strip->setActive(false);
+    underglow.strip->setActive(false); // default to inactive so that the strip is not visible when the app is started
 
     underglow.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);
@@ -144,7 +144,7 @@ void Application::begin()
     interior.strip->setFliped(ledConfig.interiorFlipped);
 
     ledManager->addLEDStrip(interior);
-    interior.strip->setActive(false);
+    interior.strip->setActive(false); // default to inactive so that the strip is not visible when the app is started
 
     interior.strip->getBuffer()[0] = Color(255, 0, 0);
     delay(500);

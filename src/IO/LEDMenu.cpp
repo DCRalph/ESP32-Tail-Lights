@@ -1,5 +1,4 @@
 #include "LEDMenu.h"
-#include "esp_log.h"
 
 static const char *TAG = "LEDMenu";
 
@@ -182,7 +181,7 @@ LEDMenu::~LEDMenu() { clearMenuItems(); }
 
 void LEDMenu::begin()
 {
-  ESP_LOGI(TAG, "LEDMenu init");
+  Serial.println("[LEDMenu] LEDMenu init");
   _patternStartTime = millis();
   _showPattern(IDLE_PATTERN);
 }
@@ -194,12 +193,12 @@ void LEDMenu::setEnabled(bool ena)
   _enabled = ena;
   if (_enabled)
   {
-    ESP_LOGI(TAG, "Menu enabled");
+    Serial.println("[LEDMenu] Menu enabled");
     _showPattern(IDLE_PATTERN);
   }
   else
   {
-    ESP_LOGI(TAG, "Menu disabled");
+    Serial.println("[LEDMenu] Menu disabled");
     _exitMenu();
   }
 }
@@ -209,7 +208,9 @@ bool LEDMenu::isEnabled() const { return _enabled; }
 void LEDMenu::addMenuItem(const LEDMenuItem &item)
 {
   _rootMenuItems.push_back(item);
-  ESP_LOGD(TAG, "Added menu item '%s'", item.name.c_str());
+  Serial.print("[LEDMenu] DEBUG: Added menu item '");
+  Serial.print(item.name);
+  Serial.println("'");
 }
 
 void LEDMenu::clearMenuItems()
@@ -224,7 +225,9 @@ void LEDMenu::enterSubMenu(std::vector<LEDMenuItem> *subItems)
   {
     _menuStack.push_back(MenuLevel(subItems, 0));
     _patternStartTime = millis();
-    ESP_LOGI(TAG, "Entered submenu with %d items", subItems->size());
+    Serial.print("[LEDMenu] Entered submenu with ");
+    Serial.print(subItems->size());
+    Serial.println(" items");
   }
 }
 
@@ -234,7 +237,7 @@ void LEDMenu::exitSubMenu()
   {
     _menuStack.pop_back();
     _patternStartTime = millis();
-    ESP_LOGI(TAG, "Exited submenu");
+    Serial.println("[LEDMenu] Exited submenu");
   }
   else
   {
@@ -249,7 +252,7 @@ void LEDMenu::update()
   _updateLEDs();
   if (_state != LEDMenuState::IDLE && _timedOut())
   {
-    ESP_LOGI(TAG, "Auto-exit menu (timeout)");
+    Serial.println("[LEDMenu] Auto-exit menu (timeout)");
     _exitMenu();
   }
 }
@@ -261,7 +264,10 @@ void LEDMenu::handleButtonEvent(const ButtonEvent &ev)
   _resetActivity();
 
   // print event
-  ESP_LOGI(TAG, "Button event: %s, %s", buttonTypeStrings[ev.button].c_str(), buttonEventTypeStrings[ev.type].c_str());
+  Serial.print("[LEDMenu] Button event: ");
+  Serial.print(buttonTypeStrings[ev.button]);
+  Serial.print(", ");
+  Serial.println(buttonEventTypeStrings[ev.type]);
 
   if (_state == LEDMenuState::IDLE)
   {
@@ -295,14 +301,14 @@ void LEDMenu::_enterMenu()
 {
   if (_rootMenuItems.empty())
   {
-    ESP_LOGW(TAG, "No items – cannot enter menu");
+    Serial.println("[LEDMenu] WARNING: No items – cannot enter menu");
     return;
   }
   _state = LEDMenuState::ACTIVE;
   _menuStack.clear();
   _menuStack.push_back(MenuLevel(&_rootMenuItems, 0));
   _patternStartTime = millis();
-  ESP_LOGI(TAG, "Entered menu");
+  Serial.println("[LEDMenu] Entered menu");
 }
 
 void LEDMenu::_exitMenu()
@@ -317,7 +323,7 @@ void LEDMenu::_exitMenu()
   _state = LEDMenuState::IDLE;
   _menuStack.clear();
   _patternStartTime = millis();
-  ESP_LOGI(TAG, "Exited menu");
+  Serial.println("[LEDMenu] Exited menu");
 }
 
 // — event dispatch —
@@ -361,7 +367,8 @@ void LEDMenu::_onEditingEvent(const ButtonEvent &ev)
   // SELECT saves & calls onSave
   if (ev.button == ButtonType::SELECT && ev.type == ButtonEventType::SINGLE_CLICK)
   {
-    ESP_LOGI(TAG, "Saved value=%d", currentItem->currentValue);
+    Serial.print("[LEDMenu] Saved value=");
+    Serial.println(currentItem->currentValue);
     currentItem->saveValue();
     _patternStartTime = millis();
     return;
@@ -393,7 +400,8 @@ void LEDMenu::_incrementCurrentItem()
 
   level->currentIndex = (level->currentIndex + 1) % level->items->size();
   _patternStartTime = millis();
-  ESP_LOGD(TAG, "Menu idx=%d", level->currentIndex);
+  Serial.print("[LEDMenu] DEBUG: Menu idx=");
+  Serial.println(level->currentIndex);
 }
 
 void LEDMenu::_decrementCurrentItem()
@@ -407,7 +415,8 @@ void LEDMenu::_decrementCurrentItem()
   else
     level->currentIndex--;
   _patternStartTime = millis();
-  ESP_LOGD(TAG, "Menu idx=%d", level->currentIndex);
+  Serial.print("[LEDMenu] DEBUG: Menu idx=");
+  Serial.println(level->currentIndex);
 }
 
 void LEDMenu::_executeCurrentItem()
@@ -419,7 +428,9 @@ void LEDMenu::_executeCurrentItem()
   switch (item->type)
   {
   case LEDMenuItemType::ACTION:
-    ESP_LOGI(TAG, "Action '%s'", item->name.c_str());
+    Serial.print("[LEDMenu] Action '");
+    Serial.print(item->name);
+    Serial.println("'");
     if (item->actionCallback)
       item->actionCallback();
     break;
@@ -428,20 +439,24 @@ void LEDMenu::_executeCurrentItem()
   case LEDMenuItemType::SELECT:
     item->startEditing();
     _patternStartTime = millis();
-    ESP_LOGI(TAG, "Editing '%s'", item->name.c_str());
+    Serial.print("[LEDMenu] Editing '");
+    Serial.print(item->name);
+    Serial.println("'");
     break;
 
   case LEDMenuItemType::SUBMENU:
     if (item->subMenuItems)
     {
       enterSubMenu(item->subMenuItems);
-      ESP_LOGI(TAG, "Entered submenu '%s'", item->name.c_str());
+      Serial.print("[LEDMenu] Entered submenu '");
+      Serial.print(item->name);
+      Serial.println("'");
     }
     break;
 
   case LEDMenuItemType::BACK:
     exitSubMenu();
-    ESP_LOGI(TAG, "Back from submenu");
+    Serial.println("[LEDMenu] Back from submenu");
     break;
   }
 }

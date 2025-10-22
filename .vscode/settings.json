@@ -32,5 +32,6 @@
     "typeinfo": "cpp",
     "iosfwd": "cpp"
   },
-  "idf.pythonInstallPath": "C:\\Users\\William\\.espressif\\tools\\idf-python\\3.11.2\\python.exe"
+  "idf.pythonInstallPath": "/usr/bin/python3",
+  "python.languageServer": "None"
 }

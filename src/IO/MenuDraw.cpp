@@ -537,7 +537,8 @@ void Menu::update()
 
   if (BtnSel.clicks != 0)
   {
-    ESP_LOGI(TAG, "Clicks: %d", BtnSel.clicks);
+    Serial.print("[Menu] Clicks: ");
+    Serial.println(BtnSel.clicks);
     items[active]->run();
     BtnSel.clicks = 0;
   }

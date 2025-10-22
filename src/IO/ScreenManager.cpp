@@ -1,13 +1,12 @@
 #include "ScreenManager.h"
 #ifdef ENABLE_DISPLAY
-#include "esp_log.h"
 
 static const char *TAG = "SCREEN_MANAGER";
 
 void ScreenManager::init(void)
 {
   pendingScreen = nullptr;
-  ESP_LOGI(TAG, "Initialized");
+  Serial.println("[SCREEN_MANAGER] Initialized");
 }
 
 void ScreenManager::update(void)
@@ -15,7 +14,7 @@ void ScreenManager::update(void)
   if (currentScreen && currentScreen->update)
     currentScreen->update();
   else
-    ESP_LOGW(TAG, "No screen to update");
+    Serial.println("[SCREEN_MANAGER] WARNING: No screen to update");
 
   if (applyPendingScreenChange())
     update();
@@ -26,7 +25,7 @@ void ScreenManager::draw(void)
   if (currentScreen && currentScreen->draw)
     currentScreen->draw();
   else
-    ESP_LOGW(TAG, "No screen to draw");
+    Serial.println("[SCREEN_MANAGER] WARNING: No screen to draw");
 }
 
 const Screen2 *ScreenManager::getCurrentScreen(void)
@@ -42,9 +41,17 @@ bool ScreenManager::applyPendingScreenChange()
   {
 
     if (currentScreen)
-      ESP_LOGI(TAG, "From: %s To: %s", currentScreen->name, pendingScreen->name);
+    {
+      Serial.print("[SCREEN_MANAGER] From: ");
+      Serial.print(currentScreen->name);
+      Serial.print(" To: ");
+      Serial.println(pendingScreen->name);
+    }
     else
-      ESP_LOGI(TAG, "To: %s", pendingScreen->name);
+    {
+      Serial.print("[SCREEN_MANAGER] To: ");
+      Serial.println(pendingScreen->name);
+    }
 
     if (currentScreen && currentScreen->onExit)
       currentScreen->onExit();
@@ -52,7 +59,8 @@ bool ScreenManager::applyPendingScreenChange()
     currentScreen = pendingScreen;
     pendingScreen = nullptr;
 
-    ESP_LOGI(TAG, ">> %s", currentScreen->name);
+    Serial.print("[SCREEN_MANAGER] >> ");
+    Serial.println(currentScreen->name);
 
     updateHistory(currentScreen);
 
@@ -72,27 +80,31 @@ void ScreenManager::setScreen(const Screen2 *screen)
 
 void ScreenManager::back(void)
 {
-  ESP_LOGI(TAG, "Screen history:");
+  Serial.println("[SCREEN_MANAGER] Screen history:");
   for (size_t i = 0; i < screenHistory.size(); i++)
   {
-    ESP_LOGI(TAG, "[%d] %s", i, screenHistory[i]->name);
+    Serial.print("[SCREEN_MANAGER] [");
+    Serial.print(i);
+    Serial.print("] ");
+    Serial.println(screenHistory[i]->name);
   }
 
   if (screenHistory.size() > 1)
   {
     screenHistory.pop_back();
     pendingScreen = screenHistory.back();
-    ESP_LOGI(TAG, "Going back to: %s", pendingScreen->name);
+    Serial.print("[SCREEN_MANAGER] Going back to: ");
+    Serial.println(pendingScreen->name);
   }
   else
   {
-    ESP_LOGI(TAG, "Cannot go back - no screen history available");
+    Serial.println("[SCREEN_MANAGER] Cannot go back - no screen history available");
   }
 }
 
 void ScreenManager::clearHistory(void)
 {
-  ESP_LOGI(TAG, "Clearing screen history");
+  Serial.println("[SCREEN_MANAGER] Clearing screen history");
 
   const Screen2 *current = nullptr;
   if (screenHistory.size() > 0)
@@ -110,13 +122,14 @@ void ScreenManager::updateHistory(const Screen2 *screen)
 {
   if (screen == nullptr)
   {
-    ESP_LOGW(TAG, "Attempted to add null screen to history");
+    Serial.println("[SCREEN_MANAGER] WARNING: Attempted to add null screen to history");
     return;
   }
 
   if (screenHistory.empty() || screenHistory.back() != screen)
   {
-    ESP_LOGI(TAG, "Adding screen to history: %s", screen->name);
+    Serial.print("[SCREEN_MANAGER] Adding screen to history: ");
+    Serial.println(screen->name);
     screenHistory.push_back(screen);
 
     if (screenHistory.size() > 10)
@@ -128,8 +141,10 @@ bool ScreenManager::goToHistoryIndex(size_t index)
 {
   if (index < screenHistory.size())
   {
-    ESP_LOGI(TAG, "Navigating to history index %d: %s",
-             index, screenHistory[index]->name);
+    Serial.print("[SCREEN_MANAGER] Navigating to history index ");
+    Serial.print(index);
+    Serial.print(": ");
+    Serial.println(screenHistory[index]->name);
 
     if (index != screenHistory.size() - 1)
     {
@@ -139,12 +154,14 @@ bool ScreenManager::goToHistoryIndex(size_t index)
       return true;
     }
 
-    ESP_LOGI(TAG, "Already at requested screen");
+    Serial.println("[SCREEN_MANAGER] Already at requested screen");
     return false;
   }
 
-  ESP_LOGW(TAG, "Invalid history index: %d, max: %d",
-           index, screenHistory.size() ? screenHistory.size() - 1 : 0);
+  Serial.print("[SCREEN_MANAGER] WARNING: Invalid history index: ");
+  Serial.print(index);
+  Serial.print(", max: ");
+  Serial.println(screenHistory.size() ? screenHistory.size() - 1 : 0);
   return false;
 }
 

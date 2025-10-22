@@ -617,7 +617,7 @@ void SyncManager::printGroupInfo()
 void SyncManager::updateSyncedLED()
 {
   uint32_t currentTime = millis();
-  bool fastBlink = (currentTime % 250) < 125;       // 4Hz fast blink
+  bool fastBlink = (currentTime % 500) < 250;       // 2Hz fast blink
   bool slowBlink = (currentTime % 1000) < 500;      // 1Hz slow blink
   bool verySlowBlink = (currentTime % 2000) < 1000; // 0.5Hz very slow blink
 

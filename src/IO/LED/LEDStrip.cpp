@@ -151,13 +151,19 @@ LEDSegment::LEDSegment(LEDStrip *_parentStrip, String _name, uint16_t _startInde
 
   if (startIndex >= parentStrip->numLEDs)
   {
-    Serial.println("LEDSegment: startIndex >= parentStrip->numLEDs");
+    Serial.println("LEDSegment: " + name + " startIndex >= parentStrip->numLEDs");
+    Serial.println("    | parentStrip->numLEDs: " + String(parentStrip->numLEDs));
+    Serial.println("    | startIndex: " + String(startIndex));
     return;
   }
 
   if (startIndex + numLEDs - 1 > parentStrip->numLEDs)
   {
-    Serial.println("LEDSegment: startIndex + numLEDs - 1 > parentStrip->numLEDs");
+    Serial.println("LEDSegment: " + name + " startIndex + numLEDs - 1 > parentStrip->numLEDs");
+    Serial.println("    | numLEDs: " + String(numLEDs));
+    Serial.println("    | parentStrip->numLEDs: " + String(parentStrip->numLEDs));
+    Serial.println("    | startIndex: " + String(startIndex));
+    Serial.println("    | endIndex: " + String(startIndex + numLEDs - 1));
     return;
   }
 
@@ -165,7 +171,7 @@ LEDSegment::LEDSegment(LEDStrip *_parentStrip, String _name, uint16_t _startInde
   {
     if (segment->name == name)
     {
-      Serial.println("LEDSegment: name already exists");
+      Serial.println("LEDSegment: " + name + " name already exists");
       return;
     }
     // if (segment->startIndex <= startIndex && segment->startIndex + segment->numLEDs - 1 >= startIndex)

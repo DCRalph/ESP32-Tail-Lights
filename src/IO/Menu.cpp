@@ -120,8 +120,10 @@ void MenuItem::run()
   if (functions.size() == 0 || BtnSel.clicks == 0)
     return;
 
-  ESP_LOGI(TAG, "Running %s", name.c_str());
-  ESP_LOGI(TAG, "Functions: %d", functions.size());
+  Serial.print("[Menu] Running ");
+  Serial.println(name);
+  Serial.print("[Menu] Functions: ");
+  Serial.println(functions.size());
 
   for (uint8_t i = 0; i < functions.size(); i++)
   {
