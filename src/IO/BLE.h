@@ -14,6 +14,9 @@ class BLEService;
 class BLECharacteristic;
 #endif
 #include <functional>
+#include <mutex>
+#include <string>
+#include <vector>
 #include "config.h"
 #include "IO/BLEEffectsCatalog.h"
 #include "IO/LED/Types.h"
@@ -197,15 +200,31 @@ private:
   String lastEffectsInfoJson;
   String lastEffectsCommandResponse;
 
+  // Writes arrive on the BLE stack's task. They are queued here and applied in loop()
+  // so effects, sync state and Strings are only ever touched from the main task.
+  struct PendingWrite
+  {
+    BLECharacteristic *characteristic;
+    std::string value;
+  };
+  std::mutex pendingWritesMutex;
+  std::vector<PendingWrite> pendingWrites;
+
+  void queueWrite(BLECharacteristic *pCharacteristic);
+  void processPendingWrites();
+
   void setupCharacteristics();
   void setupCallbacks();
 
-  // Simplified characteristic callback handlers
-  void handleModeWrite(BLECharacteristic *pCharacteristic);
-  void handleEffectsRequestWrite(BLECharacteristic *pCharacteristic);
-  void handleEffectsCommandWrite(BLECharacteristic *pCharacteristic);
-  void handleStripActiveWrite(BLECharacteristic *pCharacteristic);
-  void handleSyncWrite(BLECharacteristic *pCharacteristic);
+  // Write handlers, run from loop() with the queued value
+  void handleModeWrite(const std::string &value);
+  void handleEffectsRequestWrite(const std::string &value);
+  void handleEffectsCommandWrite(const std::string &value);
+  void handleStripActiveWrite(const std::string &value);
+  void handleSyncWrite(const std::string &value);
+
+  // Refresh read-only values (mode, strip active) so reads never build state on the BLE task
+  void updateReadValues();
 
   // Simplified data preparation methods
   BLEPingData preparePingData();
@@ -239,7 +258,6 @@ class CarThingBLECharacteristicCallbacks : public BLECharacteristicCallbacks
 public:
   CarThingBLECharacteristicCallbacks(BLEManager *manager, const String &charName);
   void onWrite(BLECharacteristic *pCharacteristic) override;
-  void onRead(BLECharacteristic *pCharacteristic) override;
 
 private:
   BLEManager *bleManager;

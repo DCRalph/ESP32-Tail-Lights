@@ -157,9 +157,9 @@ LEDSegment::LEDSegment(LEDStrip *_parentStrip, String _name, uint16_t _startInde
     return;
   }
 
-  if (startIndex + numLEDs - 1 > parentStrip->numLEDs)
+  if (startIndex + numLEDs > parentStrip->numLEDs)
   {
-    Serial.println("LEDSegment: " + name + " startIndex + numLEDs - 1 > parentStrip->numLEDs");
+    Serial.println("LEDSegment: " + name + " startIndex + numLEDs > parentStrip->numLEDs");
     Serial.println("    | numLEDs: " + String(numLEDs));
     Serial.println("    | parentStrip->numLEDs: " + String(parentStrip->numLEDs));
     Serial.println("    | startIndex: " + String(startIndex));

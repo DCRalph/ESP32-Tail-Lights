@@ -60,15 +60,21 @@ void BLEManager::setupCharacteristics() {}
 
 void BLEManager::setupCallbacks() {}
 
-void BLEManager::handleModeWrite(BLECharacteristic *pCharacteristic) {}
+void BLEManager::queueWrite(BLECharacteristic *pCharacteristic) {}
 
-void BLEManager::handleEffectsRequestWrite(BLECharacteristic *pCharacteristic) {}
+void BLEManager::processPendingWrites() {}
 
-void BLEManager::handleEffectsCommandWrite(BLECharacteristic *pCharacteristic) {}
+void BLEManager::handleModeWrite(const std::string &value) {}
 
-void BLEManager::handleStripActiveWrite(BLECharacteristic *pCharacteristic) {}
+void BLEManager::handleEffectsRequestWrite(const std::string &value) {}
 
-void BLEManager::handleSyncWrite(BLECharacteristic *pCharacteristic) {}
+void BLEManager::handleEffectsCommandWrite(const std::string &value) {}
+
+void BLEManager::handleStripActiveWrite(const std::string &value) {}
+
+void BLEManager::handleSyncWrite(const std::string &value) {}
+
+void BLEManager::updateReadValues() {}
 
 BLEPingData BLEManager::preparePingData()
 {
@@ -151,6 +157,7 @@ void BLEManager::begin()
   updateEffectsInfoCharacteristic(false);
   updateEffectsDataCharacteristic(false);
   updateEffectsCommandResponse(lastEffectsCommandResponse, false);
+  updateReadValues();
 
   // Start the service
   pService->start();
@@ -230,6 +237,8 @@ void BLEManager::loop()
 {
   uint32_t now = millis();
 
+  processPendingWrites();
+
   if (!deviceConnected)
   {
     return;
@@ -239,6 +248,7 @@ void BLEManager::loop()
   if (now - lastPingUpdate > 1000)
   {
     updatePingData();
+    updateReadValues();
     lastPingUpdate = now;
   }
 
@@ -563,20 +573,64 @@ void BLEManager::updateSyncData()
   pSyncCharacteristic->notify();
 }
 
-// Characteristic callback handlers
-void BLEManager::handleModeWrite(BLECharacteristic *pCharacteristic)
+void BLEManager::updateReadValues()
+{
+  if (pModeCharacteristic)
+  {
+    BLEModeData modeData = prepareModeData();
+    pModeCharacteristic->setValue((uint8_t *)&modeData, sizeof(modeData));
+  }
+
+  if (pStripActiveCharacteristic)
+  {
+    BLEStripActiveData stripData = prepareStripActiveData();
+    pStripActiveCharacteristic->setValue((uint8_t *)&stripData, sizeof(stripData));
+  }
+}
+
+// Called on the BLE task: copy the value and return, everything else happens in loop()
+void BLEManager::queueWrite(BLECharacteristic *pCharacteristic)
+{
+  std::lock_guard<std::mutex> lock(pendingWritesMutex);
+  pendingWrites.push_back({pCharacteristic, pCharacteristic->getValue()});
+}
+
+void BLEManager::processPendingWrites()
+{
+  std::vector<PendingWrite> writes;
+  {
+    std::lock_guard<std::mutex> lock(pendingWritesMutex);
+    writes.swap(pendingWrites);
+  }
+
+  for (const auto &write : writes)
+  {
+    if (write.characteristic == pModeCharacteristic)
+      handleModeWrite(write.value);
+    else if (write.characteristic == pEffectsRequestCharacteristic)
+      handleEffectsRequestWrite(write.value);
+    else if (write.characteristic == pEffectsCommandCharacteristic)
+      handleEffectsCommandWrite(write.value);
+    else if (write.characteristic == pStripActiveCharacteristic)
+      handleStripActiveWrite(write.value);
+    else if (write.characteristic == pSyncCharacteristic)
+      handleSyncWrite(write.value);
+  }
+}
+
+// Characteristic write handlers (main task only)
+void BLEManager::handleModeWrite(const std::string &value)
 {
   if (!app)
     return;
 
-  std::string value = pCharacteristic->getValue();
   if (value.length() != sizeof(BLEModeData))
   {
     Serial.println("BLE Mode: Invalid data size");
     return;
   }
 
-  BLEModeData *data = (BLEModeData *)value.data();
+  const BLEModeData *data = (const BLEModeData *)value.data();
   Serial.printf("BLE Mode: Setting mode to %d\n", data->mode);
 
   // Set the mode in the application
@@ -598,11 +652,13 @@ void BLEManager::handleModeWrite(BLECharacteristic *pCharacteristic)
   default:
     break;
   }
+
+  updateReadValues();
+  pModeCharacteristic->notify();
 }
 
-void BLEManager::handleEffectsRequestWrite(BLECharacteristic *pCharacteristic)
+void BLEManager::handleEffectsRequestWrite(const std::string &value)
 {
-  std::string value = pCharacteristic->getValue();
   if (value.empty())
   {
     Serial.println("BLE Effects Request: Empty payload");
@@ -625,7 +681,7 @@ void BLEManager::handleEffectsRequestWrite(BLECharacteristic *pCharacteristic)
   updateEffectsDataCharacteristic(true);
 }
 
-void BLEManager::handleEffectsCommandWrite(BLECharacteristic *pCharacteristic)
+void BLEManager::handleEffectsCommandWrite(const std::string &value)
 {
   if (!app)
   {
@@ -633,7 +689,6 @@ void BLEManager::handleEffectsCommandWrite(BLECharacteristic *pCharacteristic)
     return;
   }
 
-  std::string value = pCharacteristic->getValue();
   if (value.empty())
   {
     updateEffectsCommandResponse("{\"ok\":false,\"error\":\"empty payload\"}", true);
@@ -660,19 +715,18 @@ void BLEManager::handleEffectsCommandWrite(BLECharacteristic *pCharacteristic)
   }
 }
 
-void BLEManager::handleStripActiveWrite(BLECharacteristic *pCharacteristic)
+void BLEManager::handleStripActiveWrite(const std::string &value)
 {
   if (!app)
     return;
 
-  std::string value = pCharacteristic->getValue();
   if (value.length() != sizeof(BLEStripActiveData))
   {
     Serial.println("BLE Strip Active: Invalid data size");
     return;
   }
 
-  BLEStripActiveData *data = (BLEStripActiveData *)value.data();
+  const BLEStripActiveData *data = (const BLEStripActiveData *)value.data();
   Serial.println("BLE Strip Active: Updating strip active");
 
   LEDStripManager *ledManager = LEDStripManager::getInstance();
@@ -686,19 +740,18 @@ void BLEManager::handleStripActiveWrite(BLECharacteristic *pCharacteristic)
   pStripActiveCharacteristic->notify();
 }
 
-void BLEManager::handleSyncWrite(BLECharacteristic *pCharacteristic)
+void BLEManager::handleSyncWrite(const std::string &value)
 {
   if (!app)
     return;
 
-  std::string value = pCharacteristic->getValue();
   if (value.length() != sizeof(BLESyncReceiveData))
   {
     Serial.println("BLE Sync: Invalid data size");
     return;
   }
 
-  BLESyncReceiveData *data = (BLESyncReceiveData *)value.data();
+  const BLESyncReceiveData *data = (const BLESyncReceiveData *)value.data();
   Serial.println("BLE Sync: Received sync command");
 
   // Handle sync mode changes
@@ -761,66 +814,7 @@ CarThingBLECharacteristicCallbacks::CarThingBLECharacteristicCallbacks(BLEManage
 void CarThingBLECharacteristicCallbacks::onWrite(BLECharacteristic *pCharacteristic)
 {
   Serial.println("BLE Write to " + characteristicName);
-
-  if (characteristicName == "Mode")
-  {
-    bleManager->handleModeWrite(pCharacteristic);
-  }
-  else if (characteristicName == "Effects Request")
-  {
-    bleManager->handleEffectsRequestWrite(pCharacteristic);
-  }
-  else if (characteristicName == "Effects Command")
-  {
-    bleManager->handleEffectsCommandWrite(pCharacteristic);
-  }
-  else if (characteristicName == "Strip Active")
-  {
-    bleManager->handleStripActiveWrite(pCharacteristic);
-  }
-  else if (characteristicName == "Sync")
-  {
-    bleManager->handleSyncWrite(pCharacteristic);
-  }
-}
-
-void CarThingBLECharacteristicCallbacks::onRead(BLECharacteristic *pCharacteristic)
-{
-  Serial.println("BLE Read from " + characteristicName);
-
-  // Update characteristic value based on current state
-  if (characteristicName == "Ping")
-  {
-    BLEPingData data = bleManager->preparePingData();
-    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
-  }
-  else if (characteristicName == "Mode")
-  {
-    BLEModeData data = bleManager->prepareModeData();
-    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
-  }
-  else if (characteristicName == "Effects Info")
-  {
-    bleManager->updateEffectsInfoCharacteristic(false);
-  }
-  else if (characteristicName == "Effects Data")
-  {
-    bleManager->updateEffectsDataCharacteristic(false);
-  }
-  else if (characteristicName == "Effects Command")
-  {
-    bleManager->updateEffectsCommandResponse(bleManager->lastEffectsCommandResponse, false);
-  }
-  else if (characteristicName == "Strip Active")
-  {
-    BLEStripActiveData data = bleManager->prepareStripActiveData();
-    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
-  }
-  else if (characteristicName == "Sync")
-  {
-    BLESyncSendData data = bleManager->prepareSyncData();
-    pCharacteristic->setValue((uint8_t *)&data, sizeof(data));
-  }
+  bleManager->queueWrite(pCharacteristic);
 }
 
 #endif
